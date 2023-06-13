@@ -4,6 +4,7 @@
   "description": "Security system for managing surveillance cameras",
   "main": "index.js",
   "scripts": {
+    "build": "npm ci --prefix server",
     "test" : "npm test --prefix server",
     "debug-server" : "npm run start --prefix server"
   },
