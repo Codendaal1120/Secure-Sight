@@ -23,6 +23,39 @@ async function getOneAsync(collectionName, filter, project) {
         return { success : true, payload : setObjectId(res) };
     } 
     catch (err) {
+        console.error(err);
+        return { success : false, error : err.message };
+    }
+}
+
+/**
+ * Read collection from db
+ */
+async function getManyAsync(collectionName, filter, project, sort) {
+
+    var collection = await tryGetCollection(collectionName);
+    if (!collection.success){
+        return collection;
+    }
+
+    try {
+
+        if (!project){
+            project = {};
+        }
+        
+        if (!sort){
+            sort = {};
+        }
+
+        let res = await collection.payload.find(filter, project).sort(sort).toArray();
+        res.forEach(element => {
+            element = setObjectId(element)
+        });
+        return { success : true, payload : res };
+    } 
+    catch (err) {
+        console.error(err);
         return { success : false, error : err.message };
     }
 }
@@ -72,3 +105,4 @@ var toDbiD = function(inputId) {
 
 
 module.exports.getOneAsync = getOneAsync;
+module.exports.getManyAsync = getManyAsync;
