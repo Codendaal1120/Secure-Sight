@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "npm ci --prefix server",
-    "test" : "npm test --prefix server",
-    "debug-server" : "npm run start --prefix server"
+    "test": "npm test --prefix server",
+    "debug-server": "npm run start --prefix server",
+    "debug-web": "npm run start --prefix web"
   },
   "repository": {
     "type": "git",
