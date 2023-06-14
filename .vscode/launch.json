@@ -56,5 +56,11 @@
             ],
             "type": "pwa-node"
           }
-    ]
+    ],
+    "compounds": [
+      {
+          "name": "Server/Client",
+          "configurations": ["Debug server", "Debug web"]
+      }
+  ]
 }
