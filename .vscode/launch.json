@@ -42,6 +42,19 @@
               "<node_internals>/**"
             ],
             "type": "pwa-node"
+          },
+          {
+            "name": "Debug",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node"
           }
     ]
 }

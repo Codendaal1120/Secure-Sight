@@ -1,7 +1,7 @@
 const dataService = require("./dataService");
 const collectionName = "cameras";
 
-var checkDbHealth = async function() {    
+const checkDbHealth = async function() {    
     try{
         // DB health
         let cams = await dataService.getOneAsync(collectionName, { });

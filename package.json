@@ -6,6 +6,7 @@
   "scripts": {
     "build": "npm ci --prefix server",
     "test": "npm test --prefix server",
+    "debug": "npm run web:start && npm run start --prefix server",
     "debug-server": "npm run start --prefix server",
     "debug-web": "npm run start --prefix web"
   },

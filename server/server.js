@@ -6,7 +6,7 @@ const http = require('http').createServer(app);
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser')
 
-dotenv.config({ path: path.resolve(root, '.env') });
+dotenv.config({ path: path.resolve(root, '.env.development')});
 const port = process.env.PORT; 
 
 app.use(bodyParser.json());
