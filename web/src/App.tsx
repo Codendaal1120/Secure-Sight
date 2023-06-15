@@ -1,14 +1,16 @@
 import * as api from './services/Api';
 import './App.css'
+import CameraViewer from './components/CameraViewer';
+//import {Camera, CameraViewer}  from './components/CameraViewer';
 import.meta.env
 
 function App() {
  
-  console.log(import.meta.env);
-  const c = api.cameras();
+  //const c = api.cameras();
+  const c = { name : 'Test-Cam', url: 'prop2'};
 
   return (
-    <h1>Hello</h1>
+    <CameraViewer cameraName={'Test'} cameraUrl={'rtsp://192.168.86.50:8554/profile0'} camera={ c }/>
   )
 }
 
