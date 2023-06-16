@@ -5,6 +5,7 @@ const app = express();
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser')
 const cors = require('cors')
+require('rtsp-relay')(app); //required for the ws
 
 /************* Setup *************/ 
 dotenv.config({ path: path.resolve(root, '.env.development')});
@@ -21,7 +22,8 @@ app.use(bodyParser.json());
 app.get('/echo', async (req, res) => { 
     res.send("Welcome to Secure Sight");
 });  
-  
+
+/************* Endpoints *************/
 app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
 

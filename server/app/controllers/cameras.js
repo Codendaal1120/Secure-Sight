@@ -22,13 +22,16 @@ router.get("/", async function (req, res) {
  * Get a specific stream
  * @returns {WebSocket} socket
  */
-router.ws('/:camUrl/stream', (ws, req) =>{
-    // TODO: lookup cam
-    let cam = { name : 'test', url :  'rtsp://admin:123456@192.168.86.58:554/stream1' }
+router.ws('/:camId/stream', async (ws, req) =>{
+    let tryGetCam = await camService.getOneById(req.params.camId);  
+    if (!tryGetCam.success){
+        // kill?
+        throw Error ('no cam');
+    }
     return proxy({
         verbose: true ,
         transport: 'tcp',
-        url: cam.url,
+        url: tryGetCam.payload.url,
       })(ws);
 });
 

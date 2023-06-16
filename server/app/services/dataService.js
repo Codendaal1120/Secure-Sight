@@ -96,13 +96,13 @@ function setObjectId(obj){
 
 var toDbiD = function(inputId) {    
     try{
-        return new mongo.ObjectID(inputId);    
+        return new mongo.ObjectId(inputId);    
     }
     catch(ex){
         return null; 
     }  
 }
 
-
+module.exports.toDbiD = toDbiD;
 module.exports.getOneAsync = getOneAsync;
 module.exports.getManyAsync = getManyAsync;
