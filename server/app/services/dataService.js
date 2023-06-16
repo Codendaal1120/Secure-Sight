@@ -60,6 +60,7 @@ async function getManyAsync(collectionName, filter, project, sort) {
     }
 }
 
+
 async function tryGetCollection(collectionName){
 
     if (!collectionName){
@@ -86,6 +87,40 @@ async function tryGetCollection(collectionName){
     return { success : true, payload : collection };
 }
 
+async function insertOneAsync(collectionName, document, project) {
+
+    if (!collectionName){
+        return { success : false, error : "invalid collectionName" };
+    }
+
+    if (!document){
+        return { success : false, error : "invalid document supplied" };
+    }
+
+    var collection = await tryGetCollection(collectionName);
+    if (!collection.success){
+        return collection;
+    }
+
+    if (!project){
+        project = {};
+    } 
+
+    try {
+
+        let res = await collection.payload.insertOne(document);
+        if (res.insertedId){
+            return { success : true, payload : setObjectId(document) };
+        }
+        else{
+            return { success : false, error : "Could not insert" };
+        }
+    } 
+    catch (err) {
+        return { success : false, error : err.message };
+    }
+}
+
 function setObjectId(obj){
     if (obj){
         obj.id = obj._id.toString();
@@ -106,3 +141,4 @@ var toDbiD = function(inputId) {
 module.exports.toDbiD = toDbiD;
 module.exports.getOneAsync = getOneAsync;
 module.exports.getManyAsync = getManyAsync;
+module.exports.insertOneAsync = insertOneAsync;

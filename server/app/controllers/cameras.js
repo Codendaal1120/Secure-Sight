@@ -6,8 +6,13 @@ const { proxy, scriptUrl } = require('rtsp-relay')(router);
 
 /**
  * Get all configured cameras
+ * @route GET /api/cameras
+ * @produces application/json 
+ * @group Cameras api
  * @returns {object} Returns list of cameras
- */
+ * @returns {Array.<object>} 200 - Array of cameras
+ * @returns {Error}  500 - Unexpected error
+*/
 router.get("/", async function (req, res) {  
     const result = await camService.getAll(); 
     if (result.success){
@@ -20,7 +25,12 @@ router.get("/", async function (req, res) {
 
 /**
  * Get a specific stream
- * @returns {WebSocket} socket
+ * @route WS /api/cameras/:camId/stream
+ * @camId Camera DB id
+ * @produces application/json
+ * @group Cameras api
+ * @returns {WebSocket} 200 - Camera stream websocket
+ * @returns {Error}  500 - Unexpected error
  */
 router.ws('/:camId/stream', async (ws, req) =>{
     let tryGetCam = await camService.getOneById(req.params.camId);  
@@ -34,6 +44,26 @@ router.ws('/:camId/stream', async (ws, req) =>{
         url: tryGetCam.payload.url,
       })(ws);
 });
+
+/**
+ * Create a new camera
+ * @route POST /api/cameras
+ * @group Cameras api
+ * @produces application/json
+ * @param {object} group.body.required - Camera object to save
+ * @returns {object} 200 - The saved camera
+ * @returns {Error}  500 - Unexpected error
+ */
+router.post("/", async function (req, res) {
+  const result = await camService.tryCreateNewCam(req.body); 
+  if (result.success){
+      res.json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
 
 /**
  * temp endpoint to check stream

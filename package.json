@@ -7,7 +7,8 @@
     "build": "npm ci --prefix server",
     "test": "npm test --prefix server",
     "debug-server": "npm run start --prefix server",
-    "debug-web": "npm run start --prefix web"
+    "debug-web": "npm run start --prefix web",
+    "debug-server-test" : "npm run test --prefix server"
   },
   "repository": {
     "type": "git",

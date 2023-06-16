@@ -44,11 +44,11 @@
             "type": "pwa-node"
           },
           {
-            "name": "Debug",
+            "name": "Debug test",
             "request": "launch",
             "runtimeArgs": [
               "run-script",
-              "debug"
+              "debug-server-test"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [

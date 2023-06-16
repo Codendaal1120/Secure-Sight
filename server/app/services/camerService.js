@@ -7,7 +7,7 @@ const collectionName = "cameras";
  */
 var getAll = async function() {    
     try{
-        let tryGetCams = await dataService.getOneAsync(collectionName, { });
+        let tryGetCams = await dataService.getManyAsync(collectionName, { });
 
         if (!tryGetCams.success){
             console.error(`ERROR : cannot get cameras : ${tryGetCams.error}`);
@@ -23,6 +23,10 @@ var getAll = async function() {
     }
 };
 
+/**
+ * Get a camera by id
+ * @returns {object} Returns a single camera
+ */
 var getOneById = async function(cameraId) {    
     // validate input
     if (!cameraId){
@@ -46,5 +50,43 @@ var getOneById = async function(cameraId) {
     }
 };
 
+/**
+ * Create a new camera
+ * @returns {object} Returns a single camera
+ */
+var tryCreateNewCam = async function(camera){
+    // validate input    
+    var errors = validateCamera(camera);
+    if (errors.length > 0){
+        return { success : false, error : errors };
+    }
+
+    let document = await dataService.insertOneAsync(collectionName, camera);    
+    if (!document.success){
+        return { success : false, error : `Could not create a new camera : ${document.error}` };
+    }
+
+    return { success : true, payload : document.payload };
+}
+
+function validateCamera(camera){
+    var errors = [];
+
+    if (!camera){
+        errors.push("Invalid camera");
+    }
+    
+    if (!camera.name){
+        errors.push("Invalid camera name");
+    }
+
+    if (!camera.url){
+        errors.push("Invalid url");
+    }    
+
+    return errors;
+}
+
 module.exports.getAll = getAll;
 module.exports.getOneById = getOneById;
+module.exports.tryCreateNewCam = tryCreateNewCam;
