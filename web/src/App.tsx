@@ -6,7 +6,8 @@ import.meta.env
 
 function App() {
  
-  //const c = api.cameras();
+  const c2 = api.cameras();
+  console.log(c2);
   const c = { name : 'Test-Cam', url: 'prop2'};
 
   return (

@@ -1,3 +1,5 @@
+import { useRef, useEffect  } from 'react';
+import { loadPlayer } from 'rtsp-relay/browser';
 interface Props {
   cameraName: string;
   cameraUrl: string;
@@ -12,8 +14,19 @@ export interface Camera {
 }
 
 function CameraViewer ({ camera } : Props) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  
+  useEffect(() => {
+    if (!canvas.current) throw new Error('Ref is null');
+
+    loadPlayer({
+      url: 'ws://localhost:3002/api/stream',
+      canvas: canvas.current,
+    });
+  }, []);
+
   return (
-    <div>{camera.name}</div>
+    <canvas ref={canvas} />
   )
 }
 
