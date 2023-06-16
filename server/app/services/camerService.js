@@ -3,11 +3,10 @@ const collectionName = "cameras";
 
 /**
  * Get all configured cameras from DB
- * @returns {object} Returns list of cameras
  */
 var getAll = async function() {    
     try{
-        let tryGetCams = await dataService.getManyAsync(collectionName, { });
+        let tryGetCams = await dataService.getManyAsync(collectionName, { deletedOn : null });
 
         if (!tryGetCams.success){
             console.error(`ERROR : cannot get cameras : ${tryGetCams.error}`);
@@ -25,7 +24,6 @@ var getAll = async function() {
 
 /**
  * Get a camera by id
- * @returns {object} Returns a single camera
  */
 var getOneById = async function(cameraId) {    
     // validate input
@@ -34,7 +32,7 @@ var getOneById = async function(cameraId) {
     }
 
     try{
-        let tryGetCams = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(cameraId) });
+        let tryGetCams = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(cameraId), deletedOn : null });
 
         if (!tryGetCams.success){
             console.error(`ERROR : cannot get camera : ${tryGetCams.error}`);
@@ -52,7 +50,6 @@ var getOneById = async function(cameraId) {
 
 /**
  * Create a new camera
- * @returns {object} Returns a single camera
  */
 var tryCreateNewCam = async function(camera){
     // validate input    
@@ -67,6 +64,60 @@ var tryCreateNewCam = async function(camera){
     }
 
     return { success : true, payload : document.payload };
+}
+
+/**
+ * updates a camera
+ */
+var tryUpdateCam = async function(camId, cam){
+
+    // first validate input    
+    let errors = validateCamera(cam);
+
+    if (!camId){
+        errors.push("Invalid camera Id");
+    }
+
+    if (errors.length > 0){
+        return { success : false, error : errors };
+    }   
+
+    let filter = { "_id" : dataService.toDbiD(camId) };  
+
+    const update = { 
+        $set : {             
+            name: cam.name, 
+            url: cam.url,            
+            updatedOn: new Date() }
+    }
+
+    let doc = await dataService.updateOneAsync(collectionName, filter, update);     
+    if (!doc.success){
+        return { success : false, error : `Could not update camera with id '${camId}'` };
+    }
+
+    return { success : true, payload : doc.payload };
+}
+
+/**
+ * Soft deletes a camera
+ */
+var tryDeleteCam = async function(camId){
+    
+    if (!camId){
+        return { success : false, error : [ "Invalid camera Id" ] };
+    }
+
+    let filter = { "_id" : dataService.toDbiD(camId) };  
+
+    const update = { $set : {  deletedOn: new Date() } }
+
+    let doc = await dataService.updateOneAsync(collectionName, filter, update);     
+    if (!doc.success){
+        return { success : false, error : `Could not delete camera with id '${camId}'` };
+    }
+
+    return { success : true, payload : "Camera deleted" };
 }
 
 function validateCamera(camera){
@@ -90,3 +141,5 @@ function validateCamera(camera){
 module.exports.getAll = getAll;
 module.exports.getOneById = getOneById;
 module.exports.tryCreateNewCam = tryCreateNewCam;
+module.exports.tryUpdateCam = tryUpdateCam;
+module.exports.tryDeleteCam = tryDeleteCam;

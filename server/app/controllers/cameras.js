@@ -9,7 +9,6 @@ const { proxy, scriptUrl } = require('rtsp-relay')(router);
  * @route GET /api/cameras
  * @produces application/json 
  * @group Cameras api
- * @returns {object} Returns list of cameras
  * @returns {Array.<object>} 200 - Array of cameras
  * @returns {Error}  500 - Unexpected error
 */
@@ -21,6 +20,25 @@ router.get("/", async function (req, res) {
     else{
         res.status(500).send(result.error);
     }     
+});
+
+/**
+ * Get all configured cameras
+ * @route GET /api/cameras/:camId
+ * @camId Camera DB id
+ * @produces application/json 
+ * @group Cameras api
+ * @returns {object} 200 - Returns single camera
+ * @returns {Error}  400 - Bad request
+*/
+router.get("/:camId", async function (req, res) {  
+  const result = await camService.getOneById(req.params.camId); 
+  if (result.success){
+      res.send(result.payload);
+  }
+  else{
+    res.status(400).json(result.error);
+  }    
 });
 
 /**
@@ -48,22 +66,61 @@ router.ws('/:camId/stream', async (ws, req) =>{
 /**
  * Create a new camera
  * @route POST /api/cameras
+ * @camId Camera DB id
  * @group Cameras api
  * @produces application/json
- * @param {object} group.body.required - Camera object to save
- * @returns {object} 200 - The saved camera
- * @returns {Error}  500 - Unexpected error
+ * @param {object} camera.body.required - Camera object to save
+ * @returns {object} 201 - The saved camera
+ * @returns {Error}  400 - Bad request
  */
 router.post("/", async function (req, res) {
   const result = await camService.tryCreateNewCam(req.body); 
   if (result.success){
-      res.json(result.payload);
+      res.status(201).json(result.payload);
   }
   else{
       res.status(400).json(result.error);
   }    
 });
 
+/**
+ * Update a camera
+ * @route PUT /api/cameras
+ * @camId Camera DB id
+ * @group Cameras api
+ * @produces application/json
+ * @param {object} camera.body.required - Camera object to save
+ * @returns {object} 200 - The saved camera
+ * @returns {Error}  400 - Bad request
+ */
+router.put("/:camId", async function (req, res) {
+  const result = await camService.tryUpdateCam(req.params.camId, req.body); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Delete a camera
+ * @route PUT /api/cameras
+ * @camId Camera DB id
+ * @group Cameras api
+ * @produces application/json
+ * @returns {object} 200 - The saved camera
+ * @returns {Error}  400 - Bad request
+ */
+router.delete("/:camId", async function (req, res) {
+  const result = await camService.tryDeleteCam(req.params.camId); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
 
 /**
  * temp endpoint to check stream
