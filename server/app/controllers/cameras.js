@@ -57,9 +57,10 @@ router.ws('/:camId/stream', async (ws, req) =>{
         throw Error ('no cam');
     }
     return proxy({
-        verbose: true ,
-        transport: 'tcp',
-        url: tryGetCam.payload.url,
+      verbose: true ,
+      transport: 'tcp',
+      url: tryGetCam.payload.url,        
+      additionalFlags: ['-vf', 'scale=1358:764', '-b:v', '500k', '-fflags', 'nobuffer']
       })(ws);
 });
 

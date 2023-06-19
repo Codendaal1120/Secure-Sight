@@ -4,7 +4,7 @@ import axios from 'axios';
 //const API_URL = process.env.API_URL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: `http://${import.meta.env.VITE_API}`,
 });
 
 interface Camera {
@@ -13,25 +13,15 @@ interface Camera {
   }
 
 export function cameras() {
-    console.log('getting ' + import.meta.env.VITE_API_URL)
+    console.log(`getting ${import.meta.env.VITE_API}/api/cameras`)
     try{
         api.get("/api/cameras").then((res) => {
             console.log(res);
-            // const groups = res.data.map((group: GroupResponse) => {
-            //   if(group.availibleSpots > 1) {
-            //     return {
-            //       id: group.id,
-            //       name: group.name,
-            //       description: group.description,
-            //       members: group.size - (group.availibleSpots - 1),
-            //       dateCreated: group.dateCreated,
-            //     };
-            //   }
             }
         );
     }
     catch (error) {
-        // do nothing lmao
+        console.error(error);
     }
 
  

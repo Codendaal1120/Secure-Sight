@@ -59,7 +59,7 @@
     ],
     "compounds": [
       {
-          "name": "Server/Client",
+          "name": "Debug web & server",
           "configurations": ["Debug server", "Debug web"]
       }
   ]
