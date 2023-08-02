@@ -2,8 +2,6 @@ const express = require("express");
 const router = express.Router();
 const camService = require("../services/camerService");
 
-const { proxy, scriptUrl } = require('rtsp-relay')(router);
-
 /**
  * Get all configured cameras
  * @route GET /api/cameras
@@ -50,18 +48,18 @@ router.get("/:camId", async function (req, res) {
  * @returns {WebSocket} 200 - Camera stream websocket
  * @returns {Error}  500 - Unexpected error
  */
-router.ws('/:camId/stream', async (ws, req) =>{
-    let tryGetCam = await camService.getOneById(req.params.camId);  
-    if (!tryGetCam.success){
-        // kill?
-        throw Error ('no cam');
-    }
-    return proxy({
-        verbose: true ,
-        transport: 'tcp',
-        url: tryGetCam.payload.url,
-      })(ws);
-});
+// router.ws('/:camId/stream', async (ws, req) =>{
+//     let tryGetCam = await camService.getOneById(req.params.camId);  
+//     if (!tryGetCam.success){
+//         // kill?
+//         throw Error ('no cam');
+//     }
+//     return proxy({
+//         verbose: true ,
+//         transport: 'tcp',
+//         url: tryGetCam.payload.url,
+//       })(ws);
+// });
 
 /**
  * Create a new camera

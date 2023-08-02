@@ -8,107 +8,181 @@ const events = require('events');
 const em = new events.EventEmitter();
 
 let mpegTsParser = null;
-let servers = []
-// get cameras
-// start each random port streams
+let servers = [];
+let io = null;
 
-const startStreams = async function() {    
+const startStreams = async function(ioServer) {    
 
-    mpegTsParser = createMpegTsParser();
-    
-    let cameras = [
-        { id : 'cam1', url : 'rtsp://admin:123456@192.168.86.58:554/stream1' }
-    ]
+  io = ioServer;
+  mpegTsParser = createMpegTsParser();
 
-    for (let i = 0; i < cameras.length; i++) {
-        await createCameraStreams(cameras[i]);        
-    } 
+  let cameras = [
+      { id : 'cam1', url : 'rtsp://admin:123456@192.168.86.58:554/stream1' }
+  ]
+
+  for (let i = 0; i < cameras.length; i++) {
+      await createCameraStreams(cameras[i]);        
+  } 
 }
 
-async function createCameraStreams(cam){
+async function createCameraStreams(cam){   
 
-    // this is the main stream port
-    let mpegTsStreamPort = await createLocalServer(null, async function(socket){
-        for await (const chunks of mpegTsParser.parse(socket)) {
-            for (const chunk of chunks.chunks) {
-                // emit the stream data to the event handler
-                em.emit(`${cam.id}-stream-data`, chunk);
-            }
+  let mpegTsPort = await startFeedStream(cam);   
+  let watcherPort = await startWatcherStream(cam);  
+
+  let server = {
+    camera : cam,
+    mpegTsPort : mpegTsPort,
+    watcherPort : watcherPort,
+  }    
+
+  servers.push(server);
+}
+
+/** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
+async function startFeedStream(cam){
+
+  // this is the main stream port
+  let mpegTsStreamPort = await createLocalServer(null, async function(socket){
+    for await (const chunks of mpegTsParser.parse(socket)) {
+        for (const chunk of chunks.chunks) {
+            // emit the stream data to the event handler
+            em.emit(`${cam.id}-stream-data`, chunk);
         }
-    });
-
-    let server = {
-        camera : cam,
-        mpegTsPort : mpegTsStreamPort
     }
+  });
 
-    startFeedStream(server.mpegTsPort, server.camera.url)
+  const args = [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-fflags',
+    '+genpts',
+    '-rtsp_transport',
+    'udp',
+    // '-stimeout',
+    // '100000000',
+    '-i',
+    cam.url,
+    '-vcodec',
+    'libx264',
+    '-preset:v',
+    'ultrafast',
+    '-bsf:a',
+    'aac_adtstoasc',
+    '-acodec',
+    'libfdk_aac',
+    '-profile:a',
+    'aac_low',
+    '-flags',
+    '+global_header',
+    '-ar',
+    '8k',
+    '-b:a',
+    '100k',
+    '-ac',
+    '1',
+    '-f',
+    'tee',
+    '-map',
+    '0:v?',
+    '-map',
+    '0:a?',
+    `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
+  ];
 
-    servers.push(server);
+  const cp = spawn(statics.ffmpegPath, args);
+
+  cp.stderr.on('data', (data) => {
+    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
+    console.error('stderr', err);
+  });
+
+  cp.on('exit', (code, signal) => {
+    if (code === 1) {
+      console.error(`Main stream exited for ${cam.id}`);
+    } else {
+      console.error(`FFmpeg main process exited (expected) for ${cam.id}`);
+    }
+  });
+
+  cp.on('close', () => {
+    console.log(`main stream process closed for  ${cam.id}`);
+  });  
+
+  return mpegTsStreamPort;
 }
 
-function startFeedStream(targetPort, camUrl){
-    const args = [
-      '-hide_banner',
-      '-loglevel',
-      'error',
-      '-fflags',
-      '+genpts',
-      '-rtsp_transport',
-      'udp',
-      // '-stimeout',
-      // '100000000',
-      '-i',
-      camUrl,
-      '-vcodec',
-      'libx264',
-      '-preset:v',
-      'ultrafast',
-      '-bsf:a',
-      'aac_adtstoasc',
-      '-acodec',
-      'libfdk_aac',
-      '-profile:a',
-      'aac_low',
-      '-flags',
-      '+global_header',
-      '-ar',
-      '8k',
-      '-b:a',
-      '100k',
-      '-ac',
-      '1',
-      '-f',
-      'tee',
-      '-map',
-      '0:v?',
-      '-map',
-      '0:a?',
-      `[f=mpegts]tcp://127.0.0.1:${targetPort}`
-    ];
-  
-    const cp = spawn(statics.ffmpegPath, args);
-  
-    cp.stderr.on('data', (data) => {
-      let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-      console.error('stderr', err);
+async function startWatcherStream(cam){
+
+  let watcherPort = await createLocalServer(null, async function(socket){
+    em.on(`${cam.id}-stream-data`, function (data) {
+      socket.write(data);    
     });
-  
-    cp.on('exit', (code, signal) => {
-      if (code === 1) {
-        console.error('main stream exit');
-      } else {
-        console.error('FFmpeg main process exited (expected)');
-      }
-    });
-  
-    cp.on('close', () => {
-      console.log('main stream process closed');
-    });  
+  });
+
+  let args = [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-analyzeduration',
+    '0',
+    '-probesize',
+    '2033784',
+    '-f',
+    'mpegts',
+    '-i',
+    `tcp://127.0.0.1:${watcherPort}`,
+    '-f',
+    'mpegts',
+    '-vcodec',
+    'mpeg1video',
+    '-an','-s',
+    '1280x720',
+    '-b:v',
+    '199k',
+    '-r',
+    20,
+    '-bf',
+    '0',
+    '-preset:v',
+    'ultrafast',
+    '-threads',
+    '1',
+    '-q',
+    '1',
+    '-max_muxing_queue_size',
+    '1024',
+    '-']
+
+  const cp = spawn(statics.ffmpegPath, args);  
+
+  cp.stdout.on('data', (data) => {
+    // this goes to UI
+    io.sockets.emit(`${cam.id}-stream`, { stream:data, objects:null });
+  });
+
+  cp.stderr.on('data', (data) => {
+    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
+    console.error('watcher stderr', err);
+  });
+
+  cp.on('exit', (code, signal) => {
+    if (code === 1) {
+      console.error(`${cam.id} watcher exit`);
+    } else {
+      console.error(`FFmpeg watcher process exited (expected) for ${cam.id}`);
+    }
+  });
+
+  cp.on('close', () => {
+    console.log(`watcher process closed for  ${cam.id}`);
+  });
+
+  return watcherPort;
 }
 
-/** Creates a server listening on the target port with a callback. Returns the port the server is listening on.
- **/
+/** Creates a server listening on the target port with a callback. Returns the port the server is listening on. **/
 async function createLocalServer(targetPort, callback){
     const server = createServer(async (socket) => {
       server.close();

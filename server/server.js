@@ -5,7 +5,8 @@ const app = express();
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const streamService = require("./app/services/streamService");
-const cors = require('cors')
+const cors = require('cors');
+
 
 /************* Setup *************/ 
 dotenv.config({ path: path.resolve(root, '.env.development')});
@@ -18,6 +19,15 @@ app.use(cors({
 const port = process.env.PORT; 
 
 app.use(bodyParser.json());
+
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
 /************* Endpoints *************/ 
 app.get('/echo', async (req, res) => { 
     res.send("Welcome to Secure Sight");
@@ -28,11 +38,11 @@ app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
 
 /************* Stream setups *************/
-(async () => await streamService.startStreams())();
+(async () => await streamService.startStreams(io))();
 
 // Start webserver and listen for connections
-// app.listen(port, () => {  
-//     console.log(`SecureSight WS listening at http://localhost:${port}`)
-// })
+app.listen(port, () => {  
+    console.log(`SecureSight WS listening at http://localhost:${port}`)
+})
 
 module.exports = app;
