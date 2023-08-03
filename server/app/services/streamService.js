@@ -1,19 +1,18 @@
 const camService = require("./camerService");
-const statics = require("../statics");
-const { createServer } = require('node:net');
+const tcp = require("../modules/tcp");
+const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
-const events = require('events');
-
-const em = new events.EventEmitter();
+const ffmpeg = '.\\ffmpeg\\ffmpeg.exe';
 
 let mpegTsParser = null;
-let servers = [];
 let io = null;
+let em = null;
 
-const startStreams = async function(ioServer) {    
+const startStreams = async function(ioServer, eventEmitter) {    
 
   io = ioServer;
+  em = eventEmitter;
   mpegTsParser = createMpegTsParser();
   
   let cameras = await camService.getAll();
@@ -36,14 +35,14 @@ async function createCameraStreams(cam){
     watcherPort : watcherPort,
   }    
 
-  servers.push(server);
+  cache.cameras.push(server);
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
 async function startFeedStream(cam){
 
   // this is the main stream port
-  let mpegTsStreamPort = await createLocalServer(null, async function(socket){
+  let mpegTsStreamPort = await tcp.createLocalServer(null, async function(socket){
     for await (const chunks of mpegTsParser.parse(socket)) {
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
@@ -91,7 +90,8 @@ async function startFeedStream(cam){
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
 
-  const cp = spawn('.\\ffmpeg\\ffmpeg.exe', args);
+  const cp = spawn(ffmpeg, args);
+  console.log(`[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
 
   cp.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
@@ -100,22 +100,23 @@ async function startFeedStream(cam){
 
   cp.on('exit', (code, signal) => {
     if (code === 1) {
-      console.error(`Main stream exited for ${cam.id}`);
+      console.error(`[${cam.id}] Main stream exited`);
     } else {
-      console.error(`FFmpeg main process exited (expected) for ${cam.id}`);
+      console.error(`[${cam.id}] FFmpeg main process exited (expected)`);
     }
   });
 
   cp.on('close', () => {
-    console.log(`main stream process closed for  ${cam.id}`);
+    console.log(`[${cam.id}] main stream process closed`);
   });  
 
   return mpegTsStreamPort;
 }
 
+/** Creates the watcher stream, which wiil stream the feed stream to the io.socket for the UI */
 async function startWatcherStream(cam){
-
-  let watcherPort = await createLocalServer(null, async function(socket){
+  
+  let watcherPort = await tcp.createLocalServer(null, async function(socket){
     em.on(`${cam.id}-stream-data`, function (data) {      
       socket.write(data);    
     });
@@ -155,61 +156,33 @@ async function startWatcherStream(cam){
     '1024',
     '-']
 
-  const cp = spawn(statics.ffmpegPath, args);  
+  const cp = spawn(ffmpeg, args);  
+  console.log(`[${cam.id}] Watcher stream started on ${watcherPort}`);
 
   cp.stdout.on('data', (data) => {
     // this goes to UI
-    console.log('writing to ', `${cam.id}-stream`);
-    io.sockets.emit(`${cam.id}-stream`, { stream:data, objects:null });
+    //console.log('writing to ', `${cam.id}-stream`);
+    io.sockets.emit(`${cam.id}-stream`, data);
   });
 
   cp.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    console.error('watcher stderr', err);
+    console.error(`[${cam.id}] watcher stderr`, err);
   });
 
   cp.on('exit', (code, signal) => {
     if (code === 1) {
       console.error(`${cam.id} watcher exit`);
     } else {
-      console.error(`FFmpeg watcher process exited (expected) for ${cam.id}`);
+      console.error(`[${cam.id}] FFmpeg watcher process exited (expected)`);
     }
   });
 
   cp.on('close', () => {
-    console.log(`watcher process closed for  ${cam.id}`);
+    console.log(`[${cam.id}] Watcher process closed`);
   });
 
   return watcherPort;
-}
-
-/** Creates a server listening on the target port with a callback. Returns the port the server is listening on. **/
-async function createLocalServer(targetPort, callback){
-    const server = createServer(async (socket) => {
-      server.close();
-      callback(socket);
-    });
-
-    let tryCount = 0;
-  
-    while (true) {
-      tryCount++;
-      if (!targetPort){
-        targetPort = 10000 + Math.round(Math.random() * 30000);
-      }      
-
-      if (tryCount == 10){
-        throw new Error('Unable to create local server');
-      }
-  
-      try {
-        server.listen(targetPort);
-        await once(server, 'listening');
-        return server.address().port;
-      } catch(e) {
-        console.error(`could not listen on port ${targetPort}, will retry on a different port : ${e.message}`);
-      }
-    }
 }
 
 /**

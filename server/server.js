@@ -5,8 +5,10 @@ const app = express();
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const streamService = require("./app/services/streamService");
+const videoAnalysisService = require("./app/services/videoAnalysisService");
 const cors = require('cors');
-
+const events = require('events');
+const em = new events.EventEmitter();
 
 /** Setup */
 dotenv.config({ path: path.resolve(root, '.env.development')});
@@ -43,7 +45,13 @@ app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
 
 /** Stream setup */
-(async () => await streamService.startStreams(io))();
+(async () => {
+    await streamService.startStreams(io, em);
+    await videoAnalysisService.startVideoAnalysis(io, em);
+})();
+
+
+//(async () => await videoAnalysisService.startVideoAnalysis(io))();
 
 /** Start server */
 http.listen(port, () => {  

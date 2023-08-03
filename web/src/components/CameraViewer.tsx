@@ -36,7 +36,7 @@ function CameraViewer ({ camera } : Props) {
     });
 
     ioClient.on(`${camera.id}-stream`, async (data) => {
-      player.source.write(data.stream); 
+      player.source.write(data); 
     });    
 
   }, [camera.id, ioClient]);
