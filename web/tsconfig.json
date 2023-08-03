@@ -20,6 +20,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "src/components/jsmpeg.min.js"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

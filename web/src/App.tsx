@@ -6,9 +6,9 @@ import.meta.env
 
 function App() {
  
-  const c2 = api.cameras();
-  console.log(c2);
-  const c = { name : 'Test-Cam', url: 'prop2'};
+  //const c2 = api.cameras();
+  //console.log(c2);
+  const c = { id : 'cam1', name : 'Test-Cam', url: 'prop2'};
 
   return (
     <CameraViewer cameraName={'Test'} cameraUrl={'rtsp://192.168.86.50:8554/profile0'} camera={ c }/>

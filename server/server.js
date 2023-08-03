@@ -8,7 +8,7 @@ const streamService = require("./app/services/streamService");
 const cors = require('cors');
 
 
-/************* Setup *************/ 
+/** Setup */
 dotenv.config({ path: path.resolve(root, '.env.development')});
 app.use(cors({
     origin : process.env.ORIGIN, 
@@ -21,6 +21,8 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 
 const http = require('http').createServer(app);
+
+/** Socket IO config */
 const io = require('socket.io')(http, {
     cors: {
         origin: '*',
@@ -28,21 +30,24 @@ const io = require('socket.io')(http, {
     }
 });
 
-/************* Endpoints *************/ 
+io.on("connection", (socket) => {
+    console.log(`New client connected ${socket.id}`); 
+});
+
+/** Endpoints */
 app.get('/echo', async (req, res) => { 
     res.send("Welcome to Secure Sight");
 });  
 
-/************* Endpoints *************/
 app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
 
-/************* Stream setups *************/
+/** Stream setup */
 (async () => await streamService.startStreams(io))();
 
-// Start webserver and listen for connections
-app.listen(port, () => {  
+/** Start server */
+http.listen(port, () => {  
     console.log(`SecureSight WS listening at http://localhost:${port}`)
-})
+});
 
 module.exports = app;
