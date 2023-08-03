@@ -28,15 +28,15 @@ const startStreams = async function(ioServer) {
 async function createCameraStreams(cam){   
 
   let mpegTsPort = await startFeedStream(cam);   
-  let watcherPort = await startWatcherStream(cam);  
+  //let watcherPort = await startWatcherStream(cam);  
 
-  let server = {
-    camera : cam,
-    mpegTsPort : mpegTsPort,
-    watcherPort : watcherPort,
-  }    
+  // let server = {
+  //   camera : cam,
+  //   mpegTsPort : mpegTsPort,
+  //   watcherPort : watcherPort,
+  // }    
 
-  servers.push(server);
+  // servers.push(server);
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -90,6 +90,19 @@ async function startFeedStream(cam){
     '0:a?',
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
+
+  /************ TEMP *************/
+  var fs = require('fs');
+  fs.readdir('./ffmpeg/', function (err, files) {
+      console.log('**files**', files);
+  });
+  console.log(statics.ffmpegPath);
+  fs.readdir(statics.ffmpegPath, function (err, files) {
+    console.log('**files**', files);
+});
+  /************ TEMP *************/
+
+  return;
 
   const cp = spawn(statics.ffmpegPath, args);
 
