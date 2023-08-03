@@ -94,11 +94,11 @@ async function startFeedStream(cam){
   /************ TEMP *************/
   var fs = require('fs');
   fs.readdir('./ffmpeg/', function (err, files) {
-      console.log('**files**', files);
+      console.log('**files1**', files);
   });
-  console.log(statics.ffmpegPath);
+  console.log('path', statics.ffmpegPath);
   fs.readdir(statics.ffmpegPath, function (err, files) {
-    console.log('**files**', files);
+    console.log('**files2**', files);
 });
   /************ TEMP *************/
 
