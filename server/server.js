@@ -42,6 +42,13 @@ app.get('/echo', async (req, res) => {
 app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
 
+/************ TEMP *************/
+var fs = require('fs');
+fs.readdir('./ffmpeg/', function (err, files) {
+    console.log('**files**', files);
+});
+/************ TEMP *************/
+
 /** Stream setup */
 (async () => await streamService.startStreams(io))();
 
