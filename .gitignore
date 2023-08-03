@@ -129,5 +129,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 Notes-local.txt
-server/ffmpeg/ffmpeg.exe
 ToDO.md
