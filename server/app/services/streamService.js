@@ -15,28 +15,28 @@ const startStreams = async function(ioServer) {
 
   io = ioServer;
   mpegTsParser = createMpegTsParser();
+  
+  let cameras = await camService.getAll();
 
-  let cameras = [
-      { id : 'cam1', url : 'rtsp://admin:123456@192.168.86.58:554/stream1' }
-  ]
-
-  for (let i = 0; i < cameras.length; i++) {
-      await createCameraStreams(cameras[i]);        
+  for (let i = 0; i < cameras.payload.length; i++) {
+    if (cameras.payload[i].deletedOn == null){
+      await createCameraStreams(cameras.payload[i]);        
+    }      
   } 
 }
 
 async function createCameraStreams(cam){   
 
   let mpegTsPort = await startFeedStream(cam);   
-  //let watcherPort = await startWatcherStream(cam);  
+  let watcherPort = await startWatcherStream(cam);  
 
-  // let server = {
-  //   camera : cam,
-  //   mpegTsPort : mpegTsPort,
-  //   watcherPort : watcherPort,
-  // }    
+  let server = {
+    camera : cam,
+    mpegTsPort : mpegTsPort,
+    watcherPort : watcherPort,
+  }    
 
-  // servers.push(server);
+  servers.push(server);
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -91,20 +91,7 @@ async function startFeedStream(cam){
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
 
-  /************ TEMP *************/
-  var fs = require('fs');
-  fs.readdir('./ffmpeg/', function (err, files) {
-      console.log('**files1**', files);
-  });
-  console.log('path', statics.ffmpegPath);
-  fs.readdir(statics.ffmpegPath, function (err, files) {
-    console.log('**files2**', files);
-});
-  /************ TEMP *************/
-
-  return;
-
-  const cp = spawn(statics.ffmpegPath, args);
+  const cp = spawn('.\\ffmpeg\\ffmpeg.exe', args);
 
   cp.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
