@@ -50,7 +50,7 @@ fs.readdir('./ffmpeg/', function (err, files) {
 /************ TEMP *************/
 
 /** Stream setup */
-(async () => await streamService.startStreams(io))();
+//(async () => await streamService.startStreams(io))();
 
 /** Start server */
 http.listen(port, () => {  
