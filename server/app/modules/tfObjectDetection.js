@@ -15,6 +15,8 @@ const processImage = async function(jpegImage, data) {
     const predictions = await model.detect(image, 3, 0.25);
     let detections = [];
 
+    //todo: convert bbox to my shape
+
     predictions.forEach(element => {      
       if (element.class === "person"){
         detections.push({ detectedOn: new Date(), element: element, imageWidth: data.width, imageHeight: data.height  });

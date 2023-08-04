@@ -23,8 +23,8 @@ function CameraViewer ({ camera } : Props) {
 
   const streamStyle = {
     width: '640px',
-    height: '480px',
-    position: 'absolute',
+    height: '360px',
+    position: 'absolute' as const,
     left: 0,
     top: 0,
     zIndex: 0
@@ -32,8 +32,8 @@ function CameraViewer ({ camera } : Props) {
 
   const drawStyle = {
     width: '640px',
-    height: '480px',
-    position: 'absolute',
+    height: '360px',
+    position: 'absolute' as const,
     left: '0',
     top: '0',
     zIndex: '1'
@@ -81,13 +81,24 @@ function CameraViewer ({ camera } : Props) {
       requestAnimationFrame(function () {
         for (let i = 0; i < data.length; i++) {
 
-          const x = mapRange(data[i].element.bbox[0], 0, data[i].imageWidth, 0, canvasWidth)
-          const y = mapRange(data[i].element.bbox[1], 0, data[i].imageHeight, 0, canvasHeight)
-          const w = mapRange(data[i].element.bbox[2], 0, data[i].imageWidth, 0, canvasWidth)
-          const h = mapRange(data[i].element.bbox[3], 0, data[i].imageHeight, 0, canvasHeight)
+          // const x = mapRange(data[i].element.bbox[0], 0, data[i].imageWidth, 0, canvasWidth)
+          // const y = mapRange(data[i].element.bbox[1], 0, data[i].imageHeight, 0, canvasHeight)
+          // const w = mapRange(data[i].element.bbox[2], 0, data[i].imageWidth, 0, canvasWidth)
+          // const h = mapRange(data[i].element.bbox[3], 0, data[i].imageHeight, 0, canvasHeight)
 
-          //console.log(x, y, w, h)
+          ctx.font = "20px Arial";
+          ctx.fillText(data[i].aveDiff, 5, 15);
+
+          const x = mapRange(data[i].x, 0, data[i].imageWidth, 0, canvasWidth);
+          const y = mapRange(data[i].y, 0, data[i].imageHeight, 0, canvasHeight);
+          const w = mapRange(data[i].width, 0, data[i].imageWidth, 0, canvasWidth);
+          const h = mapRange(data[i].height, 0, data[i].imageHeight, 0, canvasHeight);
+
+          console.log(x, y, w, h, data[i]);
           ctx.strokeRect(x, y, w, h);
+
+        
+
         }
       });
       

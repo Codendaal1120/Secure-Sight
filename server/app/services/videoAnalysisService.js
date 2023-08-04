@@ -1,6 +1,7 @@
 const fs = require("fs");
 const tcp = require("../modules/tcp");
 const tf = require("../modules/tfObjectDetection");
+const detector = require("../modules/motionDetector");
 const Pipe2Pam = require('pipe2pam');
 const { spawn } = require('node:child_process');
 const cache = require("../modules/cache");
@@ -9,6 +10,8 @@ const jpeg = require('jpeg-js');
 
 let io = null;
 let em = null;
+let frameIndex = -1;
+let frameBuffer = [];
 
 const startVideoAnalysis = async function(ioServer, eventEmitter) {    
 
@@ -58,22 +61,24 @@ async function StartVideoProcessing(cam){
   const pipe2pam = new Pipe2Pam();
 
   pipe2pam.on('pam', async (data) => {
-    try{
-      var rawImageData = {
-        data: data.pixels,
-        width: data.width,
-        height: data.height,
-      };
-      var jpegImageData = jpeg.encode(rawImageData, 50);
-      //fs.writeFileSync('C:\\Temp\\image.jpg', jpegImageData.data);
+    processFrame(cam, data);
+    // try{
+    //   var rawImageData = {
+    //     data: data.pixels,
+    //     width: data.width,
+    //     height: data.height,
+    //   };
+    //   var jpegImageData = jpeg.encode(rawImageData, 50);
+     
+    //   //fs.writeFileSync('C:\\Temp\\image.jpg', jpegImageData.data);
 
-      var detections = await tf.processImage(jpegImageData, data);
+    //   //var detections = await tf.processImage(jpegImageData, data);
 
-      io.sockets.emit(`${cam.id}-detect`, detections);
+    //   io.sockets.emit(`${cam.id}-detect`, detections);
 
-    } catch(error){
-      console.error(error);
-    }
+    // } catch(error){
+    //   console.error(error);
+    // }
   });
 
   cpVa.stdout.pipe(pipe2pam); 
@@ -97,5 +102,51 @@ async function StartVideoProcessing(cam){
     await StartVideoProcessing();
   });
 }
+
+function processFrame(cam, data){
+  try{
+    var rawImageData = {
+      data: data.pixels,
+      width: data.width,
+      height: data.height,
+    };
+    //var jpegImageData = jpeg.encode(rawImageData, 50);
+    storeFrame(data.pixels);
+
+    let motion = detector.getMotionRegion(frameBuffer);
+  
+    if (motion){
+      motion.imageWidth = 640;
+      motion.imageHeight = 360;
+      io.sockets.emit(`${cam.id}-detect`, [motion]);
+    }
+
+    
+
+    
+    // if (detector.hasMotion(frameBuffer)){
+    //   console.log('motion');
+    // }
+    // else{
+    //   console.log('no motion');
+    // }
+  }
+  catch(error){
+    console.error(error);
+  }  
+}
+
+function storeFrame(frame){
+  if (frameBuffer.length < 3){
+    frameBuffer.push(frame);
+    return;
+  }
+
+  frameBuffer[0] = frameBuffer[1];
+  frameBuffer[1] = frameBuffer[2];
+  frameBuffer[2] = frame;
+}
+
+
 
 module.exports.startVideoAnalysis = startVideoAnalysis;

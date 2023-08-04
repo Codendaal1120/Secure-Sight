@@ -50,9 +50,6 @@ app.use("/api/cameras", require("./app/controllers/cameras"));
     await videoAnalysisService.startVideoAnalysis(io, em);
 })();
 
-
-//(async () => await videoAnalysisService.startVideoAnalysis(io))();
-
 /** Start server */
 http.listen(port, () => {  
     console.log(`SecureSight WS listening at http://localhost:${port}`)
