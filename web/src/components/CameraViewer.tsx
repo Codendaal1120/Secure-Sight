@@ -18,12 +18,32 @@ export interface Camera {
 function CameraViewer ({ camera } : Props) {
   // TODO: get address from config
   const ioClient = io('http://localhost:3002', {  });   
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const streamCanvas = useRef<HTMLCanvasElement>(null);
+  const drawCanvas = useRef<HTMLCanvasElement>(null);
+
+  const streamStyle = {
+    width: '640px',
+    height: '480px',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    zIndex: 0
+  };
+
+  const drawStyle = {
+    width: '640px',
+    height: '480px',
+    position: 'absolute',
+    left: '0',
+    top: '0',
+    zIndex: '1'
+  };
  
   useEffect(() => {
+
     const player = new JSMpeg.Player(null, {
       source: JSMpegWritableSource,
-      canvas: canvas.current,
+      canvas: streamCanvas.current,
       audio: true,
       pauseWhenHidden: false,
       videoBufferSize: 1024 * 1024,
@@ -35,15 +55,59 @@ function CameraViewer ({ camera } : Props) {
       },
     });
 
+    //https://stackoverflow.com/questions/61182258/jsmpeg-play-video-in-alongside-canvas
+
     ioClient.on(`${camera.id}-stream`, async (data) => {
       player.source.write(data); 
     });    
 
-  }, [camera.id, ioClient]);
+    const ctx = drawCanvas.current?.getContext("2d");
+
+    ioClient.on(`${camera.id}-detect`, async (data) => {
+           
+      if (!ctx){
+        return;
+      }
+      //console.log(data);
+
+      ctx.strokeStyle = "red";  
+      const canvasWidth = drawCanvas.current?.width || 0;
+      const canvasHeight = drawCanvas.current?.height || 0;
+
+      if (data.length > 0){
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      }
+
+      requestAnimationFrame(function () {
+        for (let i = 0; i < data.length; i++) {
+
+          const x = mapRange(data[i].element.bbox[0], 0, data[i].imageWidth, 0, canvasWidth)
+          const y = mapRange(data[i].element.bbox[1], 0, data[i].imageHeight, 0, canvasHeight)
+          const w = mapRange(data[i].element.bbox[2], 0, data[i].imageWidth, 0, canvasWidth)
+          const h = mapRange(data[i].element.bbox[3], 0, data[i].imageHeight, 0, canvasHeight)
+
+          //console.log(x, y, w, h)
+          ctx.strokeRect(x, y, w, h);
+        }
+      });
+      
+      
+
+    });  
+
+  }, [camera.id, drawCanvas, ioClient]);
 
   return (
-    <canvas ref={canvas} />
+    <div>
+      <canvas ref={drawCanvas} style={drawStyle}/>
+      <canvas ref={streamCanvas} style={streamStyle} />    
+    </div>    
   )
+}
+
+function mapRange (value : number, inMin : number, inMax: number, outMin: number, outMax: number) {
+  value = (value - inMin) / (inMax - inMin);
+  return outMin + value * (outMax - outMin);
 }
 
 export default CameraViewer;

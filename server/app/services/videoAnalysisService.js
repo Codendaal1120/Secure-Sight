@@ -68,14 +68,13 @@ async function StartVideoProcessing(cam){
       //fs.writeFileSync('C:\\Temp\\image.jpg', jpegImageData.data);
 
       var detections = await tf.processImage(jpegImageData, data);
-      console.log('detections', detections);
+
+      io.sockets.emit(`${cam.id}-detect`, detections);
 
     } catch(error){
       console.error(error);
     }
   });
-
-
 
   cpVa.stdout.pipe(pipe2pam); 
 

@@ -17,8 +17,16 @@ const processImage = async function(jpegImage, data) {
 
     predictions.forEach(element => {      
       if (element.class === "person"){
-        detections.push({ element: element, imageWidth: data.width, imageHeight: data.height  });
+        detections.push({ detectedOn: new Date(), element: element, imageWidth: data.width, imageHeight: data.height  });
       }
+      else if (element.class === "couch"){
+        detections.push({ detectedOn: new Date(), element: element, imageWidth: data.width, imageHeight: data.height  });
+      }
+      else{
+        //console.log(element.class);
+      }
+
+     
     });
 
     return detections;
