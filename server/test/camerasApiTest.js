@@ -2,7 +2,7 @@ var chai = require('chai');
 var chaiHttp = require('chai-http');
 var assert = require('assert');
 chai.use(chaiHttp);
-const app = require('../../server');
+const app = require('../server');
 const { doesNotMatch } = require('assert');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const req = require('express/lib/request');
