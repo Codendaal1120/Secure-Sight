@@ -20,6 +20,19 @@ process.env.NODE_ENV = 'test'
 
 describe('Test Motion detector', () => {
 
+<<<<<<< HEAD
+=======
+  
+
+    // before(async () => {
+        
+    // });
+    
+    // after(async () => {
+       
+    // });
+
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
     it('no changes in duplicate frames', async () => {
 
         let frameBuffer = [3];
@@ -63,7 +76,15 @@ describe('Test Motion detector', () => {
         chai.expect(diff.y).to.equal(128);
         chai.expect(diff.width).to.equal(256);
         chai.expect(diff.height).to.equal(128);
+<<<<<<< HEAD
     });   
+=======
+    });
+
+ 
+
+   
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
 });
 
 function getImageData(file){

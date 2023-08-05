@@ -1,7 +1,11 @@
 
 const tcp = require("../modules/tcp");
+<<<<<<< HEAD
 const tf = require("../modules/tfDetector");
 const hog = require("../modules/hogDetector");
+=======
+const tf = require("../modules/tfObjectDetection");
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
 const detector = require("../modules/motionDetector");
 const Pipe2Pam = require('pipe2pam');
 const { spawn } = require('node:child_process');
@@ -62,7 +66,28 @@ async function StartVideoProcessing(cam){
   const pipe2pam = new Pipe2Pam();
 
   pipe2pam.on('pam', async (data) => {
+<<<<<<< HEAD
     await processFrame(cam, data);
+=======
+    processFrame(cam, data);
+    // try{
+    //   var rawImageData = {
+    //     data: data.pixels,
+    //     width: data.width,
+    //     height: data.height,
+    //   };
+    //   var jpegImageData = jpeg.encode(rawImageData, 50);
+     
+    //   //fs.writeFileSync('C:\\Temp\\image.jpg', jpegImageData.data);
+
+    //   //var detections = await tf.processImage(jpegImageData, data);
+
+    //   io.sockets.emit(`${cam.id}-detect`, detections);
+
+    // } catch(error){
+    //   console.error(error);
+    // }
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
   });
 
   cpVa.stdout.pipe(pipe2pam); 
@@ -87,6 +112,7 @@ async function StartVideoProcessing(cam){
   });
 }
 
+<<<<<<< HEAD
 /** Performs motion detection and objecty identification */
 async function processFrame(cam, data){
   try{
@@ -96,10 +122,24 @@ async function processFrame(cam, data){
 
     //let motion = detector.getMotionRegion(frameBuffer);
     let motion = {};
+=======
+function processFrame(cam, data){
+  try{
+    var rawImageData = {
+      data: data.pixels,
+      width: data.width,
+      height: data.height,
+    };
+    //var jpegImageData = jpeg.encode(rawImageData, 50);
+    storeFrame(data.pixels);
+
+    let motion = detector.getMotionRegion(frameBuffer);
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
   
     if (motion){
       motion.imageWidth = 640;
       motion.imageHeight = 360;
+<<<<<<< HEAD
 
       let predictions = null;
 
@@ -119,6 +159,9 @@ async function processFrame(cam, data){
       }
       
       io.sockets.emit(`${cam.id}-detect`, predictions);
+=======
+      io.sockets.emit(`${cam.id}-detect`, [motion]);
+>>>>>>> 898f509a5fbc432c3e51d4fafd3e7b666ba7fcfe
     }
 
     
