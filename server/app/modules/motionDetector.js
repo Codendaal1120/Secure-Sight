@@ -1,3 +1,5 @@
+const coreImg = require("../core/image");
+
 const width = 640;
 const heigh = 320;
 
@@ -100,7 +102,7 @@ const getBlockDiff = function(frameBuffer, xIn, yIn, blockWidth, blockHeight, di
 }
 
 function toGray(frame, index){
-    let g = 0.2126 * frame[index] + 0.7152 * frame[index + 1] + 0.0722 * frame[index + 2]; 
+    let g = coreImg.getGrayScale(frame[index], frame[index+1], frame[index+2]);    
     frame[index] = g;
     frame[index + 1] = g;
     frame[index + 2] = g;

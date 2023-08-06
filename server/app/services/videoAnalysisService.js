@@ -1,5 +1,5 @@
 
-const tcp = require("../modules/tcp");
+const tcp = require("../core/tcp");
 const tf = require("../modules/tfDetector");
 const hog = require("../modules/hogDetector");
 const detector = require("../modules/motionDetector");

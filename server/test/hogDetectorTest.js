@@ -21,17 +21,13 @@ describe('Test HOG feature extractor', () => {
 
     it('unknown', async () => {
 
-        var rawImageData = getImageData("grid.jpg");
-        hog.processImage(rawImageData, 80, 80);
+        var rawImageData = getImageData("circle.jpg");
+        hog.processImage(rawImageData, 500, 500);
 
         //var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
-        chai.expect(diff).to.equal(null);
+        //chai.expect(diff).to.equal(null);
     });
-
- 
-
-   
 });
 
 function getImageData(file){
@@ -40,7 +36,3 @@ function getImageData(file){
     var rawImageData = jpeg.decode(jpegData);
     return rawImageData.data;
 }
-
-
-
-

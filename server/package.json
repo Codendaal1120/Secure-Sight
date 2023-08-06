@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "mocha --recursive --exit"
+    "test": "mocha --recursive --exit",
+    "test-single": "mocha --grep \"Test HOG feature extractor\""
   },
   "repository": {
     "type": "git",

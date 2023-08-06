@@ -1,3 +1,4 @@
+/** TCP utility class */
 const { createServer } = require('node:net');
 const { once } = require('node:events');
 

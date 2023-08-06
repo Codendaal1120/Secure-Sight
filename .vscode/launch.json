@@ -55,6 +55,19 @@
               "<node_internals>/**"
             ],
             "type": "pwa-node"
+          },
+          {
+            "name": "Debug test single",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-server-test-single"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node"
           }
     ],
     "compounds": [
