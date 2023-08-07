@@ -1,5 +1,5 @@
 
-const tcp = require("../core/tcp");
+const tcp = require("../modules/tcpModule");
 const tf = require("../modules/tfDetector");
 const hog = require("../modules/hogDetector");
 const detector = require("../modules/motionDetector");
@@ -14,7 +14,10 @@ let em = null;
 let frameIndex = -1;
 let frameBuffer = [];
 
-const startVideoAnalysis = async function(ioServer, eventEmitter) {    
+/**
+ * Starts video analasys on all configured cameras
+*/
+async function startVideoAnalysis(ioServer, eventEmitter) {    
 
   io = ioServer;
   em = eventEmitter;
@@ -95,7 +98,13 @@ async function processFrame(cam, data){
     storeFrame(data.pixels);
 
     //let motion = detector.getMotionRegion(frameBuffer);
-    let motion = {};
+    let motion = { 
+      detectedOn: new Date(), 
+      x: 50, 
+      y: 50, 
+      width: 100, 
+      height: 50
+    };
   
     if (motion){
       motion.imageWidth = 640;
@@ -146,7 +155,4 @@ function storeFrame(frame){
   frameBuffer[1] = frameBuffer[2];
   frameBuffer[2] = frame;
 }
-
-
-
 module.exports.startVideoAnalysis = startVideoAnalysis;

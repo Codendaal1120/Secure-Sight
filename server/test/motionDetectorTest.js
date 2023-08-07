@@ -1,31 +1,26 @@
 var chai = require('chai');
-// var chaiHttp = require('chai-http');
-// var assert = require('assert');
-// chai.use(chaiHttp);
-// const app = require('../server');
-// const { doesNotMatch } = require('assert');
-// const { MongoMemoryServer } = require('mongodb-memory-server');
-// const req = require('express/lib/request');
-// chai.use(require('chai-like'))
-// chai.use(require('chai-things'))
-
-const fs = require("fs");
-var path = require('path');
 const detector = require("../app/modules/motionDetector");
-const jpeg = require('jpeg-js');
-
+const imgModule = require("../app/modules/imageModule");
+var path = require('path'); 
 
 
 process.env.NODE_ENV = 'test'  
 
 describe('Test Motion detector', () => {
 
+    var fileDir = null;
+
+    before(async () => {
+        process.env.NODE_ENV = 'unit_test'
+        fileDir = path.join(__dirname, 'files');
+    });
+
     it('no changes in duplicate frames', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = getImageData("img1.jpg");
-        frameBuffer[1] = getImageData("img1.jpg");
-        frameBuffer[2] = getImageData("img1.jpg");
+        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
+        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
+        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
@@ -35,9 +30,9 @@ describe('Test Motion detector', () => {
     it('detect tiny change in frames', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = getImageData("img1.jpg");
-        frameBuffer[1] = getImageData("img2.jpg");
-        frameBuffer[2] = getImageData("img2.jpg");
+        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
+        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img2.jpg'));
+        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img2.jpg'));
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
@@ -52,9 +47,9 @@ describe('Test Motion detector', () => {
     it('detect change in four blocks', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = getImageData("img1.jpg");
-        frameBuffer[1] = getImageData("img3.jpg");
-        frameBuffer[2] = getImageData("img3.jpg");
+        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
+        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img3.jpg'));
+        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img3.jpg'));
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
@@ -65,14 +60,3 @@ describe('Test Motion detector', () => {
         chai.expect(diff.height).to.equal(128);
     });   
 });
-
-function getImageData(file){
-    var filePath = path.join(__dirname, 'files', file);
-    var jpegData = fs.readFileSync(filePath);
-    var rawImageData = jpeg.decode(jpegData);
-    return rawImageData.data;
-}
-
-
-
-

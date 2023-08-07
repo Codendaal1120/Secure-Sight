@@ -11,7 +11,7 @@ const heigh = 320;
  * @param {Number} _diffThreshold - Threshold to filter out noise 
  * @returns {object} Summary of difference, NULL if no difference
  */
-const getMotionRegion = function(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _diffThreshold = 100){
+function getMotionRegion(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _diffThreshold = 100){
     if (_frameBuffer.length < 3){
         return false;
     }
@@ -71,24 +71,34 @@ const getMotionRegion = function(_frameBuffer, _blockWidth = 128, _blockHeight =
     return { x : diffX, y: dffY, width : diffW - diffX, height : diffH - dffY, aveDiff : totalAveDiff / blocksWithDiff.length };
 }
 
-const getBlockDiff = function(frameBuffer, xIn, yIn, blockWidth, blockHeight, diffThreshold){
+/**
+ * Get the pixel difference between the two blocks
+ * @param {Array} _frameBuffer - Array of 3 frames
+ * @param {Number} _x - Staring X coordinate of block
+ * @param {Number} _y - Staring Y coordinate of block
+ * @param {Number} _blockWidth - Width of the block
+ * @param {Number} _blockHeight - Height of the block 
+ * @param {Number} _diffThreshold - Threshold filter to reduce noise
+ * @returns {object} Summary of difference, NULL if no difference
+ */
+function getBlockDiff(_frameBuffer, _x, _y, _blockWidth, _blockHeight, _diffThreshold){
 
-    let yEnd = yIn + blockHeight;
-    let xEnd = xIn + blockWidth;
+    let yEnd = _y + _blockHeight;
+    let xEnd = _x + _blockWidth;
     let pixelCount = 0;
     let pixelDiffCount = 0;
     let totalDiff = 0;
 
-    for (let x = xIn; x <= xEnd; x++) {
-        for (let y = yIn; y <= yEnd; y++) {
+    for (let x = _x; x <= xEnd; x++) {
+        for (let y = _y; y <= yEnd; y++) {
 
             pixelCount++;
 
             let i = (width * 4 * (y - 1)) + (x * 4) - 4;
 
-            let f1 = toGray(frameBuffer[2], i);
-            let f2 = toGray(frameBuffer[1], i);
-            let f3 = toGray(frameBuffer[0], i);
+            let f1 = toGray(_frameBuffer[2], i);
+            let f2 = toGray(_frameBuffer[1], i);
+            let f3 = toGray(_frameBuffer[0], i);
 
             const diff =    Math.abs(f1[i] - f2[i]) +
                             Math.abs(f1[i + 1] - f2[i + 1]) +
@@ -97,24 +107,29 @@ const getBlockDiff = function(frameBuffer, xIn, yIn, blockWidth, blockHeight, di
                             Math.abs(f3[i + 1] - f2[i + 1]) +
                             Math.abs(f3[i + 2] - f2[i + 2]);
 
-            if (diff > diffThreshold){
+            if (diff > _diffThreshold){
                 pixelDiffCount++;
                 totalDiff += diff;
-            }
-            
+            }            
         }        
     }
 
     return [pixelCount, pixelDiffCount, totalDiff, totalDiff / pixelDiffCount];
 }
 
-function toGray(frame, index){
-    let g = coreImg.getGrayScale(frame[index], frame[index+1], frame[index+2]);    
-    frame[index] = g;
-    frame[index + 1] = g;
-    frame[index + 2] = g;
+/**
+ * Get the grayscale value of the specified pixel
+ * @param {Array} _frameBuffer - Array of 3 frames
+ * @param {Number} _index- Pixel index
+ * @returns {Array} Modified frames
+ */
+function toGray(_frame, _index){
+    let g = coreImg.getGrayScale(_frame[ _index ], _frame[ _index + 1 ], _frame[ _index + 2 ]);    
+    _frame[ _index ] = g;
+    _frame[ _index + 1] = g;
+    _frame[ _index + 2] = g;
 
-    return frame;
+    return _frame;
 }
 
 module.exports.getMotionRegion = getMotionRegion;

@@ -5,7 +5,7 @@
 */
 const jpeg = require('jpeg-js');
 const fs = require("fs");
-const coreImg = require("./imageModule");
+const imgModule = require("./imageModule");
 
 const BLOCK_SIZE = 2;
 const BLOCK_STRIDE = 1;
@@ -218,8 +218,8 @@ function getGradients(_imgData, _imgWidth, _imgHeight){
  * @return {Array} Array of gradient vectors
  */
 function getPixelValue(_x, _y, _imageWidth, _imgData){
-  let i = coreImg.getPixelIndex(_x, _y, _imageWidth);
-  return coreImg.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);    
+  let i = imgModule.getPixelIndex(_x, _y, _imageWidth);
+  return imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);    
 }
 
 /** DEBUG method to save the block */

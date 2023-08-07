@@ -2,23 +2,23 @@ var chai = require('chai');
 var chaiHttp = require('chai-http');
 var assert = require('assert');
 chai.use(chaiHttp);
-const app = require('../server');
 const { doesNotMatch } = require('assert');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const req = require('express/lib/request');
 
-chai.use(require('chai-like'))
-chai.use(require('chai-things'))
-
-process.env.NODE_ENV = 'test'
+chai.use(require('chai-like'));
+chai.use(require('chai-things'));
 
 describe('Test /api/cameras', () => {
 
     let mongoServer;
     let testCamId;
+    let app = null;
 
     before(async () => {
         mongoServer = await createMongoServer();
+        process.env.NODE_ENV = 'unit_test'
+        app = require('../server');
     });
     
     after(async () => {
@@ -51,17 +51,15 @@ describe('Test /api/cameras', () => {
         chai.expect(res.body).to.have.property("id");
     }); 
 
-    it('can not get single camera with invalid id', async () => {
+    it('can not get single camera with invalid id', async () => {       
         const res = await chai.request(app).get(`/api/cameras/DOES-NOT-EXISTS`).send();
         chai.expect(res.status).to.equal(400);
-        chai.expect(res.body).not.to.have.property("id");
+        chai.expect(res.body).not.to.have.property("id");      
     }); 
 
     it('can update a camera', async () => {
-
-        let randomName = makeid(5)
-        let randomUrl = makeid(5)
-
+        let randomName = makeid(5);
+        let randomUrl = makeid(5);
         const cam = {
             "name" : randomName,
             "url" : randomUrl            

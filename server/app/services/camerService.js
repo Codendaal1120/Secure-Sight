@@ -82,7 +82,7 @@ async function tryUpdateCam(_camId, _camera){
     // first validate input    
     let errors = validateCamera(_camera);
 
-    if (!camId){
+    if (!_camId){
         errors.push("Invalid camera Id");
     }
 
@@ -90,7 +90,7 @@ async function tryUpdateCam(_camId, _camera){
         return { success : false, error : errors };
     }   
 
-    let filter = { "_id" : dataService.toDbiD(camId) };  
+    let filter = { "_id" : dataService.toDbiD(_camId) };  
 
     const update = { 
         $set : {             
@@ -101,7 +101,7 @@ async function tryUpdateCam(_camId, _camera){
 
     let doc = await dataService.updateOneAsync(collectionName, filter, update);     
     if (!doc.success){
-        return { success : false, error : `Could not update camera with id '${camId}'` };
+        return { success : false, error : `Could not update camera with id '${_camId}'` };
     }
 
     return { success : true, payload : doc.payload };

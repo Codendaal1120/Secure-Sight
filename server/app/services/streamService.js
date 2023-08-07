@@ -1,5 +1,5 @@
 const camService = require("./camerService");
-const tcp = require("../core/tcp");
+const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');

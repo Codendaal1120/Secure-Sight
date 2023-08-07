@@ -1,38 +1,32 @@
 var chai = require('chai');
-// var chaiHttp = require('chai-http');
-// var assert = require('assert');
-// chai.use(chaiHttp);
-// const app = require('../server');
-// const { doesNotMatch } = require('assert');
-// const { MongoMemoryServer } = require('mongodb-memory-server');
-// const req = require('express/lib/request');
-// chai.use(require('chai-like'))
-// chai.use(require('chai-things'))
-
 const fs = require("fs");
 var path = require('path');
-const hog = require("../app/modules/hogDetector");
-const jpeg = require('jpeg-js');
+
 
 
 process.env.NODE_ENV = 'test'
 
 describe('Test HOG feature extractor', () => {
 
-    it('unknown', async () => {
+    let hog = null;
+    let img = null;
 
-        var rawImageData = getImageData("circle.jpg");
-        hog.processImage(rawImageData, 500, 500);
+    before(async () => {
+        process.env.NODE_ENV = 'unit_test'
+        hog = require("../app/modules/hogDetector");
+        img = require("../app/modules/imageModule");
+    });
+
+    it('Test feature extraction', async () => {
+
+        var filePath = path.join(__dirname, 'files', "circle.jpg");
+        var image = await img.getImageDataFromFile(filePath);
+        hog.extractHogFeatures(image.data, image.width, image.height);
+
 
         //var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
-
+//extractHogFeatures
         //chai.expect(diff).to.equal(null);
     });
 });
 
-function getImageData(file){
-    var filePath = path.join(__dirname, 'files', file);
-    var jpegData = fs.readFileSync(filePath);
-    var rawImageData = jpeg.decode(jpegData);
-    return rawImageData.data;
-}

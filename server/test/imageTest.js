@@ -1,10 +1,16 @@
 var chai = require('chai');
 var path = require('path');
-const img = require("../app/modules/imageModule");
 
 process.env.NODE_ENV = 'test'
 
 describe('Image utilities tests', () => {
+
+    let img = null;
+
+    before(async () => {
+        process.env.NODE_ENV = 'unit_test'
+        img = require("../app/modules/imageModule");
+    });
 
     it('can get image data from file', async () => {
         var filePath = path.join(__dirname, 'files', 'grid.jpg');
