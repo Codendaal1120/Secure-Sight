@@ -101,8 +101,6 @@ const extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {
     }
   }
 
-  //var a1 = Array.prototype.concat.apply([], blocks);
-  
   return Array.prototype.concat.apply([], blocks);;
 }
 
@@ -211,33 +209,6 @@ getGradients = function(_imgData, _imgWidth, _imgHeight){
   return gradVec;
 }
 
-processBlock = function(imageData, blockX, blockY, blockSize, imageWidth){
-
-  let xEnd = blockX + blockSize;
-  let yEnd = blockY + blockSize;
-  let pixels = [];
-
-  for (let x = blockX; x < xEnd; x++) {
-    console.log('new row');
-    let rowCount = 0;
-    for (let y = blockY; y < yEnd; y++) {
-      rowCount++;
-      let i = x > 1 
-        ? (imageWidth * 4 * (x - 1)) + (y * 4) 
-        : (imageWidth * 4 * x) + (y * 4);
-      //console.log(rowCount, '-->', i);
-      // pixels.push(imageData[i]);
-      // pixels.push(imageData[i+1]);
-      // pixels.push(imageData[i+2]);
-      // pixels.push(imageData[i+3]);
-    }
-    
-  }
-
-  saveBlockJpeg(pixels, blockSize);
-
-}
-
 /** Translate the x,y coordinate to a pixel index and get the channel value in gray scale */
 getPixelValue = function(x, y, imageWidth, imageData){
   let i = coreImg.getPixelIndex(x, y, imageWidth);
@@ -252,10 +223,6 @@ saveBlockJpeg = function(pixels, bloxkSize){
   };
   var jpegImageData = jpeg.encode(rawImageData, 50);
   fs.writeFileSync('c:\\temp\\image.jpg', jpegImageData.data);
-}
-
-const saveJsonToFile = function(json, file){
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b; 
 }
 
 module.exports.processImage = processImage;

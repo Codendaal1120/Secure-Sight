@@ -13,22 +13,13 @@ const {default: Image} = require('image-js');
 
 /**
  * Loads the files in the specified directory, extracts the HOG features and trains the SVM model
+ * Training data from https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
  */
 const trainSVM = async function() {   
-
     // The training directory of training images, each class should be stored in a sub folder with the class name, for example ./train/cat, ./train/dog
 
-    // var issuePath = "E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\.SecureSight\\server\\test\\files\\ml\\input\\human\\150.jpg"
-
-    // //hogTEMP.TEMP_hogLib(issuePath);
-    // //return;
-
-    // var img = imgModule.getImageDataFromFile(issuePath);
-    // var data = hog.extractHogFeatures(img.data, img.width, img.height);
     var imageDir = path.join(__dirname, '../ml', 'input');
-    var labels = fs.readdirSync(imageDir);
-
-    
+    var labels = fs.readdirSync(imageDir);    
     var trainingData = [];
     var trainingLabels = [];
 
@@ -48,7 +39,7 @@ const trainSVM = async function() {
             var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
             if (loadHog.success){
                 trainingData.push(loadHog.payload);
-                trainingLabels.push(labels[i]);
+                trainingLabels.push(labels[i] == "human" ? 1 : 0);
             }
             
         }        
@@ -58,59 +49,48 @@ const trainSVM = async function() {
     var kTrain = ker.compute(trainingData).addColumn(0, range(1, trainingData.length + 1));
 
     await trainModel(kTrain, trainingLabels);
+}
 
+/**
+ * The dataset downloaded from https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
+ * stores the label in the annotation xml, we need to parse it and move the files accordingly
+ */
+const parseTrainingFiles = async function()
+{
+    var parser = require('xml2json');
+    var humanPath = path.join(__dirname, '../ml', 'input', 'human');
+    var nonHumanPath = path.join(__dirname, '../ml', 'input', 'non_human');
+    var dataSetPath = path.join(__dirname, '../ml', 'data_set', 'JPEGImages');
+    var annotationsPath = path.join(__dirname, '../ml', 'data_set', 'Annotations');
+    var files = fs.readdirSync(dataSetPath);
 
-/*
- let models = JSON.parse(fs.readFileSync('E:\\Development\\BSC\\Final\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json'));
-   
+    for (let i = 0; i < files.length; i++) {
+        var xmlFile = files[i].substring(0, files[i].length - 4) + ".xml";
+        var xml = fs.readFileSync(annotationsPath + "\\" + xmlFile);
+        var json = JSON.parse(parser.toJson(xml));
+        var isHuman = false;
 
+        if (Array.isArray(json.annotation.object)){           
+            for (let j = 0; j < json.annotation.object.length; j++) {
+                if (json.annotation.object[j].name == "person"){
+                    isHuman = true;
+                    break;
+                }                
+            }
+            continue;
+        }
 
- 
-    console.log('............ predicting....')
-    for (let i = 0; i < models.length; i++) {
-        let p = svm.predictOne(models[i]);
-        console.log(i + " = " + p)
+        if (json.annotation.object.name == "person"){
+            isHuman = true;
+        }
+
+        if (isHuman){
+            fs.renameSync(dataSetPath + "\\" + files[i], humanPath + "\\" + files[i]);
+        }
+        else{
+            fs.renameSync(dataSetPath + "\\" + files[i], nonHumanPath + "\\" + files[i]);
+        }
     }
-*/
-
-    // classes.forEach(async label => {
-        
-    //     files.forEach(async file => {
-    //         console.log(file);
-    //     });
-    //     //path.join(__dirname, 'files', 'ml', 'input');
-        
-        
-    // });
-    
-    
-
-    // for (let index = 0; index < array.length; index++) {
-    //     const element = array[index];
-        
-    // }
-
-    // const data = await fs.readFile('monolitic.txt');
-
- 
-
-
-
-    // console.log('traning....')
-    // 
-   
-
-    // let models = JSON.parse(fs.readFileSync('E:\\Development\\BSC\\Final\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json'));
-   
-
-
- 
-    // console.log('............ predicting....')
-    // for (let i = 0; i < models.length; i++) {
-    //     let p = svm.predictOne(models[i]);
-    //     console.log(i + " = " + p)
-    // }
-   
 }
 
 /**
@@ -137,11 +117,7 @@ loadImageAndGetHog = async function(_imagePath){
  * @param {Array} _labels - Training data labels
  * @see https://github.com/mljs/libsvm
  */
-trainModel = async function(_features, _labels) {   
-
-    // let variance = math.variance(_features);
-    // //1 / (n_features * X.var()) as value of gamma
-    // let gamma = 1 / (_features[0].length * variance);
+trainModel = async function(_features, _labels) { 
 
     let options = {
         type: SVM.SVM_TYPES.NU_SVC, 
@@ -153,22 +129,42 @@ trainModel = async function(_features, _labels) {
 
     const svm = new SVM(options);
 
-    // const svm = new SVM({
-    //     kernel: SVM.KERNEL_TYPES.RBF, // The type of kernel I want to use
-    //     type: SVM.SVM_TYPES.C_SVC,    // The type of SVM I want to run
-    //     gamma: gamma,                 // RBF kernel gamma parameter
-    //     cost: 2.67                    // C_SVC cost parameter
-    // }); 
-
     console.log("Training model");
-
-    _labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1];
-    _labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
     svm.train(_features, _labels);  // train the model
 
     var model = svm.serializeModel();
-    fs.writeFileSync('svm', model);
+    var outPath = path.join(__dirname, '../ml', 'svm.model');
+    fs.writeFileSync(outPath, model);
+
+    
+
+    // let fc = fs.readFileSync('E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json');
+    // let models = JSON.parse(fc);
+    // console.log('............ predicting....')
+    // for (let i = 0; i < models.length; i++) {
+    //     let p = svm.predictOne(models[i]);
+    //     console.log(i + " = " + p)
+    // }
+
+    /*
+    
+   
+
+
+ https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
+ 
+*/
+
+}
+
+/**
+ * Trains the svm model
+ * @param {Array} _features - Training data
+ * @param {Array} _labels - Training data labels
+ * @see https://github.com/mljs/libsvm
+ */
+testModel = async function(_features, _labels) {   
 
     // test
     var imageDir = path.join(__dirname, '../ml', 'test_images');
@@ -187,92 +183,9 @@ trainModel = async function(_features, _labels) {
        
     }
 
-    // let fc = fs.readFileSync('E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json');
-    // let models = JSON.parse(fc);
-    // console.log('............ predicting....')
-    // for (let i = 0; i < models.length; i++) {
-    //     let p = svm.predictOne(models[i]);
-    //     console.log(i + " = " + p)
-    // }
-
-    /*
-    
-   
-
-
- 
- 
-*/
-
-}
-
-/**
- * Trains the svm model
- * @param {Array} _features - Training data
- * @param {Array} _labels - Training data labels
- * @see https://github.com/mljs/libsvm
- */
-testModel = async function(_features, _labels) {   
-
-    // let variance = math.variance(_features);
-    // //1 / (n_features * X.var()) as value of gamma
-    // let gamma = 1 / (_features[0].length * variance);
-
-    let options = {
-        type: SVM.SVM_TYPES.NU_SVC, 
-        kernel : SVM.KERNEL_TYPES.PRECOMPUTED,
-        degree : 3,
-        nu : 0.1,
-        shrinking : false
-    };
-
-    const svm = new SVM(options);
-
-    // const svm = new SVM({
-    //     kernel: SVM.KERNEL_TYPES.RBF, // The type of kernel I want to use
-    //     type: SVM.SVM_TYPES.C_SVC,    // The type of SVM I want to run
-    //     gamma: gamma,                 // RBF kernel gamma parameter
-    //     cost: 2.67                    // C_SVC cost parameter
-    // }); 
-
-    svm.train(_features, _labels);  // train the model
-
-    var model = svm.serializeModel();
-    fs.writeFileSync('svm', model);
-
-    // test
-
-    var testImages = await readdir("E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\.SecureSight\\server\\test\\files\\ml\\test_images");
-
-    for (let i = 0; i < testImages.length; i++) {
-
-        //var img = imgModule.getImageDataFromFile("E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\.SecureSight\\server\\test\\files\\ml\\test_images\\" + testImages[i]);
-        var data = await loadImageAndGetHog("E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\.SecureSight\\server\\test\\files\\ml\\test_images\\" + testImages[i]);
-        //var data = hog.extractHogFeatures(img.data, img.width, img.height);
-
-        let p = svm.predictOne(data);
-        console.log(testImages[i] + " = " + p);
-    }
-
-    // let fc = fs.readFileSync('E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json');
-    // let models = JSON.parse(fc);
-    // console.log('............ predicting....')
-    // for (let i = 0; i < models.length; i++) {
-    //     let p = svm.predictOne(models[i]);
-    //     console.log(i + " = " + p)
-    // }
-
-    /*
-    
-   
-
-
- 
- 
-*/
-
 }
 
 
 
 module.exports.trainSVM = trainSVM;
+module.exports.parseTrainingFiles = parseTrainingFiles;

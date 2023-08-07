@@ -1,5 +1,4 @@
 /** Image utility class */
-const fs = require("fs");
 const {Image } = require('image-js');
 
 /**

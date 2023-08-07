@@ -41,9 +41,9 @@ app.get('/echo', async (req, res) => {
     res.send("Welcome to Secure Sight");
 });  
 
-app.use("/api/health", require("./app/controllers/health"));
-app.use("/api/cameras", require("./app/controllers/cameras"));
-app.use("/api/svm", require("./app/controllers/svm"));
+app.use("/api/health", require("./app/controllers/healthController"));
+app.use("/api/cameras", require("./app/controllers/camerasController"));
+app.use("/api/svm", require("./app/controllers/svmController"));
 
 /** Stream setup */
 if (false){
