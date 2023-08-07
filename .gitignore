@@ -130,3 +130,6 @@ dist
 .pnp.*
 Notes-local.txt
 ToDO.md
+server/app/modules/hogDetectorTEMP.js
+server/temp/
+server/hogTest.js

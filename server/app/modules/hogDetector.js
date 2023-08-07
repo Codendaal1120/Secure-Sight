@@ -5,7 +5,7 @@
 */
 const jpeg = require('jpeg-js');
 const fs = require("fs");
-const coreImg = require("../core/image");
+const coreImg = require("./imageModule");
 
 const BLOCK_SIZE = 2;
 const BLOCK_STRIDE = 1;
@@ -23,7 +23,7 @@ const PI_RAD = 180 / Math.PI;
 const processImage = async function(_imgData, _imgWidth, _imgHeight) {    
 
   let descriptors = extractHogFeatures(_imgData, _imgWidth, _imgHeight);
-
+  console.log(descriptors);
 
 
 
@@ -59,7 +59,7 @@ const processImage = async function(_imgData, _imgWidth, _imgHeight) {
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {    
+const extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {    
   
   var gradients = getGradients(_imgData, _imgWidth, _imgHeight);
   var cWidth = Math.floor(gradients[0].length / CELL_SIZE);
@@ -84,7 +84,6 @@ extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {
       var block = getBlock(histograms, x, y, BLOCK_SIZE);
 
       // L2 normalize block
-      sum = 0;
       var sum = 0;
       var denom;
 
@@ -101,8 +100,10 @@ extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {
       blocks.push(block);
     }
   }
+
+  //var a1 = Array.prototype.concat.apply([], blocks);
   
-  return Array.prototype.concat.apply([], blocks);
+  return Array.prototype.concat.apply([], blocks);;
 }
 
 /**
@@ -135,7 +136,7 @@ getHistogram = function(_gradVects, _x, _y) {
  */
 function getBlock(_inputMatrix, _x, _y, _length) {
   var square = [];
-  for (var i = y; i < _y + _length; i++) {
+  for (var i = _y; i < _y + _length; i++) {
     for (var j = _x; j < _x + _length; j++) {
       square.push(_inputMatrix[i][j]);
     }
@@ -258,3 +259,4 @@ const saveJsonToFile = function(json, file){
 }
 
 module.exports.processImage = processImage;
+module.exports.extractHogFeatures = extractHogFeatures;

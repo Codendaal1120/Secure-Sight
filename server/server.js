@@ -43,12 +43,15 @@ app.get('/echo', async (req, res) => {
 
 app.use("/api/health", require("./app/controllers/health"));
 app.use("/api/cameras", require("./app/controllers/cameras"));
+app.use("/api/svm", require("./app/controllers/svm"));
 
 /** Stream setup */
-(async () => {
-    await streamService.startStreams(io, em);
-    await videoAnalysisService.startVideoAnalysis(io, em);
-})();
+if (false){
+    (async () => {
+        await streamService.startStreams(io, em);
+        await videoAnalysisService.startVideoAnalysis(io, em);
+    })();
+}
 
 /** Start server */
 http.listen(port, () => {  

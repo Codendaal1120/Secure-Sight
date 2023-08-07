@@ -9,7 +9,8 @@
     "debug-server": "npm run start --prefix server",
     "debug-web": "npm run start --prefix web",
     "debug-server-test" : "npm run test --prefix server",
-    "debug-server-test-single": "npm run test-single --prefix server"
+    "debug-server-test-single": "npm run test-single --prefix server",
+    "debug-hog": "npm run test-hog --prefix server"
   },
   "repository": {
     "type": "git",

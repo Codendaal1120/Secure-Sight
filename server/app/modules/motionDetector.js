@@ -1,4 +1,4 @@
-const coreImg = require("../core/image");
+const coreImg = require("./imageModule");
 
 const width = 640;
 const heigh = 320;

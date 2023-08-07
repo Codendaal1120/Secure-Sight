@@ -1,6 +1,6 @@
 var chai = require('chai');
 var path = require('path');
-const img = require("../app/core/image");
+const img = require("../app/modules/imageModule");
 
 process.env.NODE_ENV = 'test'
 
@@ -8,7 +8,7 @@ describe('Image utilities tests', () => {
 
     it('can get image data from file', async () => {
         var filePath = path.join(__dirname, 'files', 'grid.jpg');
-        var rawImageData = img.getImageDataFromFile(filePath);
+        var rawImageData = img.getRawImageDataFromFile(filePath);
         chai.expect(rawImageData).to.not.equal(null);
     });
 

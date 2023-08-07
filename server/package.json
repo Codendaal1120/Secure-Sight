@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "mocha --recursive --exit",
-    "test-single": "mocha --grep \"Test HOG feature extractor\""
+    "test-single": "mocha --grep \"test1\"",
+    "test-hog": "node hogTest.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +27,11 @@
     "dotenv": "^16.1.4",
     "express": "^4.18.2",
     "jpeg-js": "^0.4.4",
+    "image-js": "^0.35.4",
+    "libsvm-js": "^0.1.2",
+    "lodash.range": "^3.2.0",
+    "ml-kernel": "^2.3.4",
+    "mathjs": "^11.9.1",
     "mongodb": "^5.6.0",
     "pam-diff": "^1.1.0",
     "pipe2pam": "^0.6.2",

@@ -104,7 +104,7 @@ async function processFrame(cam, data){
       let predictions = null;
 
       if (cam.objectProcessor == "hog"){
-        predictions = hog.processImage();
+        predictions = hog.processImage(data.pixels, data.width, data.height);
       }
 
       if (cam.objectProcessor == "tf"){

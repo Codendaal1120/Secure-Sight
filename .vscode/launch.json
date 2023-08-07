@@ -68,7 +68,22 @@
               "<node_internals>/**"
             ],
             "type": "pwa-node"
+          },
+          {
+            "name": "Debug HOG",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-hog"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node"
           }
+
+          
     ],
     "compounds": [
       {

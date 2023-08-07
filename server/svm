@@ -1,0 +1,8 @@
+svm_type nu_svc
+kernel_type precomputed
+nr_class 1
+total_sv 0
+rho
+label 0
+nr_sv 0
+SV
