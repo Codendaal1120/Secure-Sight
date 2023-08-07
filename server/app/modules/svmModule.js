@@ -1,12 +1,7 @@
 const SVM = require('libsvm-js/asm');
 const hog = require("./hogDetector");
-const hogTEMP = require("./hogDetectorTEMP");
-const imgModule = require("./imageModule");
 const fs = require("fs");
-//const util = require('util');
-//const readdir = util.promisify(fs.readdir);
 const path = require('path');
-const math = require('mathjs');
 const Kernel = require('ml-kernel');
 const range = require('lodash.range');
 const {default: Image} = require('image-js');
@@ -15,47 +10,18 @@ const {default: Image} = require('image-js');
  * Loads the files in the specified directory, extracts the HOG features and trains the SVM model
  * Training data from https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
  */
-const trainSVM = async function() {   
-    // The training directory of training images, each class should be stored in a sub folder with the class name, for example ./train/cat, ./train/dog
-
+async function trainSVM() {   
+    // The training directory of training images, each class should be stored in a sub folder with the class name, for example ./input/cat, ./input/dog
     var imageDir = path.join(__dirname, '../ml', 'input');
-    var labels = fs.readdirSync(imageDir);    
-    var trainingData = [];
-    var trainingLabels = [];
-
-    for (let i = 0; i < labels.length; i++) {
-
-        var labelDirectory = imageDir + '/' + labels[i];
-        var files = fs.readdirSync(labelDirectory);
-
-        for (let j = 0; j < files.length; j++) {
-            console.log('Loading ', files[j]);        
-            
-            //var img = await imgModule.getImageDataFromFile(labelDirectory + '/' + files[j]);
-            //var img = await Image.load(labelDirectory + '/' + files[j]);
-            //img = await img.scale({width:100, height:100});
-            //return hog.extractHogFeatures(img.data, img.width, img.height);
-
-            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
-            if (loadHog.success){
-                trainingData.push(loadHog.payload);
-                trainingLabels.push(labels[i] == "human" ? 1 : 0);
-            }
-            
-        }        
-    }
-
-    var ker = new Kernel('polynomial', {degree: 3, scale: 1 / trainingData.length});
-    var kTrain = ker.compute(trainingData).addColumn(0, range(1, trainingData.length + 1));
-
-    await trainModel(kTrain, trainingLabels);
+    var mlData = await getMlData(imageDir);
+    var testResults = await trainModel(mlData.data, mlData.labels);
 }
 
 /**
  * The dataset downloaded from https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
  * stores the label in the annotation xml, we need to parse it and move the files accordingly
  */
-const parseTrainingFiles = async function()
+async function parseTrainingFiles()
 {
     var parser = require('xml2json');
     var humanPath = path.join(__dirname, '../ml', 'input', 'human');
@@ -94,21 +60,67 @@ const parseTrainingFiles = async function()
 }
 
 /**
+ * Predicts the image class using the pre trained model
+ * @param {Array} _imageData - Imagedata
+ * @param {Number} _imageHeight - Image height
+ * @param {Number} _imageWidth - Image width
+ * @return {Object} Prediction results
+ */
+async function predict(_imageData, _imageWidth, _imageHeight){
+    var img = new Image(_imageWidth, _imageHeight, _imageData);
+    console.log('Predicting');
+
+    let svm = loadModelFromFile();
+
+    img = await img.scale({width:100, height:100});
+    var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+    let p = svm.predictOne(desc);
+
+    return { label: p == 1 ? 'human' : 'non_human' };
+}
+
+/**
  * Loads the image and gets the hog features
  * @param {string} _imagePath - Path to file
  * @return {Array} HOG features
  */
-loadImageAndGetHog = async function(_imagePath){
-    //var img = await imgModule.getImageDataFromFile(_imagePath);
+async function loadImageAndGetHog(_imagePath){
     try{
         var img = await Image.load(_imagePath);
         img = await img.scale({width:100, height:100});
         var desc = hog.extractHogFeatures(img.data, img.width, img.height);
         return { success : true, payload : desc };
-    }catch(err){
+    }
+    catch(err){
         console.error(`ERROR loading ${_imagePath} : ${err}`)
         return { success : false, error : err };
     }    
+}
+
+/**
+ * Test the saved svm model
+ * @return {Object} Test results
+ */
+async function testModel(model) {      
+
+    // load the saved model
+    if (!model){
+        model = loadModelFromFile();
+    }
+
+    // load test files
+    var imageDir = path.join(__dirname, '../ml', 'test_images');
+    var mlData = await getMlData(imageDir);
+    var predictions = [];
+
+    for (let i = 0; i < mlData.data.length; i++) {
+
+        let p = model.predictOne(mlData.data[i]);
+        predictions.push({ file:mlData.files[i], preidcted:p, actual:mlData.labels[i] }); 
+        console.log(mlData.files[i], 'predicted =', p, 'actual =', mlData.labels[i])       ;
+    }
+
+    return predictions;
 }
 
 /**
@@ -117,8 +129,25 @@ loadImageAndGetHog = async function(_imagePath){
  * @param {Array} _labels - Training data labels
  * @see https://github.com/mljs/libsvm
  */
-trainModel = async function(_features, _labels) { 
+async function trainModel(_features, _labels) { 
+    const svm = createModel();
 
+    console.log("Training model");
+
+    svm.train(_features, _labels);  // train the model
+
+    var model = svm.serializeModel();
+    var outPath = path.join(__dirname, '../ml', 'svm.model');
+    fs.writeFileSync(outPath, model, { encoding: 'utf8'});
+
+    await testModel(model);
+}
+
+/**
+ * Instantiates the SVM model
+ * @return {Object} SVM model
+ */
+function createModel(){
     let options = {
         type: SVM.SVM_TYPES.NU_SVC, 
         kernel : SVM.KERNEL_TYPES.PRECOMPUTED,
@@ -128,64 +157,56 @@ trainModel = async function(_features, _labels) {
     };
 
     const svm = new SVM(options);
-
-    console.log("Training model");
-
-    svm.train(_features, _labels);  // train the model
-
-    var model = svm.serializeModel();
-    var outPath = path.join(__dirname, '../ml', 'svm.model');
-    fs.writeFileSync(outPath, model);
-
-    
-
-    // let fc = fs.readFileSync('E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\POC-repo\\JS-POC\\libsvm-poc\\data\\export-predicted-images.json');
-    // let models = JSON.parse(fc);
-    // console.log('............ predicting....')
-    // for (let i = 0; i < models.length; i++) {
-    //     let p = svm.predictOne(models[i]);
-    //     console.log(i + " = " + p)
-    // }
-
-    /*
-    
-   
-
-
- https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
- 
-*/
-
+    return svm;
 }
 
 /**
- * Trains the svm model
+ * Loops the given directory, loads the images and extracts the features of each
  * @param {Array} _features - Training data
- * @param {Array} _labels - Training data labels
- * @see https://github.com/mljs/libsvm
+ * @return {Object} Data and labels
  */
-testModel = async function(_features, _labels) {   
+async function getMlData(_imageDirectory){
+   
+    var labels = fs.readdirSync(_imageDirectory);   
+    var fileNames = []; 
+    var xData = [];
+    var yData = [];
 
-    // test
-    var imageDir = path.join(__dirname, '../ml', 'test_images');
-    var testImages = fs.readdirSync(imageDir);
+    for (let i = 0; i < labels.length; i++) {
 
-    for (let i = 0; i < testImages.length; i++) {
+        var labelDirectory = _imageDirectory + '\\' + labels[i];
+        var files = fs.readdirSync(labelDirectory);
 
-        //var img = imgModule.getImageDataFromFile("E:\\Development\\BSC\\Sem7\\CM3070-Final Project\\.SecureSight\\server\\test\\files\\ml\\test_images\\" + testImages[i]);
-        var loadHog = await loadImageAndGetHog(imageDir + "\\" + testImages[i]);
-        if (loadHog.success){
-            let p = svm.predictOne(loadHog.payload);
-            console.log(testImages[i] + " = " + p);
-        }
-        //var data = hog.extractHogFeatures(img.data, img.width, img.height);
-
-       
+        for (let j = 0; j < files.length; j++) {
+            console.log('Loading ', files[j]);        
+            var loadHog = await loadImageAndGetHog(labelDirectory + '\\' + files[j]);
+            if (loadHog.success){
+                fileNames.push(files[j]);
+                xData.push(loadHog.payload);
+                yData.push(labels[i] == "human" ? 1 : 0);
+            }
+            
+        }        
     }
 
+    var ker = new Kernel('polynomial', {degree: 3, scale: 1 / xData.length});
+    var kTrain = ker.compute(xData).addColumn(0, range(1, xData.length + 1));
+
+    return { data: kTrain, labels: yData, files: fileNames };
 }
 
-
+/**
+ * Loads the saved model from file
+ * @return {Object} - SVM model
+ */
+loadModelFromFile = function() {   
+    var modelPath = path.join(__dirname, '../ml', 'svm.model');
+    var trainedModel = fs.readFileSync(modelPath);
+    const svm = SVM.load(trainedModel.toString());
+    return svm;
+}
 
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;
+module.exports.predict = predict;
+module.exports.testModel = testModel;

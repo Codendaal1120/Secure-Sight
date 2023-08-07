@@ -40,28 +40,6 @@ router.get("/:camId", async function (req, res) {
 });
 
 /**
- * Get a specific stream
- * @route WS /api/cameras/:camId/stream
- * @camId Camera DB id
- * @produces application/json
- * @group Cameras api
- * @returns {WebSocket} 200 - Camera stream websocket
- * @returns {Error}  500 - Unexpected error
- */
-// router.ws('/:camId/stream', async (ws, req) =>{
-//     let tryGetCam = await camService.getOneById(req.params.camId);  
-//     if (!tryGetCam.success){
-//         // kill?
-//         throw Error ('no cam');
-//     }
-//     return proxy({
-//         verbose: true ,
-//         transport: 'tcp',
-//         url: tryGetCam.payload.url,
-//       })(ws);
-// });
-
-/**
  * Create a new camera
  * @route POST /api/cameras
  * @camId Camera DB id

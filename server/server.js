@@ -10,6 +10,16 @@ const cors = require('cors');
 const events = require('events');
 const em = new events.EventEmitter();
 
+function clientErrorHandler (err, req, res, next) {
+    if (req.xhr) {
+       res.status(500).send({ error: 'Something failed!' })
+     } else {
+       next(err)
+    }
+ }
+ 
+app.use(clientErrorHandler);
+
 /** Setup */
 dotenv.config({ path: path.resolve(root, '.env.development')});
 app.use(cors({
@@ -21,6 +31,7 @@ app.use(cors({
 const port = process.env.PORT; 
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const http = require('http').createServer(app);
 

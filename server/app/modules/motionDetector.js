@@ -3,9 +3,16 @@ const coreImg = require("./imageModule");
 const width = 640;
 const heigh = 320;
 
-/** Returns the region coordinates where motion is detected or returns NULL when no motion has been detected */
-const getMotionRegion = function(frameBuffer, blockWidth = 128, blockHeight = 64, diffThreshold = 100){
-    if (frameBuffer.length < 3){
+/**
+ * Returns the region coordinates where motion is detected or returns NULL when no motion has been detected
+ * @param {Array} _frameBuffer - Array of 3 frames
+ * @param {Number} _blockWidth - Width of block
+ * @param {Number} _blockHeight - Height of block 
+ * @param {Number} _diffThreshold - Threshold to filter out noise 
+ * @returns {object} Summary of difference, NULL if no difference
+ */
+const getMotionRegion = function(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _diffThreshold = 100){
+    if (_frameBuffer.length < 3){
         return false;
     }
 
@@ -15,10 +22,10 @@ const getMotionRegion = function(frameBuffer, blockWidth = 128, blockHeight = 64
     var blockIndex = 0;
     var lastIndex = -1;
     
-    for (let h = 0; h < heigh; h += blockHeight) {
-        for (let w = 0; w < width; w += blockWidth) {
+    for (let h = 0; h < heigh; h += _blockHeight) {
+        for (let w = 0; w < width; w += _blockWidth) {
 
-            let diff = getBlockDiff(frameBuffer, w, h, blockWidth, blockHeight, diffThreshold);      
+            let diff = getBlockDiff(_frameBuffer, w, h, _blockWidth, _blockHeight, _diffThreshold );      
 
             let block = {
                 index : blockIndex,
@@ -53,10 +60,10 @@ const getMotionRegion = function(frameBuffer, blockWidth = 128, blockHeight = 64
     for (let i = 0; i < blocksWithDiff.length; i++) {
 
         diffX = Math.min(diffX, blocksWithDiff[i].x);
-        diffW = Math.max(diffW, blocksWithDiff[i].x + blockWidth);
+        diffW = Math.max(diffW, blocksWithDiff[i].x + _blockWidth);
 
         dffY = Math.min(dffY, blocksWithDiff[i].y);
-        diffH = Math.max(diffH, blocksWithDiff[i].y + blockHeight);   
+        diffH = Math.max(diffH, blocksWithDiff[i].y + _blockHeight);   
         
         totalAveDiff += blocksWithDiff[i].aveDiff;
     }

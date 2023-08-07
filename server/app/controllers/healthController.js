@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const healthService = require("../services/healthService");
 
+/**
+ * Checks application health
+ * @returns {object} Health status
+ */
 router.get("/", async function (req, res) {  
     let health = await healthService.checkDbHealth();
     if (health.success){
