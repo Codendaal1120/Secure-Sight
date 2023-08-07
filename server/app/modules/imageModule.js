@@ -6,7 +6,7 @@ const {Image } = require('image-js');
  * @param {String} _filePath - Path to the file
  * @return {Array} Decoded pixel data
  */
-const getRawImageDataFromFile = async function(_filePath){
+async function getRawImageDataFromFile(_filePath){
     var image = await Image.load(_filePath);
     return image.data;
 }
@@ -16,7 +16,7 @@ const getRawImageDataFromFile = async function(_filePath){
  * @param {String} _filePath - Path to the file
  * @return {Object} Image
  */
-const getImageDataFromFile = async function(_filePath){
+async function getImageDataFromFile(_filePath){
     var image = await Image.load(_filePath);
     return image;
 }
@@ -28,7 +28,7 @@ const getImageDataFromFile = async function(_filePath){
  * @param {Number} _ImageWidth - Image width
  * @return {Number} The pixel index
  */
-const getPixelIndex = function(_x, _y, _ImageWidth){
+function getPixelIndex(_x, _y, _ImageWidth){
     return (_y * _ImageWidth * 4) + (_x * 4);
 }
 
@@ -39,7 +39,7 @@ const getPixelIndex = function(_x, _y, _ImageWidth){
  * @param {Number} _b - Blue value
  * @return {Number} Grayscale value
  */
-const getGrayScale = function(_r, _g, _b){
+function getGrayScale(_r, _g, _b){
     return 0.2126 * _r + 0.7152 * _g + 0.0722 * _b; 
 }
 

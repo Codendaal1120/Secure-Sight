@@ -20,7 +20,7 @@ const PI_RAD = 180 / Math.PI;
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-const processImage = async function(_imgData, _imgWidth, _imgHeight) {    
+async function processImage(_imgData, _imgWidth, _imgHeight) {    
 
   let descriptors = extractHogFeatures(_imgData, _imgWidth, _imgHeight);
   console.log(descriptors);
@@ -59,7 +59,7 @@ const processImage = async function(_imgData, _imgWidth, _imgHeight) {
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-const extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {    
+function extractHogFeatures(_imgData, _imgWidth, _imgHeight) {    
   
   var gradients = getGradients(_imgData, _imgWidth, _imgHeight);
   var cWidth = Math.floor(gradients[0].length / CELL_SIZE);
@@ -111,7 +111,7 @@ const extractHogFeatures = function(_imgData, _imgWidth, _imgHeight) {
  * @param {number} _y
  * @return {Array} Array 1D with the histogram of the cell, based on the gradient vectors
  */
-getHistogram = function(_gradVects, _x, _y) {
+function getHistogram(_gradVects, _x, _y) {
   var hist = new Array(NO_OF_BINS).fill(0);
 
   for (var i = 0; i < CELL_SIZE; i++) {
@@ -167,7 +167,7 @@ function getBinIndex(_rad) {
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-getGradients = function(_imgData, _imgWidth, _imgHeight){
+function getGradients(_imgData, _imgWidth, _imgHeight){
   
   const gradVec = new Array(_imgHeight);
   
@@ -209,13 +209,21 @@ getGradients = function(_imgData, _imgWidth, _imgHeight){
   return gradVec;
 }
 
-/** Translate the x,y coordinate to a pixel index and get the channel value in gray scale */
-getPixelValue = function(x, y, imageWidth, imageData){
-  let i = coreImg.getPixelIndex(x, y, imageWidth);
-  return coreImg.getGrayScale(imageData[i], imageData[i+1], imageData[i+2]);    
+/**
+ * Translate the x,y coordinate to a pixel index and get the channel value in gray scale
+ * @param {Buffer} _imgData - image data to transform into a HOG descriptor
+ * @param {Number} _x - the X coordinate
+ * @param {Number} _y - the Y coordinate
+ * @param {Number} _imageWidth - width of the image
+ * @return {Array} Array of gradient vectors
+ */
+function getPixelValue(_x, _y, _imageWidth, _imgData){
+  let i = coreImg.getPixelIndex(_x, _y, _imageWidth);
+  return coreImg.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);    
 }
 
-saveBlockJpeg = function(pixels, bloxkSize){
+/** DEBUG method to save the block */
+function saveBlockJpeg(pixels, bloxkSize){
   var rawImageData = {
     data: pixels,
     width: bloxkSize,

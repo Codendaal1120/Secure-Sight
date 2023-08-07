@@ -15,8 +15,9 @@ async function trainSVM() {
     var imageDir = path.join(__dirname, '../ml', 'input');
     var mlData = await getMlData(imageDir);
     var testResults = await trainModel(mlData.data, mlData.labels);
+    return testResults;
 }
-
+//https://www.kaggle.com/datasets/constantinwerner/human-detection-dataset
 /**
  * The dataset downloaded from https://www.kaggle.com/datasets/saravananchandran/pedestrian-detection-data-set?resource=download
  * stores the label in the annotation xml, we need to parse it and move the files accordingly
@@ -103,9 +104,13 @@ async function loadImageAndGetHog(_imagePath){
  */
 async function testModel(model) {      
 
+    var svm = null;
     // load the saved model
     if (!model){
-        model = loadModelFromFile();
+        svm = loadModelFromFile();
+    }
+    else{
+        svm = SVM.load(model);
     }
 
     // load test files
@@ -115,7 +120,7 @@ async function testModel(model) {
 
     for (let i = 0; i < mlData.data.length; i++) {
 
-        let p = model.predictOne(mlData.data[i]);
+        let p = svm.predictOne(mlData.data[i]);
         predictions.push({ file:mlData.files[i], preidcted:p, actual:mlData.labels[i] }); 
         console.log(mlData.files[i], 'predicted =', p, 'actual =', mlData.labels[i])       ;
     }
@@ -140,7 +145,7 @@ async function trainModel(_features, _labels) {
     var outPath = path.join(__dirname, '../ml', 'svm.model');
     fs.writeFileSync(outPath, model, { encoding: 'utf8'});
 
-    await testModel(model);
+    return await testModel(model);
 }
 
 /**
@@ -199,7 +204,7 @@ async function getMlData(_imageDirectory){
  * Loads the saved model from file
  * @return {Object} - SVM model
  */
-loadModelFromFile = function() {   
+function loadModelFromFile() {   
     var modelPath = path.join(__dirname, '../ml', 'svm.model');
     var trainedModel = fs.readFileSync(modelPath);
     const svm = SVM.load(trainedModel.toString());
