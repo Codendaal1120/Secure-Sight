@@ -133,3 +133,4 @@ ToDO.md
 server/app/modules/hogDetectorTEMP.js
 server/temp/
 server/hogTest.js
+server/svm

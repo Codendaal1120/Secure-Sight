@@ -160,6 +160,11 @@ trainModel = async function(_features, _labels) {
     //     cost: 2.67                    // C_SVC cost parameter
     // }); 
 
+    console.log("Training model");
+
+    _labels = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1];
+    _labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+
     svm.train(_features, _labels);  // train the model
 
     var model = svm.serializeModel();
