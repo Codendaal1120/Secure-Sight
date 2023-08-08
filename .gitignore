@@ -136,3 +136,4 @@ server/hogTest.js
 server/svm
 server/app/ml/*
 server/ffmpeg/ffmpeg.exe
+server/recording.mpeg

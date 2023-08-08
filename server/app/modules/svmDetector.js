@@ -5,13 +5,13 @@ const path = require('path');
 const Kernel = require('ml-kernel');
 const range = require('lodash.range');
 const {default: Image} = require('image-js');
-const hog2 = require("hog-features");
 
-const IMG_SCALE_WIDTH = 100;
-const IMG_SCALE_HEIGHT = 100;
+//const IMG_SCALE_WIDTH = 100;
+//const IMG_SCALE_HEIGHT = 100;
 
-// const IMG_SCALE_WIDTH = 64;
-// const IMG_SCALE_HEIGHT = 128;
+const IMG_SCALE_WIDTH = 64;
+const IMG_SCALE_HEIGHT = 128;
+
 const ML_PREFIX = "persons";
 
 let svm = null;
@@ -36,10 +36,9 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
 /**
  * Loads the files in the specified directory, extracts the HOG features and trains the SVM model
  * Training data from https://www.kaggle.com/datasets/constantinwerner/human-detection-dataset
+ * The training directory of training images, each class should be stored in a sub folder with the class name, for example ./input/cat, ./input/dog
  */
 async function trainSVM(prefix) {   
-    // The training directory of training images, each class should be stored in a sub folder with the class name, for example ./input/cat, ./input/dog
-
     if (!prefix){
         prefix = `${ML_PREFIX}`;
     }
@@ -55,7 +54,6 @@ async function trainSVM(prefix) {
     var testResults = await trainModel(kData, mlData.labels, prefix, mlData.data);
     return testResults;
 }
-
 
 /**
  * The dataset downloaded from Github example stores labels in csv which is linked to one large directory
@@ -198,9 +196,10 @@ async function testModel(_model, _prefix, _original) {
  * @param {Array} _features - Training data
  * @param {Array} _labels - Training data labels
  * @param {string} _prefix - The train/test data prefix
+ * @param {Array} _originalFeatures - Original training features 
  * @see https://github.com/mljs/libsvm
  */
-async function trainModel(_features, _labels, _prefix, _original) { 
+async function trainModel(_features, _labels, _prefix, _originalFeatures) { 
 
     const math = require('mathjs');
     let variance = math.variance(_features);
@@ -288,17 +287,8 @@ async function loadImageAndGetHog(_imagePath){
     try{
         var img = await Image.load(_imagePath);
         img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-
-        // let options_hog = {
-        //     cellSize: 4,
-        //     blockSize: 2,
-        //     blockStride: 1,
-        //     bins: 6,
-        //     norm: "L2"
-        // };
-        // var desc = hog2.extractHOG(img, options_hog);
-
         var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+
         return { success : true, payload : desc };
     }
     catch(err){
@@ -317,6 +307,9 @@ function loadModelFromFile() {
     const svm = SVM.load(trainedModel.toString());
     return svm;
 }
+
+//TODO:: Training the model on startup as I need access to the 'landmark', not sure if this is correct tho.
+//await trainSVM();
 
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;

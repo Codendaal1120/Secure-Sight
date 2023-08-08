@@ -7,10 +7,16 @@ const jpeg = require('jpeg-js');
 const fs = require("fs");
 const imgModule = require("./imageModule");
 
+/*
 const BLOCK_SIZE = 2;
 const BLOCK_STRIDE = 1;
 const CELL_SIZE = 4;
 const NO_OF_BINS = 6;
+*/
+const BLOCK_SIZE = 2;
+const BLOCK_STRIDE = 1;
+const CELL_SIZE = 8;
+const NO_OF_BINS = 9;
 const PI_RAD = 180 / Math.PI;
 
 /**

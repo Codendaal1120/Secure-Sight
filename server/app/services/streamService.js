@@ -4,10 +4,14 @@ const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
 const ffmpeg = '.\\ffmpeg\\ffmpeg.exe';
+const fs = require("fs");
 
 let mpegTsParser = null;
 let io = null;
 let em = null;
+
+let record = 0;
+let fileStream = fs.createWriteStream('recording.mpeg', { flags: 'a' });
 
 const startStreams = async function(ioServer, eventEmitter) {    
 
@@ -19,7 +23,19 @@ const startStreams = async function(ioServer, eventEmitter) {
 
   for (let i = 0; i < cameras.payload.length; i++) {
     if (cameras.payload[i].deletedOn == null){
-      await createCameraStreams(cameras.payload[i]);        
+      await createCameraStreams(cameras.payload[i]);   
+      
+      // TEST record
+      em.on(`${cameras.payload[i].id}-stream-data`, function (data) {      
+        if (record > -1 && record < 600){
+          record++;
+          fileStream.write(data);
+        }
+        else if (record > 600){
+          record = -1;
+          console.log('recording done');
+        }
+      });
     }      
   } 
 }
@@ -46,7 +62,7 @@ async function startFeedStream(cam){
     for await (const chunks of mpegTsParser.parse(socket)) {
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
-            em.emit(`${cam.id}-stream-data`, chunk);
+            em.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
   });

@@ -23,7 +23,7 @@ async function startVideoAnalysis(ioServer, eventEmitter) {
   em = eventEmitter;
 
   for (let i = 0; i < cache.cameras.length; i++) {
-    if (cache.cameras[i].deletedOn == null){
+    if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled){
       await StartVideoProcessing(cache.cameras[i].camera);        
     }      
   } 

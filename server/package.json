@@ -26,7 +26,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.1.4",
     "express": "^4.18.2",
-    "hog-features": "0.0.2",
     "libsvm-js": "^0.1.2",
     "lodash.range": "^3.2.0",
     "ml-kernel": "^2.3.4",
