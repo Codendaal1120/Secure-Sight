@@ -1,7 +1,7 @@
 
 const tcp = require("../modules/tcpModule");
 const tf = require("../modules/tfDetector");
-const hog = require("../modules/hogDetector");
+const svm = require("../modules/svmDetector");
 const detector = require("../modules/motionDetector");
 const Pipe2Pam = require('pipe2pam');
 const { spawn } = require('node:child_process');
@@ -93,52 +93,60 @@ async function StartVideoProcessing(cam){
 /** Performs motion detection and objecty identification */
 async function processFrame(cam, data){
   try{
+
+    _width = parseInt(data.width);
+    _height = parseInt(data.height);
     
     //var jpegImageData = jpeg.encode(rawImageData, 50);
     storeFrame(data.pixels);
 
+    let motion = null;
     //let motion = detector.getMotionRegion(frameBuffer);
-    let motion = { 
-      detectedOn: new Date(), 
-      x: 50, 
-      y: 50, 
-      width: 100, 
-      height: 50
-    };
+    // let motion = { 
+    //   x: 10, 
+    //   y: 20, 
+    //   width : 100,
+    //   height : 50
+    // };
   
-    if (motion){
-      motion.imageWidth = 640;
-      motion.imageHeight = 360;
+    if (motion != null){
+      // this is the dimentions from the ffmpeg stream
+      //motion.imageWidth = 640;
+      //motion.imageHeight = 360;
 
       let predictions = null;
 
-      if (cam.objectProcessor == "hog"){
-        predictions = hog.processImage(data.pixels, data.width, data.height);
+      if (cam.objectProcessor == "svm"){
+        var detection = await svm.processImage(data.pixels, _width, _height); //is data width & height same as image?
+        // since SVM does not specify the region, we need to pass the motion region as the dected region
+        if (detection && detection.label == 'human'){
+          return { 
+            detectedOn: new Date(), 
+            x: motion.x, 
+            y: motion.y, 
+            width: motion.width, 
+            height: motion.height,
+            imageWidth : _width,
+            imageHeight : _height
+          }
+
+        }
       }
 
       if (cam.objectProcessor == "tf"){
         var rawImageData = {
           data: data.pixels,
-          width: data.width,
-          height: data.height,
+          width: _width,
+          height: _height,
         };
         var jpegImageData = jpeg.encode(rawImageData, 50);
-        predictions = await tf.processImage(jpegImageData.data, data.width, data.height);
+        predictions = await tf.processImage(jpegImageData.data, _width, _height);
         //predictions = await tf.processImage(data.pixels, data.width, data.height);
       }
       
       io.sockets.emit(`${cam.id}-detect`, predictions);
     }
 
-    
-
-    
-    // if (detector.hasMotion(frameBuffer)){
-    //   console.log('motion');
-    // }
-    // else{
-    //   console.log('no motion');
-    // }
   }
   catch(error){
     console.error(error);

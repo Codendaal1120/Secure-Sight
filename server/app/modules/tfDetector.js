@@ -4,6 +4,7 @@ const coco_ssd = require('@tensorflow-models/coco-ssd');
 let model = undefined;
 
 (async () => {
+  console.log('Loading model');
   model = await coco_ssd.load({
     base: "mobilenet_v1",
   });

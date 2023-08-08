@@ -135,3 +135,4 @@ server/temp/
 server/hogTest.js
 server/svm
 server/app/ml/*
+server/ffmpeg/ffmpeg.exe

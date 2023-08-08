@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const svmModule = require("../modules/svmModule");
+const svmModule = require("../modules/svmDetector");
 const path = require('path');
 const multer = require('multer');
 
@@ -15,7 +15,7 @@ const multer = require('multer');
 router.post("/train-model", async function (req, res) {  
 
   try{
-    var testResults = await svmModule.trainSVM();
+    var testResults = await svmModule.trainSVM(req.query.prefix);
     res.status(200).json(testResults);
   }
   catch(err){

@@ -14,45 +14,6 @@ const NO_OF_BINS = 6;
 const PI_RAD = 180 / Math.PI;
 
 /**
- * Performs object detection from the image data using HOG and SVM
- * @param {Buffer} _imgData - image data to transform into a HOG descriptor
- * @param {Number} _imgWidth - width of the image
- * @param {Number} _imgHeight - heigth of the image
- * @return {Array} Array of gradient vectors
- */
-async function processImage(_imgData, _imgWidth, _imgHeight) {    
-
-  let descriptors = extractHogFeatures(_imgData, _imgWidth, _imgHeight);
-  console.log(descriptors);
-
-
-
-
-  return;
-
-  let detections = [];
-
-  // extract 16x16
-  // block1 - 0 
-
-  let blockCount = 0;
-
-  for (let y = 0; y < imageHeight; y += BLOCK_SIZE) {
-    for (let x = 0; x < imageWidth; x += BLOCK_SIZE) {      
-
-      blockCount++;
-      processBlock(imageData, x, y, SCAN_BLOCK_SIZE, imageWidth);     
-
-
-      
-
-    }
-  }
-
-  return detections;
-}
-
-/**
  * Creates HOG from image data, splitting into blocks
  * @param {Buffer} _imgData - image data to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
@@ -233,5 +194,5 @@ function saveBlockJpeg(pixels, bloxkSize){
   fs.writeFileSync('c:\\temp\\image.jpg', jpegImageData.data);
 }
 
-module.exports.processImage = processImage;
 module.exports.extractHogFeatures = extractHogFeatures;
+

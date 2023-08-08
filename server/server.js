@@ -1,4 +1,4 @@
-const express = require('express')
+const express = require('express');
 const path = require('path');
 const root = path.normalize(__dirname + '/..');
 const app = express();
@@ -8,9 +8,19 @@ const cors = require('cors');
 const events = require('events');
 const em = new events.EventEmitter();
 
+let streamService = null;
+let videoAnalysisService = null;
+
+if (!process.env.NODE_ENV){
+    process.env.NODE_ENV = 'development';
+}
+
+dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
+//process.env.NODE_ENV = 'test';
+
 if (process.env.NODE_ENV != 'unit_test'){
-    const streamService = require("./app/services/streamService");
-    const videoAnalysisService = require("./app/services/videoAnalysisService");
+    streamService = require("./app/services/streamService");
+    videoAnalysisService = require("./app/services/videoAnalysisService");
 }
 
 
@@ -25,7 +35,7 @@ if (process.env.NODE_ENV != 'unit_test'){
 // app.use(clientErrorHandler);
 
 /** Setup */
-dotenv.config({ path: path.resolve(root, '.env.development')});
+
 app.use(cors({
     origin : process.env.ORIGIN, 
     credentials: true, 
@@ -36,7 +46,7 @@ const port = process.env.PORT;
 console.log("ENVIRONMENT", process.env.NODE_ENV);
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+//app.use(bodyParser.urlencoded({ extended: true }));
 
 const http = require('http').createServer(app);
 
@@ -62,7 +72,7 @@ app.use("/api/cameras", require("./app/controllers/camerasController"));
 app.use("/api/svm", require("./app/controllers/svmController"));
 
 /** Stream setup */
-if (process.env.NODE_ENV != 'unit_test'){
+if (streamService != null && streamService != null){
     console.log('Starting streaming');
     (async () => {
         await streamService.startStreams(io, em);
