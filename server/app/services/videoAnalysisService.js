@@ -16,11 +16,13 @@ let frameBuffer = [];
 
 /**
  * Starts video analasys on all configured cameras
-*/
-async function startVideoAnalysis(ioServer, eventEmitter) {    
+ * @param {object} _ioServer - The global sockect.io reference to use for events
+ * @param {Object} _eventEmitter - The global event emitter
+ */
+async function startVideoAnalysis(_ioServer, _eventEmitter) {    
 
-  io = ioServer;
-  em = eventEmitter;
+  io = _ioServer;
+  em = _eventEmitter;
 
   for (let i = 0; i < cache.cameras.length; i++) {
     if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled){

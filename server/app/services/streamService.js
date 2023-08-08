@@ -13,10 +13,15 @@ let em = null;
 let record = 0;
 let fileStream = fs.createWriteStream('recording.mpeg', { flags: 'a' });
 
-const startStreams = async function(ioServer, eventEmitter) {    
+/**
+ * Start streaming service
+ * @param {object} _ioServer - The global sockect.io reference to use for events
+ * @param {Object} _eventEmitter - The global event emitter
+ */
+async function startStreams(_ioServer, _eventEmitter) {    
 
-  io = ioServer;
-  em = eventEmitter;
+  io = _ioServer;
+  em = _eventEmitter;
   mpegTsParser = createMpegTsParser();
   
   let cameras = await camService.getAll();
@@ -40,6 +45,7 @@ const startStreams = async function(ioServer, eventEmitter) {
   } 
 }
 
+/** Create streams for each camera */
 async function createCameraStreams(cam){   
 
   let mpegTsPort = await startFeedStream(cam);   

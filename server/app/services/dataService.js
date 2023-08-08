@@ -1,21 +1,27 @@
 const mongo = require('mongodb');
 const MongoClient = mongo.MongoClient;
 
-/** Read single records from db */
-async function getOneAsync(collectionName, filter, project) {
+/**
+ * Read single records from db
+ * @param {string} _collectionName - Target collection name
+ * @param {Object} _filter - Optional filter definition
+ * @param {Object} _project - Projection definition
+ * @return {Object} TryResult with the single record
+ */
+async function getOneAsync(_collectionName, _filter, _project) {
 
-    var collection = await tryGetCollection(collectionName);
+    var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return { success : false, error : collection.error };
     }
 
     try {              
         // cast object
-        if (!project){
+        if (!_project){
             project = {};
         }  
 
-        let res = await collection.payload.findOne(filter, project);
+        let res = await collection.payload.findOne(_filter, _project);
         if (!res){
             return { success : false, error : "Not found", code : "NOT_FOUND" };    
         }
@@ -30,25 +36,30 @@ async function getOneAsync(collectionName, filter, project) {
 
 /**
  * Read collection from db
+ * @param {string} _collectionName - Target collection name
+ * @param {Object} _filter - Optional filter definition
+ * @param {Object} _project - Projection definition
+ * @param {Object} _sort - Sort definition
+ * @return {Object} TryResult with the selected records
  */
-async function getManyAsync(collectionName, filter, project, sort) {
+async function getManyAsync(_collectionName, _filter, _project, _sort) {
 
-    var collection = await tryGetCollection(collectionName);
+    var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return collection;
     }
 
     try {
 
-        if (!project){
-            project = {};
+        if (!_project){
+            _project = {};
         }
         
         if (!sort){
             sort = {};
         }
 
-        let res = await collection.payload.find(filter, project).sort(sort).toArray();
+        let res = await collection.payload.find(_filter, _project).sort(sort).toArray();
         res.forEach(element => {
             element = setObjectId(element)
         });
@@ -60,30 +71,37 @@ async function getManyAsync(collectionName, filter, project, sort) {
     }
 }
 
-async function insertOneAsync(collectionName, document, project) {
+/**
+ * Save a single record to DB
+ * @param {string} _collectionName - Target collection name
+ * @param {Object} _document - Document to save
+ * @param {Object} _project - Projection definition
+ * @return {Object} TryResult with the saved single record
+ */
+async function insertOneAsync(_collectionName, _document, _project) {
 
-    if (!collectionName){
+    if (!_collectionName){
         return { success : false, error : "invalid collectionName" };
     }
 
-    if (!document){
+    if (!_document){
         return { success : false, error : "invalid document supplied" };
     }
 
-    var collection = await tryGetCollection(collectionName);
+    var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return collection;
     }
 
-    if (!project){
-        project = {};
+    if (!_project){
+        _project = {};
     } 
 
     try {
 
-        let res = await collection.payload.insertOne(document);
+        let res = await collection.payload.insertOne(_document);
         if (res.insertedId){
-            return { success : true, payload : setObjectId(document) };
+            return { success : true, payload : setObjectId(_document) };
         }
         else{
             return { success : false, error : "Could not insert" };
@@ -94,9 +112,18 @@ async function insertOneAsync(collectionName, document, project) {
     }
 }
 
-async function updateOneAsync(collectionName, filter, update, postUpdateFilter) {
+/**
+ * Updates a single record to DB
+ * @param {string} _collectionName - Target collection name
+ * @param {Object} _filter - Optional filter definition
+ * @param {Object} _update - Update definition
+ * @param {Object} _project - Projection definition
+ * @param {Object} _postUpdateFilter - update to run post save
+ * @return {Object} TryResult with the saved single record
+ */
+async function updateOneAsync(_collectionName, _filter, _update, _postUpdateFilter) {
 
-    if (!filter){
+    if (!_filter){
         return { success : false, error : "invalid filter supplied" };
     }
 
@@ -104,25 +131,25 @@ async function updateOneAsync(collectionName, filter, update, postUpdateFilter) 
         return { success : false, error : "invalid update supplied" };
     }
 
-    if (!postUpdateFilter){
-        postUpdateFilter = filter;
+    if (!_postUpdateFilter){
+        _postUpdateFilter = _filter;
     }
 
-    var collection = await tryGetCollection(collectionName);
+    var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return collection;
     }
 
     try {
 
-        let res = await collection.payload.updateOne(filter, update, { upsert: false });
+        let res = await collection.payload.updateOne(_filter, update, { upsert: false });
 
         if (!res.acknowledged || res.modifiedCount == 0){
             // the query failed
             return { success : false, error : "Could not get or update record" };
         }
 
-        let record = await collection.payload.findOne(postUpdateFilter, {});       
+        let record = await collection.payload.findOne(_postUpdateFilter, {});       
 
         if (!record){
             // could not find the new or old record, something went wrong
@@ -136,20 +163,26 @@ async function updateOneAsync(collectionName, filter, update, postUpdateFilter) 
     }
 }
 
-async function deleteOneAsync(collectionName, filter) {
+/**
+ * Deletes a single record to DB
+ * @param {string} _collectionName - Target collection name
+ * @param {Object} _filter - Optional filter definition
+ * @return {Object} TryResult 
+ */
+async function deleteOneAsync(_collectionName, _filter) {
 
-    if (!filter){
+    if (!_filter){
         return { success : false, error : "invalid filter supplied" };
     }
 
-    var collection = await tryGetCollection(collectionName);
+    var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return collection;
     }
 
     try {
 
-        let res = await collection.payload.deleteOne(filter);
+        let res = await collection.payload.deleteOne(_filter);
 
         if (!res.acknowledged || res.deletedCount == 0){
             return { success : false, error : "Could not delete record" };
@@ -162,6 +195,7 @@ async function deleteOneAsync(collectionName, filter) {
     }
 }
 
+/** Get the collection reference */
 async function tryGetCollection(collectionName){
 
     if (!collectionName){
@@ -196,9 +230,14 @@ function setObjectId(obj){
     return obj;  
 }
 
-var toDbiD = function(inputId) {    
+/**
+ * Converts input to DBID (Mongo)
+ * @param {string} _inputId - Input string
+ * @return {Object} Mongo DB ID object
+ */
+var toDbiD = function(_inputId) {    
     try{
-        return new mongo.ObjectId(inputId);    
+        return new mongo.ObjectId(_inputId);    
     }
     catch(ex){
         return null; 
