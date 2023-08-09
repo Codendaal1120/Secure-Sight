@@ -1,10 +1,11 @@
 const tf = require('@tensorflow/tfjs-node');
 const coco_ssd = require('@tensorflow-models/coco-ssd');
+const logger = require('../modules/loggingModule').getLogger('tfDetector');
 
 let model = undefined;
 
 (async () => {
-  console.log('Loading model');
+  logger.log('info', 'Loading model');
   model = await coco_ssd.load({
     base: "mobilenet_v1",
   });
@@ -34,7 +35,7 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
         detections.push(createObject(element, _imgWidth, _imgHeight));
       }
       else{
-        //console.log(element.class);
+        //logger.log('info', element.class);
       }
     });
 

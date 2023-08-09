@@ -1,4 +1,3 @@
-
 const tcp = require("../modules/tcpModule");
 const tf = require("../modules/tfDetector");
 const svm = require("../modules/svmDetector");
@@ -8,6 +7,9 @@ const { spawn } = require('node:child_process');
 const cache = require("../modules/cache");
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const jpeg = require('jpeg-js');
+const ffmpegModule = require("../modules/ffmpegModule");
+const ffmpeg = ffmpegModule.getFfmpagPath();
+const logger = require('../modules/loggingModule').getLogger('videoAnalysisService');
 
 let io = null;
 let em = null;
@@ -61,8 +63,8 @@ async function StartVideoProcessing(cam){
     'fps=2,scale=640:360', 
     '-']
 
-  const cpVa = spawn('.\\ffmpeg\\ffmpeg.exe', args);
-  console.log(`[${cam.id}] Video analysis stream started on ${streamPort}`);
+  const cpVa = spawn(ffmpeg, args);
+  logger.log('info', `[${cam.id}] Video analysis stream started on ${streamPort}`);
 
   const pipe2pam = new Pipe2Pam();
 
@@ -74,14 +76,14 @@ async function StartVideoProcessing(cam){
 
   cpVa.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    console.error(`[${cam.id}] Video analysis stderr`, err);
+    logger.log('error', `[${cam.id}] Video analysis stderr`, err);
   });
 
   cpVa.on('exit', (code, signal) => {
     if (code === 1) {
-      console.error(`[${cam.id}] video analysis exit`);
+      logger.log('error', `[${cam.id}] video analysis exit`);
     } else {
-      console.log(`[${cam.id}] FFmpeg video analysis process exited (expected)`);
+      logger.log('info', `[${cam.id}] FFmpeg video analysis process exited (expected)`);
     }
   });
 
@@ -151,7 +153,7 @@ async function processFrame(cam, data){
 
   }
   catch(error){
-    console.error(error);
+    logger.log('error', error);
   }  
 }
 

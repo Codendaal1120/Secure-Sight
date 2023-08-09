@@ -1,5 +1,5 @@
 const dataService = require("./dataService");
-
+const logger = require('../modules/loggingModule').getLogger('camerService');
 const collectionName = "cameras";
 
 /**
@@ -11,7 +11,7 @@ async function getAll() {
         let tryGetCams = await dataService.getManyAsync(collectionName, { deletedOn : null });
 
         if (!tryGetCams.success){
-            console.error(`ERROR : cannot get cameras : ${tryGetCams.error}`);
+            logger.log('error', `ERROR : cannot get cameras : ${tryGetCams.error}`);
             return { success : false, error : tryGetCams.message };
         }
     
@@ -19,7 +19,7 @@ async function getAll() {
         return { success : true, payload : tryGetCams.payload };        
     }
     catch (err) {
-        console.error(err);
+        logger.log('error', err);
         return { success : false, error : err.message };
     }
 };
@@ -39,7 +39,7 @@ async function getOneById(_cameraId) {
         let tryGetCams = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_cameraId), deletedOn : null });
 
         if (!tryGetCams.success){
-            console.error(`ERROR : cannot get camera : ${tryGetCams.error}`);
+            logger.log('error', `ERROR : cannot get camera : ${tryGetCams.error}`);
             return { success : false, error : tryGetCams.message };
         }
     
@@ -47,7 +47,7 @@ async function getOneById(_cameraId) {
         return { success : true, payload : tryGetCams.payload };        
     }
     catch (err) {
-        console.error(err);
+        logger.log('error', err);
         return { success : false, error : err.message };
     }
 };

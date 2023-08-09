@@ -1,5 +1,6 @@
 const mongo = require('mongodb');
 const MongoClient = mongo.MongoClient;
+const logger = require('../modules/loggingModule').getLogger('dataService');
 
 /**
  * Read single records from db
@@ -29,7 +30,7 @@ async function getOneAsync(_collectionName, _filter, _project) {
         return { success : true, payload : setObjectId(res) };
     } 
     catch (err) {
-        console.error(err);
+        logger.log('error', err);
         return { success : false, error : err.message };
     }
 }
@@ -66,7 +67,7 @@ async function getManyAsync(_collectionName, _filter, _project, _sort) {
         return { success : true, payload : res };
     } 
     catch (err) {
-        console.error(err);
+        logger.log('error', err);
         return { success : false, error : err.message };
     }
 }
@@ -208,7 +209,7 @@ async function tryGetCollection(collectionName){
 
     if (!client || client.error) {
         if (client.stack){
-            console.error(client.stack);
+            logger.log('error', client.stack);
         }
         if (client.error){
             return { success : false, error : "Could not create db client : " + client.error };

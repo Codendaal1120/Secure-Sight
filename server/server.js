@@ -8,6 +8,7 @@ const cors = require('cors');
 const events = require('events');
 const em = new events.EventEmitter();
 const cache = require('./app/modules/cache');
+const logger = require('./app/modules/loggingModule').getLogger();
 
 let streamService = null;
 let videoAnalysisService = null;
@@ -15,42 +16,20 @@ let videoAnalysisService = null;
 if (!process.env.NODE_ENV){
     process.env.NODE_ENV = 'development';
 }
-
 dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
 cache.config = {
     recording : {
         path : process.env.RECORD_PATH
-    }
+    },
+    env : process.env.NODE_ENV,
+    root : root
 };
-//process.env.NODE_ENV = 'test';
 
 if (process.env.NODE_ENV != 'unit_test'){
     streamService = require("./app/services/streamService");
     videoAnalysisService = require("./app/services/videoAnalysisService");
 }
-
-// const Storage = require('node_storage_manager');
-// let StorageInstance =  Storage.getInstance('NFS');
-// listBuckets
-
-
-//var fTest = fs.readdirSync('\\192.168.86.16\\media');
-
-
-
-
-// function clientErrorHandler (err, req, res, next) {
-//     if (req.xhr) {
-//        res.status(500).send({ error: 'Something failed!' })
-//      } else {
-//        next(err)
-//     }
-//  }
- 
-// app.use(clientErrorHandler);
-
 /** Setup */
-
 app.use(cors({
     origin : process.env.ORIGIN, 
     credentials: true, 
@@ -58,10 +37,10 @@ app.use(cors({
 }));
 
 const port = process.env.PORT; 
-console.log("ENVIRONMENT", process.env.NODE_ENV);
+logger.log('info', "ENVIRONMENT", process.env.NODE_ENV);
 
 app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const http = require('http').createServer(app);
 
@@ -74,7 +53,7 @@ const io = require('socket.io')(http, {
 });
 
 io.on("connection", (socket) => {
-    console.log(`New client connected ${socket.id}`); 
+    logger.log('info', `New client connected ${socket.id}`); 
 });
 
 /** Endpoints */
@@ -88,7 +67,7 @@ app.use("/api/svm", require("./app/controllers/svmController"));
 
 /** Stream setup */
 if (streamService != null && streamService != null){
-    console.log('Starting streaming');
+    logger.log('info', 'Starting streaming');
     (async () => {
         await streamService.startStreams(io, em);
         await videoAnalysisService.startVideoAnalysis(io, em);
@@ -97,7 +76,7 @@ if (streamService != null && streamService != null){
 
 /** Start server */
 http.listen(port, () => {  
-    console.log(`SecureSight WS listening at http://localhost:${port}`)
+    logger.log('info', `SecureSight WS listening at http://localhost:${port}`)
 });
 
 module.exports = app;

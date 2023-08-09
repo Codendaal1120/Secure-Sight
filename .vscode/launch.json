@@ -15,7 +15,8 @@
             "skipFiles": [
               "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "pwa-node",
+            "outputCapture": "std"
           },
           {
             "name": "Debug server",
@@ -28,7 +29,8 @@
             "skipFiles": [
               "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "pwa-node",
+            "outputCapture": "std"
           },
           {
             "name": "Debug web",
@@ -41,7 +43,8 @@
             "skipFiles": [
               "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "pwa-node",
+            "outputCapture": "std"
           },
           {
             "name": "Debug test",

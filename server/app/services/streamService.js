@@ -4,8 +4,9 @@ const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
-const path = require('path');
-const ffmpeg = path.join(__dirname, '../../ffmpeg', "ffmpeg.exe");
+const ffmpegModule = require("../modules/ffmpegModule");
+const ffmpeg = ffmpegModule.getFfmpagPath();
+const logger = require('../modules/loggingModule').getLogger('streamService');
 
 let mpegTsParser = null;
 let io = null;
@@ -35,8 +36,7 @@ async function startStreams(_ioServer, _eventEmitter) {
 async function createCameraStreams(_cam){   
 
   let mpegTsPort = await startFeedStream(_cam);   
-  let watcherPort = await startWatcherStream(_cam); 
-  
+  let watcherPort = await startWatcherStream(_cam);   
 
   let camServ = {
     index : cache.cameras.length,
@@ -104,23 +104,23 @@ async function startFeedStream(cam){
   ];
 
   const cp = spawn(ffmpeg, args);
-  console.log(`[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
+  logger.log('info', `[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
 
   cp.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    console.error('stderr', err);
+    logger.log('error', `[${cam.id}] Feed stream stderr`, err);
   });
 
   cp.on('exit', (code, signal) => {
     if (code === 1) {
-      console.error(`[${cam.id}] Main stream exited`);
+      logger.log('error', `[${cam.id}] Main stream exited`);
     } else {
-      console.error(`[${cam.id}] FFmpeg main process exited (expected)`);
+      logger.log('error', `[${cam.id}] FFmpeg main process exited (expected)`);
     }
   });
 
   cp.on('close', () => {
-    console.log(`[${cam.id}] main stream process closed`);
+    logger.log('info', `[${cam.id}] main stream process closed`);
   });  
 
   return mpegTsStreamPort;
@@ -132,7 +132,7 @@ async function startWatcherStream(cam){
 
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
     em.on(`${cam.id}-stream-data`, function (data) {     
-      //console.log('watch') ;
+      //logger.log('info', 'watch') ;
       socket.write(data);    
     });
   });
@@ -172,29 +172,29 @@ async function startWatcherStream(cam){
     '-']
 
   const cp = spawn(ffmpeg, args);  
-  console.log(`[${cam.id}] Watcher stream started on ${watcherPort}`);
+  logger.log('info', `[${cam.id}] Watcher stream started on ${watcherPort}`);
 
   cp.stdout.on('data', (data) => {
     // this goes to UI
-    //console.log('writing to ', `${cam.id}-stream`);
+    //logger.log('info', 'writing to ', `${cam.id}-stream`);
     io.sockets.emit(`${cam.id}-stream`, data);
   });
 
   cp.stderr.on('data', (data) => {
     let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    console.error(`[${cam.id}] watcher stderr`, err);
+    logger.log('error', `[${cam.id}] watcher stderr`, err);
   });
 
   cp.on('exit', (code, signal) => {
     if (code === 1) {
-      console.error(`${cam.id} watcher exit`);
+      logger.log('error', `${cam.id} watcher exit`);
     } else {
-      console.error(`[${cam.id}] FFmpeg watcher process exited (expected)`);
+      logger.log('error', `[${cam.id}] FFmpeg watcher process exited (expected)`);
     }
   });
 
   cp.on('close', () => {
-    console.log(`[${cam.id}] Watcher process closed`);
+    logger.log('info', `[${cam.id}] Watcher process closed`);
   });
 
   return watcherPort;

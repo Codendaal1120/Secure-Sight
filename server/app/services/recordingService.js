@@ -2,8 +2,9 @@ const dataService = require("./dataService");
 const cache = require("../modules/cache");
 const { spawn } = require('node:child_process');
 const path = require('path');
-const ffmpeg = path.join(__dirname, '../../ffmpeg', "ffmpeg.exe");
-
+const ffmpegModule = require("../modules/ffmpegModule");
+const ffmpeg = ffmpegModule.getFfmpagPath();
+const logger = require('../modules/loggingModule').getLogger('recordingService');
 const collectionName = "recordings";
 
 /**
@@ -16,7 +17,7 @@ async function recordCamera(_cameraEntry, _seconds){
 
     _cameraEntry.record.status = 'recording';
 
-    console.log(`[${_cameraEntry.camera.id}] Recording started`);
+    logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
 
     try{
         var currentTime = Math.floor(new Date().getTime() / 1000);  
@@ -72,23 +73,23 @@ function runFfmpeg(_filePath, _cameraEntry, _seconds){
   
       cp.stderr.on('data', (data) => {
         let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-        console.error(`[${_cameraEntry.camera.id}] Recording stderr`, err);
+        logger.log('error', `[${_cameraEntry.camera.id}] Recording stderr`, err);
       });
     
       cp.on('exit', (code, signal) => {
         if (code === 1) {
-          console.error(`[${_cameraEntry.camera.id}]  Recording ERROR`);   
+          logger.log('error', `[${_cameraEntry.camera.id}]  Recording ERROR`);   
           return;
         } 
   
-        console.log(`[${_cameraEntry.camera.id}]  Recording complete`);        
+        logger.log('info', `[${_cameraEntry.camera.id}]  Recording complete`);        
         //save to DB
         trysaveRecording({ cameraId : _cameraEntry.camera.id, recordedOn : new Date(), file : _filePath }); 
         _cameraEntry.record.status = null;        
       });
     
       cp.on('close', () => {
-        //console.log(`[${_cameraEntry.camera.id}]  record process closed`);
+        //logger.log('info', `[${_cameraEntry.camera.id}]  record process closed`);
       });
 }
 

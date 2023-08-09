@@ -1,4 +1,5 @@
 const coreImg = require("./imageModule");
+const logger = require('../modules/loggingModule').getLogger('tcpModule');
 
 const width = 640;
 const heigh = 320;

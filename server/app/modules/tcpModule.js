@@ -1,6 +1,7 @@
 /** TCP utility class */
 const { createServer } = require('node:net');
 const { once } = require('node:events');
+const logger = require('../modules/loggingModule').getLogger('tcpModule');
 
 /**
  * Creates a TCP server listening on the target port with a callback. Returns the port the server is listening on. 
@@ -31,7 +32,7 @@ async function createLocalServer(_targetPort, _callback){
         await once(server, 'listening');
         return server.address().port;
       } catch(e) {
-        console.error(`could not listen on port ${_targetPort}, will retry on a different port : ${e.message}`);
+        logger.log('error', `could not listen on port ${_targetPort}, will retry on a different port : ${e.message}`);
       }
     }
 }

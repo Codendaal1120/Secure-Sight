@@ -5,6 +5,7 @@ const path = require('path');
 const Kernel = require('ml-kernel');
 const range = require('lodash.range');
 const {default: Image} = require('image-js');
+const logger = require('../modules/loggingModule').getLogger('svmDetector');
 
 //const IMG_SCALE_WIDTH = 100;
 //const IMG_SCALE_HEIGHT = 100;
@@ -26,7 +27,7 @@ let kernel = null;
  */
 async function processImage(_imgData, _imgWidth, _imgHeight) {    
     if (!svm){
-        console.log('Loading model');
+        logger.log('info', 'Loading model');
         svm = loadModelFromFile();
     }    
 
@@ -127,11 +128,11 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
     var img = new Image(_imageWidth, _imageHeight, _imageData);
         
     if (!svm){
-        console.log('Loading model');
+        logger.log('info', 'Loading model');
         svm = loadModelFromFile();
     }    
 
-    console.log('Predicting');
+    logger.log('info', 'Predicting');
 
     img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
     //var desc = hog.extractHogFeatures(img.data, img.width, img.height);
@@ -182,7 +183,7 @@ async function testModel(_model, _prefix, _original) {
 
     for (let i = 0; i < results.length; i++) {
         predictions.push({ file: mlTestData.files[i], preidcted: results[i], actual: mlTestData.labels[i] }); 
-        console.log(mlTestData.files[i], 'actual =', mlTestData.labels[i], 'predicted =', results[i]);
+        logger.log('info', mlTestData.files[i], 'actual =', mlTestData.labels[i], 'predicted =', results[i]);
         correct += mlTestData.labels[i] == results[i] ? 1 : 0;
     }
 
@@ -207,7 +208,7 @@ async function trainModel(_features, _labels, _prefix, _originalFeatures) {
 
     const svm = createModel(gamma);
 
-    console.log("Training model");
+    logger.log('info', "Training model");
 
     svm.train(_features, _labels);  // train the model
 
@@ -260,7 +261,7 @@ async function getMlData(_imageDirectory){
         var files = fs.readdirSync(labelDirectory);
 
         for (let j = 0; j < files.length; j++) {
-            console.log('Loading ', files[j]);        
+            logger.log('info', 'Loading ', files[j]);        
             var loadHog = await loadImageAndGetHog(labelDirectory + '\\' + files[j]);
             if (loadHog.success){
                 fileNames.push(files[j]);
@@ -292,7 +293,7 @@ async function loadImageAndGetHog(_imagePath){
         return { success : true, payload : desc };
     }
     catch(err){
-        console.error(`ERROR loading ${_imagePath} : ${err}`)
+        logger.log('error', `ERROR loading ${_imagePath} : ${err}`)
         return { success : false, error : err };
     }    
 }
