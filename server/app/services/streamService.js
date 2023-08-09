@@ -1,69 +1,15 @@
 const camService = require("./camerService");
+const recService = require("./recordingService");
 const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
 const path = require('path');
 const ffmpeg = path.join(__dirname, '../../ffmpeg', "ffmpeg.exe");
-const fs = require("fs");
 
 let mpegTsParser = null;
 let io = null;
 let em = null;
-
-async function recordCam(_camIndex, _data){
-  if (cache.cameras[_camIndex].record.seconds > -1){    
-
-    console.log(`[${cache.cameras[_camIndex].camera.id}] Recording started`)
-
-    var currentTime = Math.floor(new Date().getTime() / 1000);  
-    var fileName = `${cache.cameras[_camIndex].camera.id}-${currentTime}.mp4`
-    var filePath = path.join(cache.config.recording.path, fileName);
-    cache.cameras[_camIndex].record.file = filePath;
-  
-    const args = [
-      '-hide_banner',
-      '-loglevel',
-      'error',
-      '-fflags',
-      '+genpts',
-      '-rtsp_transport',
-      'udp',
-      '-t',
-      cache.cameras[_camIndex].record.seconds,
-      '-i',
-      cache.cameras[_camIndex].camera.url,
-      '-vcodec',
-      'mpeg1video',
-      '-an','-s',
-      '1280x720',
-      filePath]
-
-    cache.cameras[_camIndex].record.seconds = -1;
-  
-    const cp = spawn(ffmpeg, args);
-
-    cp.stderr.on('data', (data) => {
-      let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-      console.error(`[${cache.cameras[_camIndex].camera.id}] Recording stderr`, err);
-    });
-  
-    cp.on('exit', (code, signal) => {
-      if (code === 1) {
-        console.log(`[${cache.cameras[_camIndex].camera.id}]  Recording ERROR`);   
-        return;
-      } 
-
-      console.log(`[${cache.cameras[_camIndex].camera.id}]  Recording complete`);        
-      //save to DB
-      camService.saveCamRecording(filePath, { recordedOn : new Date(), file : filePath });      
-    });
-  
-    cp.on('close', () => {
-      console.log(`[${cache.cameras[_camIndex].camera.id}]  record process closed`);
-    });
-  }
-}
 
 /**
  * Start streaming service
@@ -81,11 +27,6 @@ async function startStreams(_ioServer, _eventEmitter) {
   for (let i = 0; i < cameras.payload.length; i++) {
     if (cameras.payload[i].deletedOn == null){
       await createCameraStreams(cameras.payload[i]);   
-      
-      // Check recording
-      em.on(`${cameras.payload[i].id}-stream-data`, function (data) {     
-        recordCam(i, data);
-      });
     }      
   } 
 }
@@ -94,14 +35,16 @@ async function startStreams(_ioServer, _eventEmitter) {
 async function createCameraStreams(_cam){   
 
   let mpegTsPort = await startFeedStream(_cam);   
-  let watcherPort = await startWatcherStream(_cam);  
+  let watcherPort = await startWatcherStream(_cam); 
+  
 
   let camServ = {
+    index : cache.cameras.length,
     camera : _cam,
     mpegTsPort : mpegTsPort,
     watcherPort : watcherPort,
     record : {
-      seconds : -1
+      status : null
     }
   }    
 
