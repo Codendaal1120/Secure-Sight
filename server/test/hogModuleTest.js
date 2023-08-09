@@ -1,6 +1,6 @@
-var chai = require('chai');
+const chai = require('chai');
 const fs = require("fs");
-var path = require('path');
+const path = require('path');
 
 process.env.NODE_ENV = 'test'
 

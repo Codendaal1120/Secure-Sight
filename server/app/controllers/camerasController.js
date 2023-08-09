@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const camService = require("../services/camerService");
+const recService = require("../services/recordingService");
+const cache = require("../modules/cache");
 
 /**
  * Get all configured cameras
@@ -23,9 +25,9 @@ router.get("/", async function (req, res) {
 /**
  * Get all configured cameras
  * @route GET /api/cameras/:camId
- * @camId Camera DB id
  * @produces application/json 
  * @group Cameras api
+ * @param {string} req.params.camId - Camera DB id
  * @returns {object} 200 - Returns single camera
  * @returns {Error}  400 - Bad request
 */
@@ -42,10 +44,9 @@ router.get("/:camId", async function (req, res) {
 /**
  * Create a new camera
  * @route POST /api/cameras
- * @camId Camera DB id
  * @group Cameras api
  * @produces application/json
- * @param {object} camera.body.required - Camera object to save
+ * @param {object} req.body - Camera object to save
  * @returns {object} 201 - The saved camera
  * @returns {Error}  400 - Bad request
  */
@@ -62,10 +63,10 @@ router.post("/", async function (req, res) {
 /**
  * Update a camera
  * @route PUT /api/cameras
- * @camId Camera DB id
  * @group Cameras api
  * @produces application/json
- * @param {object} camera.body.required - Camera object to save
+ * @param {string} req.params.camId - Camera DB id
+ * @param {object} req.body - Camera object to save
  * @returns {object} 200 - The saved camera
  * @returns {Error}  400 - Bad request
  */
@@ -81,15 +82,37 @@ router.put("/:camId", async function (req, res) {
 
 /**
  * Delete a camera
- * @route PUT /api/cameras
- * @camId Camera DB id
+ * @route DEL /api/cameras
  * @group Cameras api
  * @produces application/json
+ * @param {string} req.params.camId - Camera DB id
  * @returns {object} 200 - The saved camera
  * @returns {Error}  400 - Bad request
  */
 router.delete("/:camId", async function (req, res) {
   const result = await camService.tryDeleteCam(req.params.camId); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Starts recording
+ * @route POST /api/cameras
+ * @group Cameras api
+ * @produces application/json
+ * @param {string} req.params.camId - Camera DB id
+ * @param {Number} req.query.seconds - Seconds to record, default = 10
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.post("/:camId/record", async function (req, res) {
+  let sec = req.query.seconds ?? 10;
+  let cam = cache.getCamera(req.params.camId);
+  const result = await recService.recordCamera(cam, parseInt(sec)); 
   if (result.success){
       res.status(200).json(result.payload);
   }

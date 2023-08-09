@@ -55,11 +55,11 @@ async function getManyAsync(_collectionName, _filter, _project, _sort) {
             _project = {};
         }
         
-        if (!sort){
-            sort = {};
+        if (!_sort){
+            _sort = {};
         }
 
-        let res = await collection.payload.find(_filter, _project).sort(sort).toArray();
+        let res = await collection.payload.find(_filter, _project).sort(_sort).toArray();
         res.forEach(element => {
             element = setObjectId(element)
         });
@@ -127,7 +127,7 @@ async function updateOneAsync(_collectionName, _filter, _update, _postUpdateFilt
         return { success : false, error : "invalid filter supplied" };
     }
 
-    if (!update){
+    if (!_update){
         return { success : false, error : "invalid update supplied" };
     }
 
@@ -142,7 +142,7 @@ async function updateOneAsync(_collectionName, _filter, _update, _postUpdateFilt
 
     try {
 
-        let res = await collection.payload.updateOne(_filter, update, { upsert: false });
+        let res = await collection.payload.updateOne(_filter, _update, { upsert: false });
 
         if (!res.acknowledged || res.modifiedCount == 0){
             // the query failed

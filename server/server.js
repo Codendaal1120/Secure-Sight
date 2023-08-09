@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const events = require('events');
 const em = new events.EventEmitter();
+const cache = require('./app/modules/cache');
 
 let streamService = null;
 let videoAnalysisService = null;
@@ -16,12 +17,26 @@ if (!process.env.NODE_ENV){
 }
 
 dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
+cache.config = {
+    recording : {
+        path : process.env.RECORD_PATH
+    }
+};
 //process.env.NODE_ENV = 'test';
 
 if (process.env.NODE_ENV != 'unit_test'){
     streamService = require("./app/services/streamService");
     videoAnalysisService = require("./app/services/videoAnalysisService");
 }
+
+// const Storage = require('node_storage_manager');
+// let StorageInstance =  Storage.getInstance('NFS');
+// listBuckets
+
+
+//var fTest = fs.readdirSync('\\192.168.86.16\\media');
+
+
 
 
 // function clientErrorHandler (err, req, res, next) {

@@ -3,15 +3,67 @@ const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
-const ffmpeg = '.\\ffmpeg\\ffmpeg.exe';
+const path = require('path');
+const ffmpeg = path.join(__dirname, '../../ffmpeg', "ffmpeg.exe");
 const fs = require("fs");
 
 let mpegTsParser = null;
 let io = null;
 let em = null;
 
-let record = 0;
-let fileStream = fs.createWriteStream('recording.mpeg', { flags: 'a' });
+async function recordCam(_camIndex, _data){
+  if (cache.cameras[_camIndex].record.seconds > -1){    
+
+    console.log(`[${cache.cameras[_camIndex].camera.id}] Recording started`)
+
+    var currentTime = Math.floor(new Date().getTime() / 1000);  
+    var fileName = `${cache.cameras[_camIndex].camera.id}-${currentTime}.mp4`
+    var filePath = path.join(cache.config.recording.path, fileName);
+    cache.cameras[_camIndex].record.file = filePath;
+  
+    const args = [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-fflags',
+      '+genpts',
+      '-rtsp_transport',
+      'udp',
+      '-t',
+      cache.cameras[_camIndex].record.seconds,
+      '-i',
+      cache.cameras[_camIndex].camera.url,
+      '-vcodec',
+      'mpeg1video',
+      '-an','-s',
+      '1280x720',
+      filePath]
+
+    cache.cameras[_camIndex].record.seconds = -1;
+  
+    const cp = spawn(ffmpeg, args);
+
+    cp.stderr.on('data', (data) => {
+      let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
+      console.error(`[${cache.cameras[_camIndex].camera.id}] Recording stderr`, err);
+    });
+  
+    cp.on('exit', (code, signal) => {
+      if (code === 1) {
+        console.log(`[${cache.cameras[_camIndex].camera.id}]  Recording ERROR`);   
+        return;
+      } 
+
+      console.log(`[${cache.cameras[_camIndex].camera.id}]  Recording complete`);        
+      //save to DB
+      camService.saveCamRecording(filePath, { recordedOn : new Date(), file : filePath });      
+    });
+  
+    cp.on('close', () => {
+      console.log(`[${cache.cameras[_camIndex].camera.id}]  record process closed`);
+    });
+  }
+}
 
 /**
  * Start streaming service
@@ -30,34 +82,30 @@ async function startStreams(_ioServer, _eventEmitter) {
     if (cameras.payload[i].deletedOn == null){
       await createCameraStreams(cameras.payload[i]);   
       
-      // TEST record
-      em.on(`${cameras.payload[i].id}-stream-data`, function (data) {      
-        if (record > -1 && record < 600){
-          record++;
-          fileStream.write(data);
-        }
-        else if (record > 600){
-          record = -1;
-          console.log('recording done');
-        }
+      // Check recording
+      em.on(`${cameras.payload[i].id}-stream-data`, function (data) {     
+        recordCam(i, data);
       });
     }      
   } 
 }
 
 /** Create streams for each camera */
-async function createCameraStreams(cam){   
+async function createCameraStreams(_cam){   
 
-  let mpegTsPort = await startFeedStream(cam);   
-  let watcherPort = await startWatcherStream(cam);  
+  let mpegTsPort = await startFeedStream(_cam);   
+  let watcherPort = await startWatcherStream(_cam);  
 
-  let server = {
-    camera : cam,
+  let camServ = {
+    camera : _cam,
     mpegTsPort : mpegTsPort,
     watcherPort : watcherPort,
+    record : {
+      seconds : -1
+    }
   }    
 
-  cache.cameras.push(server);
+  cache.cameras.push(camServ);
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -137,9 +185,11 @@ async function startFeedStream(cam){
 
 /** Creates the watcher stream, which wiil stream the feed stream to the io.socket for the UI */
 async function startWatcherStream(cam){
-  
+
+
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
-    em.on(`${cam.id}-stream-data`, function (data) {      
+    em.on(`${cam.id}-stream-data`, function (data) {     
+      //console.log('watch') ;
       socket.write(data);    
     });
   });

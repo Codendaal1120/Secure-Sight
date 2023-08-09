@@ -1,4 +1,5 @@
 const dataService = require("./dataService");
+
 const collectionName = "cameras";
 
 /**
@@ -25,7 +26,7 @@ async function getAll() {
 
 /**
  * Get a camera by id
- * @param {Number} _cameraId - Unique ID of camera
+ * @param {string} _cameraId - Unique ID of camera
  * @return {Object} Camera
  */
 async function getOneById(_cameraId) {    
@@ -72,8 +73,8 @@ async function tryCreateNewCam(_camera){
 }
 
 /**
- * Create a new camera
- * @param {Object} _camId - Camera ID to update
+ * Update camera
+ * @param {string} _camId - Camera ID to update
  * @param {Object} _camera - Camera to update
  * @return {Object} Saved camera
  */
@@ -109,7 +110,7 @@ async function tryUpdateCam(_camId, _camera){
 
 /**
  * Soft delete camera
- * @param {Object} _camId - Camera ID to delete
+ * @param {string} _camId - Camera ID to delete
  * @return {Object} Status result
  */
 var tryDeleteCam = async function(_camId){
