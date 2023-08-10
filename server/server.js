@@ -9,14 +9,18 @@ const events = require('events');
 const em = new events.EventEmitter();
 const cache = require('./app/modules/cache');
 const logger = require('./app/modules/loggingModule').getLogger();
+const fs = require("fs");
 
 let streamService = null;
 let videoAnalysisService = null;
 
+/** Config */
 if (!process.env.NODE_ENV){
     process.env.NODE_ENV = 'development';
 }
+
 dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
+const port = process.env.PORT; 
 cache.config = {
     recording : {
         path : process.env.RECORD_PATH
@@ -25,19 +29,20 @@ cache.config = {
     root : root
 };
 
+/** Setup */
+var build = fs.readFileSync('build.txt').toString().trim();
+logger.log('info', `======================== Starting build ${build} on ${process.env.NODE_ENV} ========================`);
+
 if (process.env.NODE_ENV != 'unit_test'){
     streamService = require("./app/services/streamService");
     videoAnalysisService = require("./app/services/videoAnalysisService");
 }
-/** Setup */
+
 app.use(cors({
     origin : process.env.ORIGIN, 
     credentials: true, 
     allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
 }));
-
-const port = process.env.PORT; 
-logger.log('info', "ENVIRONMENT", process.env.NODE_ENV);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

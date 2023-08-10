@@ -76,14 +76,10 @@ function tryGetLogs(lines = 100) {
   try{
     var logLines = [];
     var logContents = fs.readFileSync(currentLogFile, { encoding: 'utf8', flag: 'r' }).split('\n');
-    for (let i = logContents.length; i > 0; i--) {
-      if (lines == 0){
-        break;
-      }
+    for (let i = logContents.length - lines; i < logContents.length; i++) {
       if (logContents[i] && logContents[i].length > 0){
         logLines.push(logContents[i].replaceAll('\t', ' ').replaceAll('\r', ''));        
-      }      
-      lines--;
+      }            
     }
 
     return { success : true, payload : logLines };
