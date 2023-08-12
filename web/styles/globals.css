@@ -4,6 +4,14 @@
 
 @layer components {
 
+  .sidebar{
+    background: #00AFB5;
+  }
+
+  .sidebar-item:hover {
+    background: #2D3142;
+  }
+
   .logo-wrapper{
     /* max-height: 60px;; */
   }

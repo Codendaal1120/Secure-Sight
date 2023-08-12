@@ -1,4 +1,4 @@
-import CameraViewer from "components/layout/CameraViewer";
+import CameraViewer from "components/CameraViewer";
 import { NextPage } from "next";
 import React from "react";
 
