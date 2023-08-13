@@ -1,6 +1,8 @@
 const dataService = require("./dataService");
 const logger = require('../modules/loggingModule').getLogger('camerService');
 const collectionName = "cameras";
+const cache = require('../modules/cache');
+const fetch = require("node-fetch");
 
 /**
  * Get all configured cameras from DB
@@ -29,13 +31,20 @@ async function getAll() {
  * @param {string} _cameraId - Unique ID of camera
  * @return {Object} Camera
  */
-async function getOneById(_cameraId) {    
+async function tryGetOneById(_cameraId) {    
     // validate input
     if (!_cameraId){
         return { success : false, error : "Invalid cameraId" };
     }
 
     try{
+        // try to fetch from cache
+        let cam = cache[_cameraId];
+        if (cam){
+            return { success : true, payload : cam.camera };
+        }
+
+        // fetch from DB
         let tryGetCams = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_cameraId), deletedOn : null });
 
         if (!tryGetCams.success){
@@ -131,6 +140,37 @@ var tryDeleteCam = async function(_camId){
     return { success : true, payload : "Camera deleted" };
 }
 
+/**
+ * Tries to get a image from the camera, some cameras have a snapshot url
+ * @param {string} _camId - Camera ID to get the snapshot for
+ * @return {Object} Status result
+ */
+var tryGetSnapshot = async function(_camId){
+        
+    if (!_camId){
+        return { success : false, error : [ "Invalid camera Id" ] };
+    }
+
+    let tryGetCam = await tryGetOneById(_camId);
+    if (!tryGetCam.success){
+        return tryGetCam;
+    }
+
+    if (!tryGetCam.payload.snapshotUrl){
+        return { success : false, error : `Camera ${_camId} does not have a snapshot endpoint` };
+    }
+
+    try{       
+        const response = await fetch(tryGetCam.payload.snapshotUrl);
+        const b = await response.buffer();
+        return { success : true, payload : b };
+    } catch(error){
+        var msg = `Unable to get snapshot from camera ${_camId} : ${error.message}`;
+        logger.log('error', msg)
+        return { success : false, error : msg };
+    }
+}
+
 function validateCamera(camera){
     var errors = [];
 
@@ -149,8 +189,25 @@ function validateCamera(camera){
     return errors;
 }
 
+function httpRequest(options) {
+    return new Promise ((resolve, reject) => {
+      let req = http.request(options);
+  
+      req.on('response', res => {
+        resolve(res);
+      });
+  
+      req.on('error', err => {
+        reject(err);
+      });
+  
+      req.end();
+    }); 
+  }
+
 module.exports.getAll = getAll;
-module.exports.getOneById = getOneById;
+module.exports.getOneById = tryGetOneById;
 module.exports.tryCreateNewCam = tryCreateNewCam;
 module.exports.tryUpdateCam = tryUpdateCam;
 module.exports.tryDeleteCam = tryDeleteCam;
+module.exports.tryGetSnapshot = tryGetSnapshot;

@@ -39,7 +39,6 @@ async function createCameraStreams(_cam){
   let watcherPort = await startWatcherStream(_cam);   
 
   let camServ = {
-    index : cache.cameras.length,
     camera : _cam,
     mpegTsPort : mpegTsPort,
     watcherPort : watcherPort,
@@ -48,7 +47,7 @@ async function createCameraStreams(_cam){
     }
   }    
 
-  cache.cameras.push(camServ);
+  cache.cameras[_cam.id] = camServ;
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/

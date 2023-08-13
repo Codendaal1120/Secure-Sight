@@ -23,7 +23,7 @@ router.get("/", async function (req, res) {
 });
 
 /**
- * Get all configured cameras
+ * Get a specific camera
  * @route GET /api/cameras/:camId
  * @produces application/json 
  * @group Cameras api
@@ -38,7 +38,28 @@ router.get("/:camId", async function (req, res) {
   }
   else{
     res.status(400).json(result.error);
-  }    
+  }     
+});
+
+/**
+ * Get camera snapshot
+ * @route GET /api/cameras/:camId/snapshot
+ * @produces application/json 
+ * @group Cameras api
+ * @param {string} req.params.camId - Camera DB id
+ * @returns {object} 200 - Returns single camera
+ * @returns {Error}  400 - Bad request
+*/
+router.get("/:camId/snapshot", async function (req, res) {  
+  const result = await camService.tryGetSnapshot(req.params.camId); 
+  if (result.success){
+    res.set("Content-Type", "image/jpeg");
+    res.send(result.payload);
+  }
+  else{
+    res.status(400).json(result.error);
+  }  
+   
 });
 
 /**
