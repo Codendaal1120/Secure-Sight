@@ -39,7 +39,7 @@ if (process.env.NODE_ENV != 'unit_test'){
 }
 
 app.use(cors({
-    origin : process.env.ORIGIN, 
+    origin : process.env.CORS_ORIGIN, 
     credentials: true, 
     allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
 }));
