@@ -1,7 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
 import {Box, Typography, Modal } from '@mui/material';
-
+import { api } from "services/api";
+//import api2 from "services/api2";
 interface Props {
+  cameraId: string;
   cameraName: string;
 //   cameraUrl: string;
 //   camera : Camera;
@@ -12,6 +14,16 @@ export interface Camera {
   name :string;
   url :string;
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API;
+
+async function getCameraSnapshot(camId: string)  { 
+  //let imageObjectURL: Blob;  
+  const response = await fetch(`${API_URL}/api/cameras/${camId}/snapshot`);
+  const imageBlob = await response.blob();
+  const imageObjectURL = URL.createObjectURL(imageBlob); //as unknown as Blob;
+  return imageObjectURL;
+};
 
 const drawStyle = {
     // width: '640px',
@@ -31,10 +43,19 @@ const drawStyle = {
     p: 4,
   };
 
-function CameraViewer ({ cameraName } : Props) {
+function CameraViewer ({ cameraId, cameraName } : Props) {
+
+  const [img, setImg] = useState<string>();
+
+  useEffect(() => {
+    getCameraSnapshot(cameraId).then((res) => setImg(res));
+  }, []);
+
+ 
 
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
+
   const click = () => {
     console.log(cameraName, 'click');
 
@@ -57,6 +78,7 @@ function CameraViewer ({ cameraName } : Props) {
   return (
 
     <div className='cam-wrapper' onClick={click} style={drawStyle}>
+      <img className='cam-preview' src={img} alt="icons" />
       <Modal
         open={open}
         onClose={handleClose}

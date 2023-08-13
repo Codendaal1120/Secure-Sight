@@ -36,16 +36,20 @@ const HomePage: NextPage = () => {
         </div>
       </div>
        */}
-       <div>{cameras.length}</div>
 
        <section className="cameras">
-        <CameraViewer cameraName={"TEST1"} ></CameraViewer>
+       {cameras.map((cam, i) => {     
+           console.log("Entered");                 
+           // Return the element. Also pass key     
+           return (<CameraViewer cameraName={cam.name} cameraId={cam.id} ></CameraViewer>) 
+        })}
+        {/* <CameraViewer cameraName={"TEST1"} ></CameraViewer>
         <CameraViewer cameraName={"TEST2"} ></CameraViewer>
         <CameraViewer cameraName={"TEST3"} ></CameraViewer>
         <CameraViewer cameraName={"TEST4"} ></CameraViewer>
         <CameraViewer cameraName={"TEST5"} ></CameraViewer>
         <CameraViewer cameraName={"TEST6"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST7"} ></CameraViewer>
+        <CameraViewer cameraName={"TEST7"} ></CameraViewer> */}
        </section>
         
     </div>

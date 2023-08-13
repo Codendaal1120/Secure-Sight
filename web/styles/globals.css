@@ -39,15 +39,22 @@
   .cam-name {
     color: blue;
   }
+
   .cam-wrapper{
     text-align: center;
     background-color: gray;
-    padding: 1rem;
+    /* padding: 1rem; */
     display: block;
     position: relative;
-    max-width: 640px;
-    min-width: 320px;
-    height: 480px;
+    /* max-width: 640px;
+    min-width: 320px; 
+    height: 480px;*/
+    max-width: 470px;
+    /* min-width: 400px;  */
+    height: 352px;
+    border-radius: 10px;
+    object-fit: cover;
+    overflow: hidden;
   }
 
   .cam-wrapper:hover{
@@ -56,12 +63,19 @@
     border: 1px rgba(14, 15, 15, 0.7);
   }
 
+  .cam-preview{
+    width: 470px;
+    height: 352px;
+    object-fit: cover;
+    overflow: hidden;
+  }
+
   .cameras {
     transition: all .3s ease-in;
     max-width: 93%;
     vertical-align: baseline;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(640px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
     gap: 2rem;
     margin: 0 auto auto;
   }
