@@ -23,7 +23,7 @@ router.get("/", async function (req, res) {
  * @returns {Array} Log lines
  */
 router.get("/logs", function (req, res) {  
-    let tryGetLogs = loggingModule.tryGetLogs(req.params.lines);
+    let tryGetLogs = loggingModule.tryGetLogs(parseInt(req.query.lines));
     if (tryGetLogs.success){
         res.status(200).json(tryGetLogs.payload);
     }

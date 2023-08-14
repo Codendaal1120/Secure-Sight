@@ -59,6 +59,10 @@ const io = require('socket.io')(http, {
 
 io.on("connection", (socket) => {
     logger.log('info', `New client connected ${socket.id}`); 
+
+    io.on('disconnect', function() {
+        console.log(`${socket.id} Got disconnect!`);
+    });
 });
 
 /** Endpoints */
