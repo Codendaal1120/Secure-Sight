@@ -3,6 +3,13 @@ import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
 import { api } from "services/api";
 
+import dynamic from 'next/dynamic'
+
+const DynamicComponentWithNoSSR = dynamic(
+  () => import('../components/CameraViewer'),
+  { ssr: false }
+)
+
 //console.log('here2', process.env.NEXT_PUBLIC_DB_HOST);
 
 interface Camera {
@@ -39,9 +46,9 @@ const HomePage: NextPage = () => {
 
        <section className="cameras">
        {cameras.map((cam, i) => {     
-           console.log("Entered");                 
+           //console.log("Entered");                 
            // Return the element. Also pass key     
-           return (<CameraViewer cameraName={cam.name} cameraId={cam.id} ></CameraViewer>) 
+           return (<DynamicComponentWithNoSSR key={i.toString()} cameraName={cam.name} cameraId={cam.id} ></DynamicComponentWithNoSSR>) 
         })}
         {/* <CameraViewer cameraName={"TEST1"} ></CameraViewer>
         <CameraViewer cameraName={"TEST2"} ></CameraViewer>

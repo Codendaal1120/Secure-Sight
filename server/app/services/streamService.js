@@ -128,10 +128,9 @@ async function startFeedStream(cam){
 /** Creates the watcher stream, which wiil stream the feed stream to the io.socket for the UI */
 async function startWatcherStream(cam){
 
-
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
     em.on(`${cam.id}-stream-data`, function (data) {     
-      //logger.log('info', 'watch') ;
+      //logger.log('info', `watch from ${cam.id}`) ;
       socket.write(data);    
     });
   });
@@ -175,7 +174,7 @@ async function startWatcherStream(cam){
 
   cp.stdout.on('data', (data) => {
     // this goes to UI
-    //logger.log('info', 'writing to ', `${cam.id}-stream`);
+    //logger.log('info', `writing to ${cam.id}-stream`);
     io.sockets.emit(`${cam.id}-stream`, data);
   });
 

@@ -38,6 +38,7 @@ if (process.env.NODE_ENV != 'unit_test'){
     videoAnalysisService = require("./app/services/videoAnalysisService");
 }
 
+logger.log('info', `CORS origin :${process.env.CORS_ORIGIN}`);
 app.use(cors({
     origin : process.env.CORS_ORIGIN, 
     credentials: true, 
@@ -58,11 +59,15 @@ const io = require('socket.io')(http, {
 });
 
 io.on("connection", (socket) => {
-    logger.log('info', `New client connected ${socket.id}`); 
+    logger.log('info', `New client connected ${socket.id}`);   
 
-    io.on('disconnect', function() {
-        console.log(`${socket.id} Got disconnect!`);
+    socket.on('disconnect', function(reason) {
+        logger.log('info', `${socket.id} Got disconnect! ${reason}`);
     });
+});
+
+io.on('disconnect', function(reason) {
+    console.log(`${reason} Got disconnect!`);
 });
 
 /** Endpoints */
