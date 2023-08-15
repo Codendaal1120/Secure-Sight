@@ -1,4 +1,4 @@
-import CameraViewer from "components/CameraViewer";
+
 import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
 import { api } from "services/api";
@@ -6,7 +6,7 @@ import { api } from "services/api";
 import dynamic from 'next/dynamic'
 
 const DynamicComponentWithNoSSR = dynamic(
-  () => import('../components/CameraViewer'),
+  () => import('../components/CameraViewerAltAlt'),
   { ssr: false }
 )
 

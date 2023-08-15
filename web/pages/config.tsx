@@ -6,7 +6,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 
-import CameraViewerAlt from "components/CameraViewerAlt";
+
 import IOTest from "components/IOTest";
 
 import dynamic from 'next/dynamic'
