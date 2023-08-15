@@ -7,6 +7,11 @@ const entries = {};
 function getCamera(_camId){
     return entries[_camId];
 }
+
+module.exports.services = {
+    eventEmmiter : null,
+    ioSocket : null
+};
 module.exports.config = {};
 module.exports.cameras = entries;
 module.exports.getCamera = getCamera;

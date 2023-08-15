@@ -9,18 +9,11 @@ const ffmpeg = ffmpegModule.getFfmpagPath();
 const logger = require('../modules/loggingModule').getLogger('streamService');
 
 let mpegTsParser = null;
-let io = null;
-let em = null;
 
 /**
  * Start streaming service
- * @param {object} _ioServer - The global sockect.io reference to use for events
- * @param {Object} _eventEmitter - The global event emitter
  */
-async function startStreams(_ioServer, _eventEmitter) {    
-
-  io = _ioServer;
-  em = _eventEmitter;
+async function startStreams() {    
   mpegTsParser = createMpegTsParser();
   
   let cameras = await camService.getAll();
@@ -58,7 +51,7 @@ async function startFeedStream(cam){
     for await (const chunks of mpegTsParser.parse(socket)) {
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
-            em.emit(`${cam.id}-stream-data`, chunk);            
+            cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
   });
@@ -129,7 +122,7 @@ async function startFeedStream(cam){
 async function startWatcherStream(cam){
 
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
-    em.on(`${cam.id}-stream-data`, function (data) {     
+    cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {     
       //logger.log('info', `watch from ${cam.id}`) ;
       socket.write(data);    
     });
@@ -175,7 +168,7 @@ async function startWatcherStream(cam){
   cp.stdout.on('data', (data) => {
     // this goes to UI
     //logger.log('info', `writing to ${cam.id}-stream`);
-    io.sockets.emit(`${cam.id}-stream`, data);
+    cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);
   });
 
   cp.stderr.on('data', (data) => {

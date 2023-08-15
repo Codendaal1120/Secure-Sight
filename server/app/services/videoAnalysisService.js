@@ -11,20 +11,13 @@ const ffmpegModule = require("../modules/ffmpegModule");
 const ffmpeg = ffmpegModule.getFfmpagPath();
 const logger = require('../modules/loggingModule').getLogger('videoAnalysisService');
 
-let io = null;
-let em = null;
 let frameIndex = -1;
 let frameBuffer = [];
 
 /**
  * Starts video analasys on all configured cameras
- * @param {object} _ioServer - The global sockect.io reference to use for events
- * @param {Object} _eventEmitter - The global event emitter
  */
-async function startVideoAnalysis(_ioServer, _eventEmitter) {    
-
-  io = _ioServer;
-  em = _eventEmitter;
+async function startVideoAnalysis() {    
 
   for (let i = 0; i < cache.cameras.length; i++) {
     if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled){
@@ -37,7 +30,7 @@ async function startVideoAnalysis(_ioServer, _eventEmitter) {
 async function StartVideoProcessing(cam){
 
   let streamPort = await tcp.createLocalServer(null, async function(socket){
-    em.on(`${cam.id}-stream-data`, function (data) {  
+    cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {  
       socket.write(data);    
     });
   });
@@ -148,7 +141,7 @@ async function processFrame(cam, data){
         //predictions = await tf.processImage(data.pixels, data.width, data.height);
       }
       
-      io.sockets.emit(`${cam.id}-detect`, predictions);
+      cache.services.ioSocket.sockets.emit(`${cam.id}-detect`, predictions);
     }
 
   }
