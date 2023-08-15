@@ -35,7 +35,7 @@ const HomePage: NextPage = () => {
   }, []);
   
   return (
-    <div className="container">
+    <div id="main" className="container">
       {/* <div className="container h-screen">
         <div className="flex flex-col items-center gap-4">
           <CameraViewer cameraName={"TEST1"} ></CameraViewer>

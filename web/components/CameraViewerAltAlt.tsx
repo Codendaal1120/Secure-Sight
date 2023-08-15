@@ -1,19 +1,8 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import JSMpegWritableSource from './JSMpegWritableSource.ts'
 import { io } from 'socket.io-client';
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
-//import JSMpeg from './JSMpeg.js'
-
-
-var JSMpegLoad = () => {
-    var aScript = document.createElement('script');
-    aScript.type = 'text/javascript';
-    aScript.src = "./JSMpeg.js";
-
-    document.head.appendChild(aScript);
-    aScript.onload = () => {
-    };
-};
+import ReactModal from 'react-modal';
 
 interface Props {
   cameraName: string;
@@ -27,11 +16,13 @@ export interface Camera {
   url :string;
 }
 
-function CameraViewerAlt ({ cameraId, cameraName } : Props) {
+function CameraViewerAltAlt ({ cameraId, cameraName } : Props) {
   // TODO: get address from config
   const ioClient = io('http://localhost:3002', {  });   
   const streamCanvas = useRef<HTMLCanvasElement>(null);
   const drawCanvas = useRef<HTMLCanvasElement>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
   const streamStyle = {
     width: '640px',
@@ -55,7 +46,8 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
   
  
   useEffect(() => {
-    
+    console.log('drawCanvas', drawCanvas);
+    console.log('ref', ref);
     // var aScript = document.createElement('script');
     // aScript.type = 'text/javascript';
     // aScript.src = "./JSMpeg.js";
@@ -128,13 +120,25 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
 
   }, [cameraId, drawCanvas, ioClient]);
 
+  const handleOpenModal = () => {  
+    setOpen(true);
+  }
+
+  const handleCloseModal = () => {  
+    setOpen(false);
+  }
 
 
   return (
     <div>
-      <canvas ref={drawCanvas} style={drawStyle}/>
-      <canvas ref={streamCanvas} style={streamStyle} />    
-    </div>    
+        <button onClick={handleOpenModal}>Trigger Modal</button>
+        <ReactModal 
+           isOpen={open}
+           contentLabel="Minimal Modal Example"
+        >
+          <button onClick={handleCloseModal}>Close Modal</button>
+        </ReactModal>
+      </div> 
   )
 }
 
@@ -143,4 +147,4 @@ function mapRange (value : number, inMin : number, inMax: number, outMin: number
   return outMin + value * (outMax - outMin);
 }
 
-export default CameraViewerAlt;
+export default CameraViewerAltAlt;

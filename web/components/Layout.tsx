@@ -7,7 +7,7 @@ const Layout = (props: PropsWithChildren) => {
   return (
     <div
       className={classNames({
-        "grid bg-zinc-100 min-h-screen": true,
+        "grid bg-zinc-100 ": true,
         "grid-cols-sidebar": !collapsed,
         "grid-cols-sidebar-collapsed": collapsed,
         "transition-[grid-template-columns] duration-300 ease-in-out": true,
@@ -18,7 +18,7 @@ const Layout = (props: PropsWithChildren) => {
         setCollapsed={setSidebarCollapsed}
         shown={showSidebar}
       />
-      <div className="">
+      <div className={classNames({"collapsed": collapsed})}>
         {props.children}
       </div>
     </div>

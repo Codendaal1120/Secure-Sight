@@ -31,19 +31,14 @@ const Sidebar = ({
     <div
       className={classNames({
         "sidebar":true,
-        "text-zinc-50 fixed md:static md:translate-x-0 z-20":
-          true,
+        "text-zinc-50 fixed md:static md:translate-x-0 z-20": true,
         "transition-all duration-300 ease-in-out": true,
         "w-[250px]": !collapsed,
         "w-16": collapsed,
         "-translate-x-full": !shown,
       })}
     >
-      <div
-        className={classNames({
-          "flex flex-col justify-between h-screen sticky inset-0 w-full": true,
-        })}
-      >
+      <div className={classNames({ "flex flex-col justify-between h-screen sticky inset-0 w-full": true })}>
         <div
           className={classNames({
             "logo-wrapper":true,

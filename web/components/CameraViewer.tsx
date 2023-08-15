@@ -52,18 +52,26 @@ const drawStyle = {
     p: 4,
   };
 
+
 function CameraViewer ({ cameraId, cameraName } : Props) {
 
+  const streamCanvas = useRef<HTMLCanvasElement>(null);
+  const drawCanvas = useRef<HTMLCanvasElement>(null); 
   //let socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;
   const [loaded, setLoaded] = useState<boolean>();
+  const [drawingCtx, setDrawingCtx] = useState<CanvasRenderingContext2D>();
+ // let loaded = false;
   const [player, setPlayer] = useState<JSMpeg>();
   //const [player, setPlayer] = useState();
   const [img, setImg] = useState<string>();  
   const [open, setOpen] = useState(false);
   const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
   const ref = useRef(null);
-  const streamCanvas = useRef<HTMLCanvasElement>(null);
-  let jsmpegPlayer = null;
+
+  
+
+  // const socket2 = io(process.env.NEXT_PUBLIC_API!, {  });
+  // socket2.disconnect();
 
   // componentDidMount() {
   
@@ -80,11 +88,21 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       const response = await fetch(`${API_URL}/api/cameras/${camId}/snapshot`);
       const imageBlob = await response.blob();
       const imageObjectURL = URL.createObjectURL(imageBlob); 
-      setLoaded(true);
+      //setLoaded(true);
       return imageObjectURL;
     } catch(err){
       console.error(`Unable to load preview :${err}`)
     }  
+  };
+
+  const drawStyle = {
+    width: '640px',
+    height: '360px',
+    position: 'absolute' as const,
+    background: 'blue',
+    left: '0',
+    top: '0',
+    zIndex: '1'
   };
 
   const streamStyle = {
@@ -98,9 +116,26 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
     // zIndex: 0
   };
 
+  useEffect(() => {    
+    const s = io(process.env.NEXT_PUBLIC_API!, {  });
+    s.disconnect();    
+    setSocket(s);
+  }, []);
+
   useEffect(() => {
     getCameraSnapshot(cameraId).then((res) => setImg(res));
+    setLoaded(true);
   }, []);   
+
+  useEffect(() => {
+    const ctx = drawCanvas.current?.getContext("2d");
+    console.log(drawCanvas);
+    if (ctx){
+      console.log('setting context')
+      setDrawingCtx(ctx);
+    }
+    
+  }, [drawCanvas]);   
 
   useEffect(() => {
     //console.log(streamCanvas);
@@ -113,7 +148,12 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
     //}, [camera.id, drawCanvas, ioClient]);
   }, []);
 
+  // componentDidMount() {
+  //   this.setState({ bodyHeight: this.calendarBodyRef.current.clientHeight });
+  // };
+
   useEffect(() => {
+    //console.log('streamCanvas', streamCanvas.current)
     let p = new JSMpeg.Player(null, {
       source: JSMpegWritableSource,
       canvas: streamCanvas.current,
@@ -124,35 +164,132 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
 
     setPlayer(p);
 
+    const ctx = drawCanvas.current?.getContext("2d");
+    if (drawCanvas.current){
+      console.log('HERE')
+    }
+    //const ctx = null;
 
-
-  
-  }, []);
-
-  const click = () => {
-    if (document.activeElement != ref.current) {
-      console.log('cameraId', `[${cameraId}-stream]`);
-      console.log('inside', player);
-      setOpen(!open);
-      // connect to socket
-      let s = io(process.env.NEXT_PUBLIC_API!, {  });
-      s.on(`${cameraId}-stream`, async (data) => {
+    //let s = io(process.env.NEXT_PUBLIC_API!, {  });
+    //s.disconnect();
+    socket?.on(`${cameraId}-stream`, async (data) => {
         player.source.write(data);
-        console.log('stream');
+        //console.log('--stream1', drawingCtx);
+
+        if (!ctx){
+          return;
+        }
+
+        console.log('drawing');
+
+        ctx.strokeStyle = "red";  
+        ctx.strokeRect(50, 50, 100, 100);
+
 
         //console.log(data);
         
       });
-      setSocket(s);
+
+      // socket2?.on(`${cameraId}-stream`, async (data) => {
+      //   //player.source.write(data);
+      //   console.log('--stream2', drawCanvas);
+
+      //   if (!ctx){
+      //     return;
+      //   }
+
+      //   console.log('drawing');
+
+      //   ctx.strokeStyle = "red";  
+      //   ctx.strokeRect(50, 50, 100, 100);
+
+
+      //   //console.log(data);
+        
+      // });
+
+      //setSocket(s);
+    
+      //socket.disconnect();    
+
+
+
+  
+  }, [socket, drawCanvas ]);
+
+  const click = () => {
+    //console.log('ref', ref.current);
+    //console.log('document.activeElement', document.activeElement);
+   
+
+    if (document.activeElement != ref.current) {
+      console.log('cameraId', `[${cameraId}-stream]`);
+      //console.log('inside', player);
+      console.log('inside1', socket);
+      console.log('open1', open);
+      setOpen(!open);
+      console.log('open2', open);
+      if (!open){
+        socket?.connect();
+        //console.log('inside2', socket);
+        console.log('drawCanvas', drawCanvas.current);
+        // socket?.on(`${cameraId}-stream`, async (data) => {
+        //   player.source.write(data);
+        //   console.log('--stream1', drawingCtx);
+  
+        //   if (!ctx){
+        //     return;
+        //   }
+  
+        //   console.log('drawing');
+  
+        //   ctx.strokeStyle = "red";  
+        //   ctx.strokeRect(50, 50, 100, 100);
+  
+  
+        //   //console.log(data);
+          
+        // });
+
+      }
+
+     
+
+      // connect to socket
+      // let s = io(process.env.NEXT_PUBLIC_API!, {  });
+      // s.on(`${cameraId}-stream`, async (data) => {
+      //   player.source.write(data);
+      //   console.log('-stream');
+
+      //   if (!ctx){
+      //     return;
+      //   }
+
+      //   console.log('drawing');
+
+      //   ctx.strokeStyle = "red";  
+      //   ctx.strokeRect(50, 50, 100, 100);
+
+
+      //   //console.log(data);
+        
+      // });
+      // setSocket(s);
 
     }
     else{
+      console.log('drawCanvas3', drawCanvas.current);
+       socket?.disconnect();
+    
+      console.log('close', socket);
       setOpen(false);
     }
   }
 
   const handleClose = () => {
-    //socket?.disconnect();
+    console.log('close', socket);
+    socket?.disconnect();
+    
     console.log('close', socket);
     setOpen(false);
   }
@@ -182,6 +319,7 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       >
         <div className='stream-wrapper'  ref={ref}>
           <canvas ref={streamCanvas} style={streamStyle} /> 
+          <canvas ref={drawCanvas} style={drawStyle} /> 
         </div>
       </Modal>
     </div>      
@@ -189,3 +327,7 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
 }
 
 export default CameraViewer;
+
+function componentDidMount() {
+  throw new Error('Function not implemented.');
+}

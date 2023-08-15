@@ -1,13 +1,33 @@
 //import CameraViewer from "components/layout/CameraViewer";
 import { Button } from "@mui/material";
 import { NextPage } from "next";
-import React from "react";
+import React, { useState } from "react";
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 
 import CameraViewerAlt from "components/CameraViewerAlt";
 import IOTest from "components/IOTest";
+
+import dynamic from 'next/dynamic'
+
+//const [cameras, setCameras] = useState([]);
+
+const DynamicComponentWithNoSSR = dynamic(
+  () => import('../components/Custom'),
+  { ssr: false }
+)
+
+const compStyle = {
+  position: 'absolute' as const,
+  background: 'blue',
+  left: 100,
+  top: 100,
+};
+
+const click = () => {
+  console.log('parent click');
+}
 
 
 const style = {
@@ -24,8 +44,12 @@ const style = {
 
 export default function ConfigPage() {
   return (
-    <div>
-      <IOTest cameraName={"TEST"} cameraId={"648811f030e04fc1ff98568d"}></IOTest>
+    <div onClick={click} className="container">
+       <section className="cameras">
+        <DynamicComponentWithNoSSR cameraName={"TEST"} cameraId={"648811f030e04fc1ff98568d"}></DynamicComponentWithNoSSR>
+        <DynamicComponentWithNoSSR cameraName={"TEST"} cameraId={"648811f030e04fc1ff98568d"}></DynamicComponentWithNoSSR>
+       </section>
+      
     </div>
   );
 }

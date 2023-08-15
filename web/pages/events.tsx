@@ -1,10 +1,10 @@
 //import CameraViewer from "components/layout/CameraViewer";
-import { Button } from "@mui/material";
-import { NextPage } from "next";
+// import { Button } from "@mui/material";
+// import { NextPage } from "next";
 import React from "react";
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Modal from '@mui/material/Modal';
+// import Box from '@mui/material/Box';
+// import Typography from '@mui/material/Typography';
+// import Modal from '@mui/material/Modal';
 //import CameraViewerAlt from "components/CameraViewerAlt";
 
 import dynamic from 'next/dynamic'
