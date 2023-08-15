@@ -7,14 +7,13 @@ import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 
 
-import IOTest from "components/IOTest";
 
 import dynamic from 'next/dynamic'
 
 //const [cameras, setCameras] = useState([]);
 
 const DynamicComponentWithNoSSR = dynamic(
-  () => import('../components/CameraViewerAltAlt'),
+  () => import('../components/CamViewer'),
   { ssr: false }
 )
 

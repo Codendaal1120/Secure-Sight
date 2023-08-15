@@ -1,15 +1,13 @@
 import { useRef, useEffect, useState } from 'react';
 import classNames from "classnames";
-import JSMpegWritableSource from './JSMpegWritableSource.ts'
+import JSMpegWritableSource from './JSMpegWritableSource'
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
 import { Socket, io } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 
-
 interface Props {
   cameraName: string;
   cameraId: string;
-//   camera : Camera;
 }
 
 export interface Camera {
@@ -18,9 +16,7 @@ export interface Camera {
   url :string;
 }
 
-function CameraViewerAlt ({ cameraId, cameraName } : Props) {
-  // TODO: get address from config
-  //const ioClient = io('http://localhost:3002', {  });   
+function CameraViewer ({ cameraId, cameraName } : Props) { 
   const streamCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -29,20 +25,6 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
   const [isHover, setIsHover] = useState(false);
   const [preview, setPreview] = useState<string>();
   const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
- // const [player, setPlayer] = useState<JSMpeg>();
- 
-
-  useEffect(() => {
-    // Create player
-    // let p = new JSMpeg.Player(null, {
-    //   source: JSMpegWritableSource,
-    //   canvas: streamCanvasRef.current,
-    //   audio: true,
-    //   pauseWhenHidden: false,
-    //   videoBufferSize: 1024 * 1024,
-    // });
-    // setPlayer(p);
-  }, []);
 
   useEffect(() => {
     //console.log('drawCanvas', drawCanvasRef);
@@ -174,6 +156,8 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
     zIndex: 11
   };
 
+  /** Functions */
+
   const closeModal = () => {
     setOpen(false);    
   }
@@ -188,6 +172,11 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
 
   const camWrapperMouseLeave = () => {
     setIsHover(false);
+  };
+
+  const mapRange = (value : number, inMin : number, inMax: number, outMin: number, outMax: number) => {
+    value = (value - inMin) / (inMax - inMin);
+    return outMin + value * (outMax - outMin);
   };
 
   return (
@@ -207,11 +196,6 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
   )
 }
 
-function mapRange (value : number, inMin : number, inMax: number, outMin: number, outMax: number) {
-  value = (value - inMin) / (inMax - inMin);
-  return outMin + value * (outMax - outMin);
-}
 
 
-
-export default CameraViewerAlt;
+export default CameraViewer;

@@ -17,5 +17,5 @@
     "baseUrl": "."
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "components/JsmpegPlayer.js", "components/DynJs.jsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "next-env.d.ts"]
 }

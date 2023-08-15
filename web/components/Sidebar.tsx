@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import classNames from "classnames";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,8 +8,6 @@ import { HiChevronDoubleLeft, HiChevronDoubleRight } from "react-icons/hi";
 import logo_big from "../public/logo.svg";
 import logo_small from "../public/logo-small.svg";
 
-const TEST = process.env.DB_HOST;
-
 // add NavItem prop to component prop
 type Props = {
   collapsed: boolean;
@@ -17,18 +15,26 @@ type Props = {
   setCollapsed(collapsed: boolean): void;
   shown: boolean;
 };
-
-console.log('here', process.env.DB_HOST);
-
 const Sidebar = ({
   collapsed,
   navItems = defaultNavItems,
   shown,
   setCollapsed,
 }: Props) => {
+
   const Icon = collapsed ? HiChevronDoubleRight : HiChevronDoubleLeft;
+
+  const sideBarStyle = {
+    background: '#00AFB5',
+  }
+
+  const logoStyle = {
+    height:  collapsed ? '30px' : '60px'
+  }
+ 
   return (
     <div
+      style={sideBarStyle}
       className={classNames({
         "sidebar":true,
         "text-zinc-50 fixed md:static md:translate-x-0 z-20": true,
@@ -47,12 +53,13 @@ const Sidebar = ({
             "py-4 justify-center": collapsed,
           })}
         >
-          <Image className={classNames({"logo":true, "small": collapsed, "big": !collapsed})} src={ collapsed ? logo_small : logo_big } alt="Secure Sight" />
+          <Image style={logoStyle} className={'logo'} src={ collapsed ? logo_small : logo_big } alt="Secure Sight" />
           <button
+           
             className="sidebar-item grid place-content-center w-10 h-10 rounded-full opacity-0 md:opacity-100"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            <Icon className="w-5 h-5" />
+            onClick={() => setCollapsed(!collapsed)}>
+            
+              <Icon className="w-5 h-5" />
           </button>
         </div>
         <nav className="flex-grow">
@@ -71,8 +78,7 @@ const Sidebar = ({
                     "transition-colors duration-300": true, //animation
                     "rounded-md p-2 mx-3 gap-4 ": !collapsed,
                     "rounded-full p-2 mx-3 w-10 h-10": collapsed,
-                  })}
-                >
+                  })}>
                   <Link href={item.href} className="flex gap-2">
                     {item.icon} <span>{!collapsed && item.label}</span>
                   </Link>

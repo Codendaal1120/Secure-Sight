@@ -2,20 +2,36 @@
 import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
 import { api } from "services/api";
-
 import dynamic from 'next/dynamic'
 
 const DynamicComponentWithNoSSR = dynamic(
-  () => import('../components/CameraViewerAltAlt'),
+  () => import('../components/CamViewer'),
   { ssr: false }
 )
-
-//console.log('here2', process.env.NEXT_PUBLIC_DB_HOST);
-
 interface Camera {
   id: string;
   name: string;
 }
+
+const camerasStyle = {
+  transition: 'all .3s ease-in',
+  maxWidth: '93%',
+  verticalAlign: 'baseline' as const,
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(470px, 1fr))',
+  gap: '2rem',
+  margin: '0 auto auto'
+}
+
+/*
+ transition: all .3s ease-in;
+    max-width: 93%;
+    vertical-align: baseline;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
+    gap: 2rem;
+    margin: 0 auto auto;
+*/
 
 
 const HomePage: NextPage = () => {
@@ -36,29 +52,11 @@ const HomePage: NextPage = () => {
   
   return (
     <div id="main" className="container">
-      {/* <div className="container h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <CameraViewer cameraName={"TEST1"} ></CameraViewer>
-          <CameraViewer cameraName={"TEST2"} ></CameraViewer>
-        </div>
-      </div>
-       */}
-
-       <section className="cameras">
-       {cameras.map((cam, i) => {     
-           //console.log("Entered");                 
-           // Return the element. Also pass key     
+       <section style={camerasStyle} className="cameras">
+       {cameras.map((cam, i) => {      
            return (<DynamicComponentWithNoSSR key={i.toString()} cameraName={cam.name} cameraId={cam.id} ></DynamicComponentWithNoSSR>) 
         })}
-        {/* <CameraViewer cameraName={"TEST1"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST2"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST3"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST4"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST5"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST6"} ></CameraViewer>
-        <CameraViewer cameraName={"TEST7"} ></CameraViewer> */}
-       </section>
-        
+       </section>        
     </div>
   );
 };
