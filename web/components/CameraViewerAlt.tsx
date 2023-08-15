@@ -29,9 +29,11 @@ export interface Camera {
 
 function CameraViewerAlt ({ cameraId, cameraName } : Props) {
   // TODO: get address from config
-  const ioClient = io('http://localhost:3002', {  });   
+  const ioClient = io('http://192.168.86.9:3002', {  });   
   const streamCanvas = useRef<HTMLCanvasElement>(null);
   const drawCanvas = useRef<HTMLCanvasElement>(null);
+
+  console.log('xxxx');
 
   const streamStyle = {
     width: '640px',

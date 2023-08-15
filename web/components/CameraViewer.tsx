@@ -34,24 +34,6 @@ const API_URL = process.env.NEXT_PUBLIC_API;
 // );
 
 
-const drawStyle = {
-    // width: '640px',
-    // height: '360px',    
-  };
-
-  const style = {
-    position: 'absolute' as 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 400,
-    // bgcolor: 'background.paper',
-    background : 'black',
-    // border: '2px solid #000',
-    boxShadow: 24,
-    p: 4,
-  };
-
 
 function CameraViewer ({ cameraId, cameraName } : Props) {
 

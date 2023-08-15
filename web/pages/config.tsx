@@ -14,7 +14,7 @@ import dynamic from 'next/dynamic'
 //const [cameras, setCameras] = useState([]);
 
 const DynamicComponentWithNoSSR = dynamic(
-  () => import('../components/Custom'),
+  () => import('../components/CameraViewerAltAlt'),
   { ssr: false }
 )
 
@@ -26,7 +26,7 @@ const compStyle = {
 };
 
 const click = () => {
-  console.log('parent click');
+  //console.log('parent click');
 }
 
 

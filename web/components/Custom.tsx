@@ -26,12 +26,28 @@ function CameraViewerAlt ({ cameraId, cameraName } : Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [isHover, setIsHover] = useState(false);
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
-    console.log('drawCanvas', drawCanvasRef)
+    console.log('drawCanvas', drawCanvasRef);
+    if (!preview){
+      getCameraSnapshot(cameraId);
+    }
     
   
   }, []);
+
+  async function getCameraSnapshot(camId: string)  { 
+    try{
+      const response = await fetch(`${API_URL}/api/cameras/${camId}/snapshot`);
+      const imageBlob = await response.blob();
+      const imageObjectURL = URL.createObjectURL(imageBlob); 
+      //setLoaded(true);
+      return imageObjectURL;
+    } catch(err){
+      console.error(`Unable to load preview :${err}`)
+    }  
+  };
 
   /**** Styles */
   const camWrapperStyle = {

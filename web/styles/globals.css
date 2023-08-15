@@ -59,20 +59,6 @@
     opacity: 1 !important; 
   }
 
-  .video-old{
-    position: absolute;
-    top: 20;
-    visibility: hidden;
-    opacity: 1 !important; 
-    transition: visibility 0s, opacity 0.5s linear;
-  }
-
-  .video-old.visible{
-    display: block !important;
-    visibility: visible;
-    opacity: 1 !important; 
-  }
-
   .sidebar{
     background: #00AFB5;
   }

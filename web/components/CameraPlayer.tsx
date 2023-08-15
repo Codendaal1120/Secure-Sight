@@ -1,85 +1,137 @@
-// import { useCallback, useEffect, useRef } from "react"
-// import PortalModal from "./PortalModal"
+import { useRef, useEffect, useState } from 'react';
+import classNames from "classnames";
+import JSMpegWritableSource from './JSMpegWritableSource.ts'
+import { io } from 'socket.io-client';
+import JSMpeg from '@seydx/jsmpeg/lib/index.js';
+//import JSMpeg from './JSMpeg.js'
 
-// import useOnClickOutside from "../../hooks/useOnClickOutside"
 
-// import { ModalConfig } from "../../ts/interfaces/modal.interface"
+interface Props {
+  cameraName: string;
+  cameraId: string;
+//   camera : Camera;
+}
 
-// import * as S from "./styles"
-// import "../../styles/modal.css"
+export interface Camera {
+  id :string;
+  name :string;
+  url :string;
+}
 
-// interface Props {
-//   show: boolean;
-//   config: ModalConfig;
-//   setShow: (value: boolean) => void;
-//   children: JSX.Element | JSX.Element[];
-// }
+async function CameraViewer ({ cameraId, cameraName } : Props) {
+  // TODO: get address from config
+  //const ioClient = io('http://localhost:3002', {  });   
+  const streamCanvasRef = useRef<HTMLCanvasElement>(null);
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  
+  const [open, setOpen] = useState(false);
+  const [isHover, setIsHover] = useState(false);
+  const [loaded, setLoaded] = useState<boolean>();
+  
+  useEffect(() => {
+    console.log('drawCanvas', drawCanvasRef)
+    
+  
+  }, []);
 
-// const Modal = ({ children, show, setShow, config }: Props) => {
-//   const modalRef = useRef < HTMLDivElement > null
+  async function getCameraSnapshot(_camId: string)  { 
+    try{
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras/${_camId}/snapshot`);
+      const imageBlob = await response.blob();
+      const imageObjectURL = URL.createObjectURL(imageBlob); 
+      return imageObjectURL;
+    } catch(err){
+      console.error(`Unable to load preview :${err}`)
+    }  
+  };
 
-//   // handle what happens on click outside of modal
-//   const handleClickOutside = () => setShow(false)
+  const renderPreview = async () => {
+    console.log('render');
+    var img = await getCameraSnapshot(cameraId);
+    if (img) {
+      return <img className='cam-preview' src={img} alt="loader" />;
+    } else {
+      return <div id="cover-spin" className=''/>;
+    }
+  }
 
-//   // handle what happens on key press
-//   const handleKeyPress = useCallback((event: KeyboardEvent) => {
-//     if (event.key === "Escape") setShow(false)
-//   }, [])
 
-//   useOnClickOutside(modalRef, handleClickOutside)
+  /**** Styles */
+  const camWrapperStyle = {
+    background: 'gray',
+    textAlign: 'center'as const,
+    display: 'block',
+    position: 'relative'as const,
+    maxWidth: '470px',
+    height: '352px',
+    borderRadius: '10px',
+    objectFit: 'cover' as const,
+    overflow: 'hidden',
+    cursor: 'pointer',
+    boxShadow: isHover ? '1px 2px 9px #545452' : 'none',
+  }
 
-//   useEffect(() => {
-//     if (show) {
-//       // attach the event listener if the modal is shown
-//       document.addEventListener("keydown", handleKeyPress)
-//       // remove the event listener
-//       return () => {
-//         document.removeEventListener("keydown", handleKeyPress)
-//       }
-//     }
-//   }, [handleKeyPress, show])
+  const modalStyle = {
+    width: '1280px',
+    height: '720px',
+    position: 'absolute' as const, 
+    left: '25%',
+    top: '15%',
+  }
 
-//   return (
-//     <>
-//       {show && (
-//         <PortalModal wrapperId="modal-portal">
-//           <S.Overlay
-//             showOverlay={config.showOverlay}
-//             positionX={config.positionX}
-//             positionY={config.positionY}
-//             show={show}
-//             style={{
-//               animationDuration: "400ms",
-//               animationDelay: "0",
-//             }}
-//           >
-//             <S.ModalContainer padding={config.padding} ref={modalRef}>
-//               {config.showHeader && (
-//                 <S.ModalHeader>
-//                   <h3>{config.title}</h3>
-//                 </S.ModalHeader>
-//               )}
+  const streamStyle = {
+    background: 'black',
+    zIndex: 10
+  };
 
-//               <S.Close onClick={() => setShow(!show)}>
-//                 <svg
-//                   xmlns="http://www.w3.org/2000/svg"
-//                   width="16"
-//                   height="16"
-//                   fill="currentColor"
-//                   className="bi bi-x"
-//                   viewBox="0 0 16 16"
-//                 >
-//                   <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-//                 </svg>
-//               </S.Close>
+  const drawStyle = {
+    background: 'pink',
+    zIndex: 11
+  };
 
-//               <S.Content>{children}</S.Content>
-//             </S.ModalContainer>
-//           </S.Overlay>
-//         </PortalModal>
-//       )}
-//     </>
-//   )
-// }
+  const closeModal = () => {
+    console.log('close');
+    setOpen(false);
+  }
 
-// export default Modal
+  const openModal = () => {
+    console.log('open');
+    console.log('open', drawCanvasRef);
+    setOpen(true);
+  }
+
+  const camWrapperMouseEnter = () => {
+    setIsHover(true);
+  };
+
+  const camWrapperMouseLeave = () => {
+    setIsHover(false);
+  };
+
+  return (
+    <div className='component-wrapper'>
+      <div className='cam-wrapper' onClick={openModal} style={camWrapperStyle}  onMouseEnter={camWrapperMouseEnter} onMouseLeave={camWrapperMouseLeave}>
+        {/* <div id="cover-spin" className=''  />     */}
+        {await renderPreview()}
+      </div>
+      <div className={classNames({
+        "overlay": true, 
+        "visible": open, 
+        })} onClick={closeModal} ref={overlayRef}>        
+      
+      </div>   
+      <canvas className={classNames({"video": false, "hidden": !open, "visible": open, })} ref={streamCanvasRef} style={Object.assign(modalStyle, streamStyle)} /> 
+      <canvas className={classNames({"video": false, "hidden": !open, "visible": open, })} ref={drawCanvasRef} style={Object.assign(modalStyle, drawStyle)} />
+    </div>
+  )
+}
+
+function mapRange (value : number, inMin : number, inMax: number, outMin: number, outMax: number) {
+  value = (value - inMin) / (inMax - inMin);
+  return outMin + value * (outMax - outMin);
+}
+
+
+
+export default CameraViewer;
