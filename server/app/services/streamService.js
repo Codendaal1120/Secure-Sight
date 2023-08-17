@@ -149,7 +149,7 @@ async function startWatcherStream(cam){
     '-b:v',
     '199k',
     '-r',
-    20,
+    30,
     '-bf',
     '0',
     '-preset:v',
