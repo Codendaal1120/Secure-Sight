@@ -8,45 +8,46 @@ import { BsRecordCircleFill } from "react-icons/bs";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { API } from "services/api";
+
 interface Props {
   cameraName: string;
   cameraId: string;
 }
 
 function CameraViewer ({ cameraId, cameraName } : Props) { 
-    const streamCanvasRef = useRef<HTMLCanvasElement>(null);
-    const drawCanvasRef = useRef<HTMLCanvasElement>(null);
-    const overlayRef = useRef<HTMLDivElement>(null);
+  const streamCanvasRef = useRef<HTMLCanvasElement>(null);
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
-    const [open, setOpen] = useState(false);
-    const [isHover, setIsHover] = useState(false);
-    const [recording, setRecording] = useState("Start recording");
-    const [preview, setPreview] = useState<string>();
-    const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
+  const [open, setOpen] = useState(false);
+  const [isHover, setIsHover] = useState(false);
+  const [recording, setRecording] = useState("Start recording");
+  const [preview, setPreview] = useState<string>();
+  const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
-    const notifySuccess = (text:string) => toast.success(text, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-    });
+  const notifySuccess = (text:string) => toast.success(text, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+  });
 
-    const notifyFail = (text:string) => toast.error(text, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-    });
+  const notifyFail = (text:string) => toast.error(text, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+  });
 
-    useEffect(() => {
+  useEffect(() => {
     //console.log('drawCanvas', drawCanvasRef);
     getCameraSnapshot(cameraId).then((res) => setPreview(res));
   }, []);

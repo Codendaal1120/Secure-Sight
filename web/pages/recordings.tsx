@@ -1,119 +1,154 @@
-//import CameraViewer from "components/layout/CameraViewer";
-import { Button } from "@mui/material";
-import { NextPage } from "next";
-import React, { useState } from "react";
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Modal from '@mui/material/Modal';
+import React, { useEffect, useRef, useState } from "react";
+import { API, Recording } from "services/api";
+import moment from 'moment';
+import classNames from "classnames";
+import { Socket, io } from 'socket.io-client';
+import { DefaultEventsMap } from '@socket.io/component-emitter';
+import JSMpegWritableSource from './JSMpegWritableSource'
+import JSMpeg from '@seydx/jsmpeg/lib/index.js';
 
-const style = {
-  position: 'absolute' as 'absolute',
-  // top: '50%',
-  // left: '50%',
-  // transform: 'translate(-50%, -50%)',
-  width: 400,
-  bgcolor: 'background.paper',
-  border: '2px solid #000',
-  boxShadow: 24,
-  p: 4,
-};
+const pageStyle = {
+    padding: '30px'
+}
 
-interface Recording {
-  id: string;
-  path: string;
+function secondsToTime(sec:number): string{
+
+    var time = '';
+
+    if (sec >= 3600){
+        var hours = Math.floor(sec / 3600);
+        time += `${hours}h `;
+        sec = sec - (hours * 3600);
+    }
+
+    if (sec >= 60){
+        var min = Math.floor(sec / 60);
+        sec = sec - (min * 60);
+        time += `${min}m `;   
+    }
+
+    if (sec <= 3600){
+        time += `${sec}s`;  
+    }
+
+    return time.trim();
 }
 
 export default function RecordingsPage() {
 
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+    const [recordings, setRecordings] = useState<Recording[]>([]);
+    const streamCanvasRef = useRef<HTMLCanvasElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const [open, setOpen] = useState(false);
+    const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
-  // useEffect(() => {
-  //   api.get("/api/cameras").then((res) => {
-  //     const cameras = res.data.map((camera: Recording) => {
-  //       return {
-  //         id: camera.id,
-  //         name: camera.name,
-  //       };
-  //     });
-  //     setCameras(cameras);
-  //   });
-  // }, []);
+    useEffect(() => {
+        API.getRecordings().then((tryGet) => {
+            if (tryGet.success){
+                setRecordings(tryGet.payload!);
+            }
+            else{
+                console.error(`Unable to get recordings: ${tryGet.error}`);
+            }
+            
+        })
+    }, []);
 
-  const [open, setOpen] = React.useState(false);
-  const handleOpen = () => setOpen(true);
-  //const handleClose = () => setOpen(false);
-  const handleClose = () => {
-    console.log('close');
-    setOpen(false);
-    // if (reason && reason == "backdropClick") 
-    //     return;
-    // myCloseModal();
-}
+    useEffect(() => {
+        if (!socket){
+          startSocket();
+        }
+    
+        if (open){
+          socket?.connect();
+        }
+        else{
+          socket?.disconnect();
+        }
+    }, [open]);
 
-  return (
-    <div className="relative overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-              <tr>
-                  <th scope="col" className="px-6 py-3">
-                      Product name
-                  </th>
-                  <th scope="col" className="px-6 py-3">
-                      Color
-                  </th>
-                  <th scope="col" className="px-6 py-3">
-                      Category
-                  </th>
-                  <th scope="col" className="px-6 py-3">
-                      Price
-                  </th>
-              </tr>
-          </thead>
-          <tbody>
-              <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                  <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                      Apple MacBook Pro 17"
-                  </th>
-                  <td className="px-6 py-4">
-                      Silver
-                  </td>
-                  <td className="px-6 py-4">
-                      Laptop
-                  </td>
-                  <td className="px-6 py-4">
-                      $2999
-                  </td>
-              </tr>
-              <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                  <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                      Microsoft Surface Pro
-                  </th>
-                  <td className="px-6 py-4">
-                      White
-                  </td>
-                  <td className="px-6 py-4">
-                      Laptop PC
-                  </td>
-                  <td className="px-6 py-4">
-                      $1999
-                  </td>
-              </tr>
-              <tr className="bg-white dark:bg-gray-800">
-                  <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                      Magic Mouse 2
-                  </th>
-                  <td className="px-6 py-4">
-                      Black
-                  </td>
-                  <td className="px-6 py-4">
-                      Accessories
-                  </td>
-                  <td className="px-6 py-4">
-                      $99
-                  </td>
-              </tr>
-          </tbody>
-      </table>
-  </div>
+    const startSocket = () =>{
+
+        // create player
+        const player = new JSMpeg.Player(null, {
+          source: JSMpegWritableSource,
+          canvas: streamCanvasRef.current,
+          audio: true,
+          pauseWhenHidden: false,
+          videoBufferSize: 1024 * 1024
+        });
+    
+        // Start socket
+        const s = io(process.env.NEXT_PUBLIC_API!, {  });
+        //console.log('Created socket', s.id);
+        s.disconnect();    
+    
+        s?.on(`${cameraId}-stream`, async (data) => {
+          //console.log('--stream2', player);      
+          player.source.write(data);
+        }); 
+    
+        setSocket(s);
+      }
+
+    const closeModal = () => {
+        setOpen(false);    
+      }
+    
+      const openModal = () => {
+        setOpen(true);
+      }
+
+    return (
+        <div id="main" className="container" style={pageStyle}>
+
+            <div className={classNames({
+                "overlay": true, 
+                "visible": open, 
+                })} onClick={closeModal} ref={overlayRef}>        
+            
+            </div>   
+            
+            <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                <table className="w-full text-sm text-left text-gray-400">
+                    <thead className="text-xs uppercase bg-gray-700 text-gray-400">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">
+                                FileName
+                            </th>
+                            <th scope="col" className="px-6 py-3">
+                                Date
+                            </th>
+                            <th scope="col" className="px-6 py-3">
+                                Length
+                            </th>
+                            <th scope="col" className="px-6 py-3">
+                                Download
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {recordings.map((rec) => (
+                            <tr className="bg-gray-600 border-gray-700 hover:bg-gray-500 text-white" onClick={openModal}>
+                                <th scope="row" className="px-6 py-4 font-medium whitespace-nowrap ">
+                                {rec.fileName}
+                                </th>
+                                <td className="px-6 py-4">
+                                    { moment(rec.recordedOn).local().format('LLL') }
+                                </td>
+                                <td className="px-6 py-4">
+                                    { secondsToTime(rec.length) }
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <a href="#" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">d</a>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+   
   );
 }

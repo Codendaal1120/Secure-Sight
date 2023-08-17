@@ -6,11 +6,13 @@ const ffmpeg = ffmpegModule.getFfmpagPath();
 const logger = require('../modules/loggingModule').getLogger('recordingService');
 const collectionName = "recordings";
 const fs = require("fs");
+const path = require('path');
 
 /**
  * Records the camera feed for the specified amount of time
- * @param {object} _camera - The camera cache entry record
- * @param {Object} _eventEmitter - The global event emitter
+ * @param {object} _cameraEntry - The camera record
+ * @param {Object} _seconds - The number of seconds to record
+ * @returns {Object} Try result
  */
 async function recordCamera(_cameraEntry, _seconds){
 
@@ -30,7 +32,7 @@ async function recordCamera(_cameraEntry, _seconds){
         var filePath = `${getRecordingDirectory()}/${fileName}`;       
 
         _cameraEntry.record.file = filePath;    
-        _cameraEntry.record.process = runFfmpeg(filePath, fileName, _cameraEntry, _seconds);             
+        _cameraEntry.record.process = runFfmpegRTSP(filePath, fileName, _cameraEntry, _seconds);             
 
         return { success : true, payload : "Recording started" };
     }
@@ -44,8 +46,8 @@ async function recordCamera(_cameraEntry, _seconds){
 
 /**
  * Records the camera feed for the specified amount of time
- * @param {object} _camera - The camera cache entry record
- * @param {Object} _eventEmitter - The global event emitter
+ * @param {object} _cameraEntry - The camera record
+ * @returns {Object} Try result 
  */
 async function stopRecordingCamera(_cameraEntry){
 
@@ -62,6 +64,62 @@ async function stopRecordingCamera(_cameraEntry){
   catch(err){
     return { success : false, error : err.message };
   }
+}
+
+/**
+ * Get all recordings
+ * @returns {Array} Collection of recordings
+ */
+async function getAll(){
+
+  try{
+    let tryGet = await dataService.getManyAsync(collectionName, {});
+
+    if (!tryGet.success){
+        logger.log('error', `ERROR : cannot get recordings : ${tryGet.error}`);
+        return { success : false, error : tryGet.message };
+    }    
+
+    var recordings = tryGet.payload.map((rec) => {
+      return {
+        id : rec.id,
+        fileName : rec.fileName,
+        recordedOn : rec.recordedOn,
+        length : rec.length,
+        cameraName : cache.cameras[rec.cameraId].camera.name,
+      }
+    });
+
+    return { success : true, payload : recordings };        
+  }
+  catch (err) {
+      logger.log('error', err);
+      return { success : false, error : err.message };
+  }
+}
+
+/**
+ * Starts a stream to the socket of the specified recording
+ * @param {object} _recordingId - The recording id to play
+ * @returns {Array} Collection of recordings
+ */
+async function streamRecording(_recordingId){
+
+  let tryGet = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });
+  if (!tryGet.success){
+    return tryGet;
+  }
+
+  var fullPath = path.join(cache.config.root, 'server', tryGet.payload.filePath);
+
+  if (!fs.existsSync(fullPath)) {
+    return { success: false, error: `Could not find the recording file at ${tryGet.payload.filePath}` }
+  } 
+
+  runFfmpeg(fullPath, _recordingId);
+
+  return { success: true, payload: `${_recordingId}-stream` }
+
 }
 
 /** Save recording to db */
@@ -88,7 +146,49 @@ function getRecordingDirectory(){
   return dir;
 }
 
-function runFfmpeg(_filePath, _fileName, _cameraEntry, _seconds){
+function runFfmpeg(_filePath, _recordingId){  
+
+  const args = [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-fflags',
+      '+genpts',
+      '-i',
+      _filePath,
+      '-vcodec',
+      'copy',
+      '-an','-s',
+      '1280x720',
+      '-f',
+      'mpegts',
+      '-'];
+  
+  const cp = spawn(ffmpeg, args);
+
+  cp.stderr.on('data', (data) => {
+    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
+    cache.services.ioSocket.sockets.emit(`${_recordingId}-error`, err);
+    logger.log('error', `[${_recordingId}] Playback stderr : ${err}`);    
+  });
+
+  cp.stdout.on('data', (data) => {
+    cache.services.ioSocket.sockets.emit(`${_recordingId}-stream`, data);
+  });
+
+  cp.on('exit', (code, signal) => {
+    if (code === 1) {
+      logger.log('error', `[${_recordingId}]  Playback ERROR`);   
+      return;
+    } 
+
+    logger.log('info', `[${_recordingId}]  Playback complete`);     
+  });
+
+  return cp;
+}
+
+function runFfmpegRTSP(_filePath, _fileName, _cameraEntry, _seconds){
 
   _cameraEntry.record.buffers = [];
 
@@ -147,7 +247,13 @@ function runFfmpeg(_filePath, _fileName, _cameraEntry, _seconds){
     }
 
     //save to DB
-    trysaveRecording({ cameraId : _cameraEntry.camera.id, recordedOn : new Date(), file : _filePath, length : diff });          
+    trysaveRecording({ 
+      cameraId : _cameraEntry.camera.id, 
+      recordedOn : new Date(), 
+      filePath : _filePath, 
+      fileName: _fileName,
+      length : diff 
+    });          
 
     cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-info`, `Recording saved as ${_fileName}`);
   });
@@ -174,4 +280,5 @@ function saveBufferToFile(_filePath, _fileName, _cameraEntry){
 
 module.exports.recordCamera = recordCamera;
 module.exports.stopRecordingCamera = stopRecordingCamera;
-module.exports.test2 = test2;
+module.exports.getAll = getAll;
+module.exports.streamRecording = streamRecording;

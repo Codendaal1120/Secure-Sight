@@ -9,6 +9,11 @@ const DynamicComponentWithNoSSR = dynamic(
   { ssr: false }
 )
 
+const pageStyle = {
+  paddingTop : '30px',
+  height : '100%'
+}
+
 const camerasStyle = {
   transition: 'all .3s ease-in',
   maxWidth: '93%',
@@ -36,7 +41,7 @@ const HomePage: NextPage = () => {
   }, []);
   
   return (
-    <div id="main" className="container">
+    <div id="main" className="container" style={pageStyle}>
        <section style={camerasStyle} className="cameras">
        {cameras.map((cam, i) => {      
            return (<DynamicComponentWithNoSSR key={i.toString()} cameraName={cam.name} cameraId={cam.id} ></DynamicComponentWithNoSSR>) 

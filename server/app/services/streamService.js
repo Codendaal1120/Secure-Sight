@@ -1,5 +1,5 @@
 const camService = require("./camerService");
-const recService = require("./recordingService");
+const recService = require("./recordingsService");
 const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');

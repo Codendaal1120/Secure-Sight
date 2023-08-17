@@ -8,12 +8,7 @@
 }
 
 
-@layer components {
-
-  .container{
-    padding-top: 30px;
-    height: 100%;
-  }
+@layer components { 
 
   .component-wrapper{
     width: 100%;

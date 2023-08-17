@@ -5,6 +5,13 @@ export interface Camera {
   name: string;
 }
 
+export interface Recording {
+  id: string;
+  fileName: string;
+  recordedOn: Date;
+  length: number;
+}
+
 interface TryResult<T> {
   success: boolean;
   payload: T | null;
@@ -13,7 +20,7 @@ interface TryResult<T> {
 export class API {
 
   static async stopCameraRecording(_camId: string):Promise<TryResult<string>> {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras/${_camId}/record/stop`, 
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/stop/${_camId}/record/stop`, 
       { method : 'POST' });
 
       var responseText = await response.text();
@@ -26,7 +33,7 @@ export class API {
   }
 
   static async startCameraRecording(_camId: string, _seconds:number):Promise<TryResult<string>> {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras/${_camId}/record?seconds=${_seconds}`, 
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/start/${_camId}?seconds=${_seconds}`, 
       { method : 'POST' });
 
     var responseText = await response.text();
@@ -46,15 +53,45 @@ export class API {
         return { success: false, payload: null, error: await response.text() }
       }
       
-      var cams: { id: string; name: string; }[] = [];
+      var cams: Camera[] = [];
       var json = await response.json();
-      json.map((camera: Camera) => {
-        cams.push({
-          id: camera.id,
-          name: camera.name,
-        });
-      });
+      json.map((c: Camera) => cams.push(c));
       
       return { success: true, payload: cams, error: null }
+  }
+
+  static async getRecordings(): Promise<TryResult<Recording[]>> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings`, 
+      { method : 'GET' });
+
+      if (!response.ok){
+        return { success: false, payload: null, error: await response.text() }
+      }
+      
+      var recs: Recording[] = [];
+      var json = await response.json();
+      json.map((rec: Recording) => recs.push(rec));
+      
+      return { success: true, payload: recs, error: null }
+  }
+
+  static async streamRecording(_recId: string): Promise<TryResult<string>> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/${_recId}/stream`, 
+      { method : 'GET' });
+
+      var resText = await response.text()
+
+      if (!response.ok){
+        return { success: false, payload: null, error: resText}
+      }
+      
+      return { success: true, payload: resText, error: null }
+  }
+
+  static toTime(seconds: number): string {
+    const date = new Date(0);
+    date.setSeconds(seconds);
+    const timeString = date.toISOString().substr(11, 8);
+    return timeString;
   }
 }

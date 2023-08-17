@@ -79,6 +79,7 @@ app.get('/echo', async (req, res) => {
 app.use("/api/health", require("./app/controllers/healthController"));
 app.use("/api/cameras", require("./app/controllers/camerasController"));
 app.use("/api/svm", require("./app/controllers/svmController"));
+app.use("/api/recordings", require("./app/controllers/recordingsController"));
 
 /** Stream setup */
 if (streamService != null && streamService != null){

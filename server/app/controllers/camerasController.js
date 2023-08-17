@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const camService = require("../services/camerService");
-const recService = require("../services/recordingService");
-const cache = require("../modules/cache");
 
 /**
  * Get all configured cameras
@@ -112,58 +110,6 @@ router.put("/:camId", async function (req, res) {
  */
 router.delete("/:camId", async function (req, res) {
   const result = await camService.tryDeleteCam(req.params.camId); 
-  if (result.success){
-      res.status(200).json(result.payload);
-  }
-  else{
-      res.status(400).json(result.error);
-  }    
-});
-
-/**
- * Starts recording a video clip from the camera stream
- * @route POST /api/cameras
- * @group Cameras api
- * @produces application/json
- * @param {string} req.params.camId - Camera DB id
- * @param {Number} req.query.seconds - Seconds to record, default = 10
- * @returns {object} 200 - Status message
- * @returns {Error}  400 - Bad request
- */
-router.post("/:camId/record", async function (req, res) {
-  let sec = req.query.seconds ?? -1;
-
-  let cam = cache.getCamera(req.params.camId);
-  if (!cam){
-    res.status(400).json(`Could not find camera with id ${req.params.camId}`);
-  }
-
-  const result = await recService.recordCamera(cam, parseInt(sec)); 
-  if (result.success){
-      res.status(200).json(result.payload);
-  }
-  else{
-      res.status(400).json(result.error);
-  }    
-});
-
-/**
- * Stops recording
- * @route POST /api/cameras
- * @group Cameras api
- * @produces application/json
- * @param {string} req.params.camId - Camera DB id
- * @returns {object} 200 - Status message
- * @returns {Error}  400 - Bad request
- */
-router.post("/:camId/record/stop", async function (req, res) {
-
-  let cam = cache.getCamera(req.params.camId);
-  if (!cam){
-    res.status(400).json(`Could not find camera with id ${req.params.camId}`);
-  }
-
-  const result = await recService.stopRecordingCamera(cam); 
   if (result.success){
       res.status(200).json(result.payload);
   }

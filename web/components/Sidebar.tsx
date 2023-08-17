@@ -15,6 +15,7 @@ type Props = {
   setCollapsed(collapsed: boolean): void;
   shown: boolean;
 };
+
 const Sidebar = ({
   collapsed,
   navItems = defaultNavItems,
@@ -25,7 +26,7 @@ const Sidebar = ({
   const Icon = collapsed ? HiChevronDoubleRight : HiChevronDoubleLeft;
 
   const sideBarStyle = {
-    background: '#00AFB5',
+    background: '#3DA5D9',
   }
 
   const logoStyle = {
@@ -36,6 +37,7 @@ const Sidebar = ({
     <div
       style={sideBarStyle}
       className={classNames({
+        "bg-gray-800" : false,
         "sidebar":true,
         "text-zinc-50 fixed md:static md:translate-x-0 z-20": true,
         "transition-all duration-300 ease-in-out": true,
@@ -74,7 +76,7 @@ const Sidebar = ({
                   key={index}
                   className={classNames({
                     "sidebar-item": true,
-                    "text-indigo-100 flex": true, //colors
+                    "text-slate-100 flex": true, //colors
                     "transition-colors duration-300": true, //animation
                     "rounded-md p-2 mx-3 gap-4 ": !collapsed,
                     "rounded-full p-2 mx-3 w-10 h-10": collapsed,

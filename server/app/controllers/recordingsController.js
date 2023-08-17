@@ -1,0 +1,101 @@
+const express = require("express");
+const router = express.Router();
+const recService = require("../services/recordingsService");
+const cache = require("../modules/cache");
+
+/**
+ * Starts recording a video clip from the camera stream
+ * @route POST /api/recordings/start/:id
+ * @group Recordings api
+ * @produces application/json
+ * @param {string} req.params.camId - Camera DB id
+ * @param {Number} req.query.seconds - Seconds to record, default = 10
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.post("/start/:camId", async function (req, res) {
+  let sec = req.query.seconds ?? -1;
+
+  let cam = cache.getCamera(req.params.camId);
+  if (!cam){
+    res.status(400).json(`Could not find camera with id ${req.params.camId}`);
+  }
+
+  const result = await recService.recordCamera(cam, parseInt(sec)); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Stops recording
+ * @route POST /api/recordings/stop/:id
+ * @group Recordings api
+ * @produces application/json
+ * @param {string} req.params.camId - Camera DB id
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.post("/stop/:camId", async function (req, res) {
+
+  let cam = cache.getCamera(req.params.camId);
+  if (!cam){
+    res.status(400).json(`Could not find camera with id ${req.params.camId}`);
+  }
+
+  const result = await recService.stopRecordingCamera(cam); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Starts a stream for the specified video clip (recording)
+ * @route GET /api/recordings/:id/stream
+ * @group Recordings api
+ * @produces application/json
+ * @param {string} req.params.recId - Recording ID
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.get("/:recId/stream", async function (req, res) {
+
+  if (!req.params.recId){
+    res.status(400).json(`Invalid recording id`);
+  }
+
+  const result = await recService.streamRecording(req.params.recId); 
+  if (result.success){
+      res.status(200).json(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Get all recordings
+ * @route GET /api/recordings
+ * @produces application/json 
+ * @group Recordings api
+ * @returns {Array.<object>} 200 - Array of recordings
+ * @returns {Error}  500 - Unexpected error
+*/
+router.get("/", async function (req, res) {  
+  const result = await recService.getAll(); 
+  if (result.success){
+      res.send(result.payload);
+  }
+  else{
+      res.status(500).send(result.error);
+  }     
+});
+
+
+module.exports = router;
