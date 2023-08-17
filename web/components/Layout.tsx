@@ -4,8 +4,14 @@ import Sidebar from "./Sidebar";
 const Layout = (props: PropsWithChildren) => {
   const [collapsed, setSidebarCollapsed] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+
+  const layoutStyle = {
+    background : '#1F1F1F'
+  }
+
   return (
     <div
+      style={layoutStyle}
       className={classNames({
         "grid bg-zinc-100 ": true,
         "grid-cols-sidebar": !collapsed,

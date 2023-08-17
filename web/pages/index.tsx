@@ -1,17 +1,13 @@
 
 import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
-import { api } from "services/api";
+import { API, Camera } from "services/api";
 import dynamic from 'next/dynamic'
 
 const DynamicComponentWithNoSSR = dynamic(
   () => import('../components/CamViewer'),
   { ssr: false }
 )
-interface Camera {
-  id: string;
-  name: string;
-}
 
 const camerasStyle = {
   transition: 'all .3s ease-in',
@@ -23,31 +19,20 @@ const camerasStyle = {
   margin: '0 auto auto'
 }
 
-/*
- transition: all .3s ease-in;
-    max-width: 93%;
-    vertical-align: baseline;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
-    gap: 2rem;
-    margin: 0 auto auto;
-*/
-
-
 const HomePage: NextPage = () => {
 
   const [cameras, setCameras] = useState<Camera[]>([]);
 
   useEffect(() => {
-    api.get("/api/cameras").then((res) => {
-      const cameras = res.data.map((camera: Camera) => {
-        return {
-          id: camera.id,
-          name: camera.name,
-        };
-      });
-      setCameras(cameras);
-    });
+    API.getCameras().then((tryCams) => {
+      if (tryCams.success){
+        setCameras(tryCams.payload!);
+      }
+      else{
+        console.error(`Unable to get cameras: ${tryCams.error}`);
+      }
+      
+    })
   }, []);
   
   return (
