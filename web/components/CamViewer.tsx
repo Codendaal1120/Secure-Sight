@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useContext } from 'react';
 import classNames from "classnames";
 import JSMpegWritableSource from './JSMpegWritableSource'
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
@@ -8,6 +8,7 @@ import { BsRecordCircleFill } from "react-icons/bs";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { API } from "services/api";
+import { SocketContext } from 'context/socket';
 
 interface Props {
   cameraName: string;
@@ -19,54 +20,65 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  const socket = useContext(SocketContext);
+
   const [open, setOpen] = useState(false);
   const [isHover, setIsHover] = useState(false);
   const [recording, setRecording] = useState("Start recording");
   const [preview, setPreview] = useState<string>();
-  const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
+  //const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
-  const notifySuccess = (text:string) => toast.success(text, {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-  });
+  // const notifySuccess = (text:string) => toast.success(text, {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: true,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  // });
 
-  const notifyFail = (text:string) => toast.error(text, {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-  });
+  // const notifyFail = (text:string) => toast.error(text, {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: true,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  // });
 
   useEffect(() => {
     //console.log('drawCanvas', drawCanvasRef);
-    getCameraSnapshot(cameraId).then((res) => setPreview(res));
+    getCameraSnapshot(cameraId).then((res) => {
+      if (res){
+        setPreview(res);
+      }      
+    });
   }, []);
 
   useEffect(() => {
     if (!socket){
+      //startStream();
+    }
+    if (open){
       startStream();
     }
-
-    if (open){
-      //console.log('connecting to ', socket?.id);
-      socket?.connect();
-    }
     else{
-      //console.log('Disconnecting socket', sock.id);
-      socket?.disconnect();
+      socket.off(`${cameraId}-stream`);
+      socket.off(`${cameraId}-detect`);
     }
+    // if (open){
+    //   //console.log('connecting to ', socket?.id);
+    //   socket?.connect();
+    // }
+    // else{
+    //   //console.log('Disconnecting socket', sock.id);
+    //   socket?.disconnect();
+    // }
   }, [open]);
-
 
   async function getCameraSnapshot(_camId: string)  { 
     try{
@@ -75,7 +87,8 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       const imageObjectURL = URL.createObjectURL(imageBlob); 
       return imageObjectURL;
     } catch(err){
-      console.error(`Unable to load preview :${err}`)
+      console.error(`Unable to load preview :${err}`);
+      return null;
     }  
   };
 
@@ -103,28 +116,36 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
     });
 
     // Start socket
-    const s = io(process.env.NEXT_PUBLIC_API!, {  });
-    //console.log('Created socket', s.id);
-    s.disconnect();    
+    // const s = io(process.env.NEXT_PUBLIC_API!, {  });
+    // //console.log('Created socket', s.id);
+    // s.disconnect();    
 
-    s?.on(`${cameraId}-stream`, async (data) => {
-      //console.log('--stream2', player);      
+    socket.on(`${cameraId}-stream`, async (data) => { 
       player.source.write(data);
-    }); 
+    });   
 
-    setSocket(s);
+    // s?.on(`${cameraId}-stream`, async (data) => {
+    //   //console.log('--stream2', player);      
+    //   player.source.write(data);
+    // }); 
+
+    // s?.on(`test-sock`, async (data) => {
+    //   console.log('test-sock', data);            
+    // }); 
+
+    //setSocket(s);
 
     const ctx = drawCanvasRef.current?.getContext("2d");
 
-    s.on(`${cameraId}-info`, async (data) => {
-        notifySuccess(data);
-    });
+    // socket.on(`${cameraId}-info`, async (data) => {
+    //     notifySuccess(data);
+    // });
 
-    s.on(`${cameraId}-error`, async (data) => {
-        notifyFail(data);
-    });
+    // s.on(`${cameraId}-error`, async (data) => {
+    //     notifyFail(data);
+    // });
 
-    s.on(`${cameraId}-detect`, async (data) => {
+    socket.on(`${cameraId}-detect`, async (data) => {
 
       if (!ctx){
         return;

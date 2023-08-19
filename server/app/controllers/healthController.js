@@ -32,4 +32,15 @@ router.get("/logs", function (req, res) {
     }  
 });
 
+/**
+ * Tests the socket messages
+ * @param {string} req.params.key - Scoket topic
+ * @param {string} req.params.msg - Message to send
+ */
+router.get("/sock/:topic/:msg", async function (req, res) {  
+
+    await healthService.testMessage(req.params.topic, req.params.msg);    
+    res.sendStatus(200); 
+});
+
 module.exports = router;

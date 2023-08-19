@@ -51,6 +51,7 @@ async function startFeedStream(cam){
     for await (const chunks of mpegTsParser.parse(socket)) {
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
+            if (cam.id == '648c08dc30e04fc1ff9874d5'){ console.log(`${cam.id}-stream-data`) }
             cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
@@ -63,7 +64,7 @@ async function startFeedStream(cam){
     '-fflags',
     '+genpts',
     '-rtsp_transport',
-    'udp',
+    'tcp',
     // '-stimeout',
     // '100000000',
     '-i',
@@ -99,20 +100,20 @@ async function startFeedStream(cam){
   logger.log('info', `[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
 
   cp.stderr.on('data', (data) => {
-    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    logger.log('error', `[${cam.id}] Feed stream stderr`, err);
+    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - '); 
+    logger.log('error', `[${cam.id}] Feed stream stderr ${err}`);
   });
 
   cp.on('exit', (code, signal) => {
     if (code === 1) {
-      logger.log('error', `[${cam.id}] Main stream exited`);
+      logger.log('error', `[${cam.id}] Feed stream exited`);
     } else {
-      logger.log('error', `[${cam.id}] FFmpeg main process exited (expected)`);
+      logger.log('error', `[${cam.id}] FFmpeg feed process exited (expected)`);
     }
   });
 
   cp.on('close', () => {
-    logger.log('info', `[${cam.id}] main stream process closed`);
+    logger.log('info', `[${cam.id}] feed stream process closed`);
   });  
 
   return mpegTsStreamPort;
@@ -168,6 +169,9 @@ async function startWatcherStream(cam){
   cp.stdout.on('data', (data) => {
     // this goes to UI
     //logger.log('info', `writing to ${cam.id}-stream`);
+    if (cam.id == "648c08dc30e04fc1ff9874d5"){
+      console.log('streaming');
+    }
     cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);
   });
 
