@@ -4,8 +4,14 @@ import moment from 'moment';
 import classNames from "classnames";
 import { Socket, io } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
-import JSMpegWritableSource from './JSMpegWritableSource'
+import JSMpegWritableSource from '../components/JSMpegWritableSource'
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
+import dynamic from 'next/dynamic'
+
+const DynamicRecordingPlayer = dynamic(
+    () => import('../components/RecordingPlayer'),
+    { ssr: false }
+  )  
 
 const pageStyle = {
     padding: '30px'
@@ -36,11 +42,17 @@ function secondsToTime(sec:number): string{
 
 export default function RecordingsPage() {
 
+    //const overlayRef = useRef<HTMLDivElement>(null);
+    //const streamCanvasRef = useRef<HTMLCanvasElement>(null);
+    //const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
+
     const [recordings, setRecordings] = useState<Recording[]>([]);
-    const streamCanvasRef = useRef<HTMLCanvasElement>(null);
-    const overlayRef = useRef<HTMLDivElement>(null);
-    const [open, setOpen] = useState(false);
-    const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
+   // const [open, setOpen] = useState(false);
+    const [selected, setSelected] = useState<Recording>();
+    const [selected2, setSelected2] = useState<Recording>();
+    const selected3 = React.useRef();
+
+    
 
     useEffect(() => {
         API.getRecordings().then((tryGet) => {
@@ -55,64 +67,94 @@ export default function RecordingsPage() {
     }, []);
 
     useEffect(() => {
-        if (!socket){
-          startSocket();
-        }
-    
-        if (open){
-          socket?.connect();
-        }
-        else{
-          socket?.disconnect();
-        }
-    }, [open]);
+        console.log('selected changed');
+    }, [selected]);
 
-    const startSocket = () =>{
+    useEffect(() => {
+        console.log('selected2 changed');
+        setSelected(selected2);
+        //selected3.current = selected2;
+    }, [selected2]);
 
-        // create player
-        const player = new JSMpeg.Player(null, {
-          source: JSMpegWritableSource,
-          canvas: streamCanvasRef.current,
-          audio: true,
-          pauseWhenHidden: false,
-          videoBufferSize: 1024 * 1024
-        });
-    
-        // Start socket
-        const s = io(process.env.NEXT_PUBLIC_API!, {  });
-        //console.log('Created socket', s.id);
-        s.disconnect();    
-    
-        s?.on(`${cameraId}-stream`, async (data) => {
-          //console.log('--stream2', player);      
-          player.source.write(data);
-        }); 
-    
-        setSocket(s);
-      }
+    // useEffect(() => {    
+    //     if (open){
+    //         startSocket();
+    //         socket?.connect();
+    //     }
+    //     else{
+    //         socket?.disconnect();
+    //         socket?.removeAllListeners();
+    //     }
+    // }, [open, selected]);
 
-    const closeModal = () => {
-        setOpen(false);    
-      }
+    // const startSocket = () =>{
+
+    //     if (!selected){
+    //         return;
+    //     }
+
+    //     // create player
+    //     const player = new JSMpeg.Player(null, {
+    //       source: JSMpegWritableSource,
+    //       canvas: streamCanvasRef.current,
+    //       audio: true,
+    //       pauseWhenHidden: false,
+    //       videoBufferSize: 1024 * 1024
+    //     });
     
-      const openModal = () => {
-        setOpen(true);
-      }
+    //     // Start socket
+    //     const s = io(process.env.NEXT_PUBLIC_API!, {  });
+    //     //console.log('Created socket', s.id);
+    //     s.disconnect();    
+    
+    //     s?.on(`${selected.id}-stream`, async (data) => {
+    //       //console.log('--stream2', player);      
+    //       player.source.write(data);
+    //     }); 
+    
+    //     setSocket(s);
+    // }
+
+    // const closeModal = () => {
+    //     setOpen(false);    
+    // }
+    
+    const openModal = (item: Recording) => {
+        //setOpen(true);
+        console.log('setting selected');
+        setSelected2(item);
+    }
+
+    // const streamStyle = {
+    //     border : '1px solid #565555',
+    //     boxShadow: '1px 2px 9px #545452',
+    //     background: 'black',
+    //     zIndex: 10,
+    //     width: '1280px',
+    //     height: '720px',
+    //     position: 'absolute' as const, 
+    //     left: '25%',
+    //     top: '15%',
+    //   };
 
     return (
         <div id="main" className="container" style={pageStyle}>
 
-            <div className={classNames({
+            <DynamicRecordingPlayer key={selected?.id} recording={selected}></DynamicRecordingPlayer>
+            {/* <div className={classNames({
                 "overlay": true, 
                 "visible": open, 
-                })} onClick={closeModal} ref={overlayRef}>        
-            
+                })} onClick={closeModal} ref={overlayRef}>
             </div>   
+            <canvas className={classNames({"stream": true, "hidden": !open, "visible": open, })} ref={streamCanvasRef} style={streamStyle} />  */}
             
             <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
                 <table className="w-full text-sm text-left text-gray-400">
                     <thead className="text-xs uppercase bg-gray-700 text-gray-400">
                         <tr>
+                            <th scope="col" className="px-6 py-3">
+                                Camera
+                            </th>
                             <th scope="col" className="px-6 py-3">
                                 FileName
                             </th>
@@ -129,10 +171,15 @@ export default function RecordingsPage() {
                     </thead>
                     <tbody>
                         {recordings.map((rec) => (
-                            <tr className="bg-gray-600 border-gray-700 hover:bg-gray-500 text-white" onClick={openModal}>
-                                <th scope="row" className="px-6 py-4 font-medium whitespace-nowrap ">
-                                {rec.fileName}
-                                </th>
+                            
+                            <tr key={rec.id} className="bg-gray-600 border-gray-700 hover:bg-gray-500 text-white" onClick={() => openModal(rec)}>
+                                
+                                 <td className="px-6 py-4">
+                                    {rec.cameraName}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {rec.fileName}
+                                </td>
                                 <td className="px-6 py-4">
                                     { moment(rec.recordedOn).local().format('LLL') }
                                 </td>
@@ -150,5 +197,5 @@ export default function RecordingsPage() {
 
         </div>
    
-  );
+    );
 }

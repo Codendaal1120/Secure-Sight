@@ -8,6 +8,7 @@ export interface Camera {
 export interface Recording {
   id: string;
   fileName: string;
+  cameraName : string;
   recordedOn: Date;
   length: number;
 }
