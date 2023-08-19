@@ -56,7 +56,7 @@ router.post("/stop/:camId", async function (req, res) {
 });
 
 /**
- * Starts a stream for the specified video clip (recording)
+ * Returns the saved video file
  * @route GET /api/recordings/:id/stream
  * @group Recordings api
  * @produces application/json
@@ -64,15 +64,15 @@ router.post("/stop/:camId", async function (req, res) {
  * @returns {object} 200 - Status message
  * @returns {Error}  400 - Bad request
  */
-router.get("/:recId/stream", async function (req, res) {
+router.get("/:recId/file", async function (req, res) {
 
   if (!req.params.recId){
     res.status(400).json(`Invalid recording id`);
   }
 
-  const result = await recService.streamRecording(req.params.recId); 
+  const result = await recService.getVideoFile(req.params.recId); 
   if (result.success){
-      res.status(200).json(result.payload);
+      res.sendFile(result.payload);
   }
   else{
       res.status(400).json(result.error);

@@ -4,87 +4,123 @@ import JSMpegWritableSource from './JSMpegWritableSource'
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
 import { Socket, io } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
-import { BsRecordCircleFill } from "react-icons/bs";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+
 import { Recording } from "services/api";
+import ReactPlayer from 'react-player';
 
 
 interface Props {
-    recording: Recording | undefined
+    recording: Recording | undefined,
+    signalClose: Function,
+    isOpen: boolean
 //   recordignId: string;
 //   start: Function;
 }
 
 
-function RecordingPlayer ({ recording } : Props) { 
+function RecordingPlayer ({ recording, signalClose, isOpen } : Props) { 
     const streamCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
 
-    const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
-    const [open, setOpen] = useState(false);
+    //const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
+    const [url, setUrl] = useState<string>();
+    //const [playing, setPlaying] = useState<Recording>();
+    const isLoading = false;
+    //const [open, setOpen] = useState(false);
 
     // shouldComponentUpdate(nextProps, nextState) {
     //     return this.state.someValue !== nextState.someValue;
     // }
 
+    // useEffect(() => {    
+    //     console.log('recording', recording);
+    //      // if (!recording){
+    //      //  //   console.log('çlosing');
+             
+    //      //     setOpen(false);
+    //      //     return;
+    //      // }
+    //      // setOpen(true);
+    //  }, [recording]);
+
+    // useEffect(() => {    
+    //     console.log('recording2', recording);
+    //      // if (!recording){
+    //      //  //   console.log('çlosing');
+             
+    //      //     setOpen(false);
+    //      //     return;
+    //      // }
+    //      // setOpen(true);
+    //  }, [isOpen]);
+
     useEffect(() => {    
-        console.log('recording', recording);
-        if (!recording){
-            setOpen(false);
-            return;
-        }
-        setOpen(true);
-    }, [recording]);
 
-
-    useEffect(() => {    
-        if (open){
-            //startSocket();
-            socket?.connect();
-        }
-        else{
-            socket?.disconnect();
-            socket?.removeAllListeners();
-        }
-    }, [open]);
-
-    const startSocket = () =>{
-
-        // if (!selected){
+        // if (playing){
+        //     console.log('playing', playing);
+        //     //startSocket();
+        // }
+       
+        // if (!recording){
+        //  //   console.log('çlosing');
+            
+        //     setOpen(false);
         //     return;
         // }
+        // setOpen(true);
+    }, []);
 
-        // create player
-        const player = new JSMpeg.Player(null, {
-          source: JSMpegWritableSource,
-          canvas: streamCanvasRef.current,
-          audio: true,
-          pauseWhenHidden: false,
-          videoBufferSize: 1024 * 1024
-        });
+
+    useEffect(() => {    
+
+        if (recording?.id != null){
+            setUrl(`${process.env.NEXT_PUBLIC_API}/api/recordings/${recording.id}/file`);
+        }
+        
+        if (isOpen){
+            //console.log('starting socket', socket);
+            //startSocket();
+            //socket?.connect();
+        }
+        else{
+            //socket?.disconnect();
+            //socket?.removeAllListeners();
+        }
+    }, [isOpen]);
+
+    // const startSocket = () =>{
+
+    //     if (!playing){
+    //         return;
+    //     }
+
+    //     // create player
+    //     const player = new JSMpeg.Player(null, {
+    //       source: JSMpegWritableSource,
+    //       canvas: streamCanvasRef.current,
+    //       audio: false,
+    //       pauseWhenHidden: true,
+    //       videoBufferSize: 1024 * 1024
+    //     });
     
-        // Start socket
-        const s = io(process.env.NEXT_PUBLIC_API!, {  });
-        //console.log('Created socket', s.id);
-        s.disconnect();    
+    //     // Start socket
+    //     const s = io(process.env.NEXT_PUBLIC_API!, {  });
+    //     //console.log('Created socket', s.id);
+    //     //s.disconnect();    
     
-        // s?.on(`${selected.id}-stream`, async (data) => {
-        //   //console.log('--stream2', player);      
-        //   player.source.write(data);
-        // }); 
+    //     s?.on(`${playing.id}-stream`, async (data) => {
+    //       //console.log('--stream2');      
+    //       player.source.write(data);
+    //     }); 
     
-        setSocket(s);
-    }
+    //     setSocket(s);
+    // }
 
     const closeModal = () => {
-        setOpen(false);    
-        recording = undefined;   
-    }
-    
-    const openModal = () => {
-        setOpen(true);
-        //setSelected(item);
+        console.log('close modal');
+        signalClose(false);
+        //setOpen(false);    
+        //recording = undefined;   
     }
 
     const containerStyle = {
@@ -102,15 +138,28 @@ function RecordingPlayer ({ recording } : Props) {
         top: '15%',
       };
 
+    const spinnerStyle = {
+        width: '1280px',
+        height: '720px',
+        position: 'absolute' as const, 
+        left: '25%',
+        top: '15%',
+        zIndex: 11
+    }
+
       return (
         <div id="main" className="container" style={containerStyle}>
             <div className={classNames({
                 "overlay": true, 
-                "visible": open, 
+                "visible": isOpen, 
                 })} onClick={closeModal} ref={overlayRef}>
+                <ReactPlayer style={streamStyle} 
+                // className={classNames({"stream": true, "hidden": !isOpen, "visible": isOpen, })} 
+                url={url} controls={true} />
             </div>   
-            <canvas className={classNames({"stream": true, "hidden": !open, "visible": open, })} ref={streamCanvasRef} style={streamStyle} /> 
-
+            {/* <div id="cover-spin" className={classNames({"hidden": !isOpen, "visible": isOpen && !isLoading })} style={spinnerStyle} /> */}
+            {/* <canvas className={classNames({"stream": true, "hidden": !isOpen, "visible": isOpen, })} ref={streamCanvasRef} style={streamStyle} />  */}
+            
         </div>
    
     );

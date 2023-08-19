@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { API, Recording } from "services/api";
 import moment from 'moment';
-import classNames from "classnames";
-import { Socket, io } from 'socket.io-client';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
-import JSMpegWritableSource from '../components/JSMpegWritableSource'
-import JSMpeg from '@seydx/jsmpeg/lib/index.js';
+import { BsRecordCircleFill } from "react-icons/bs";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import dynamic from 'next/dynamic'
+//import Modal from "../components/Modal";
 
 const DynamicRecordingPlayer = dynamic(
     () => import('../components/RecordingPlayer'),
@@ -16,6 +15,28 @@ const DynamicRecordingPlayer = dynamic(
 const pageStyle = {
     padding: '30px'
 }
+
+const notifySuccess = (text:string) => toast.success(text, {
+    position: "top-right",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "dark",
+});
+
+const notifyFail = (text:string) => toast.error(text, {
+    position: "top-right",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "dark",
+});
 
 function secondsToTime(sec:number): string{
 
@@ -49,10 +70,11 @@ export default function RecordingsPage() {
     const [recordings, setRecordings] = useState<Recording[]>([]);
    // const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<Recording>();
-    const [selected2, setSelected2] = useState<Recording>();
-    const selected3 = React.useRef();
+    const [isOpen, setIsOpen] = useState(false);
 
-    
+    // useEffect(() => {
+    //     console.log('isOpen changed', isOpen);
+    // }, [isOpen]);
 
     useEffect(() => {
         API.getRecordings().then((tryGet) => {
@@ -62,19 +84,15 @@ export default function RecordingsPage() {
             else{
                 console.error(`Unable to get recordings: ${tryGet.error}`);
             }
-            
         })
     }, []);
 
-    useEffect(() => {
-        console.log('selected changed');
-    }, [selected]);
+    // useEffect(() => {
+    //     setIsOpen(false);
+    //     //console.log('selected changed');
+    // }, [selected]);
 
-    useEffect(() => {
-        console.log('selected2 changed');
-        setSelected(selected2);
-        //selected3.current = selected2;
-    }, [selected2]);
+
 
     // useEffect(() => {    
     //     if (open){
@@ -121,8 +139,11 @@ export default function RecordingsPage() {
     
     const openModal = (item: Recording) => {
         //setOpen(true);
-        console.log('setting selected');
-        setSelected2(item);
+        //console.log('setting selected');
+        setIsOpen(true);
+        setSelected(item);
+
+        API.streamRecording(item.id);
     }
 
     // const streamStyle = {
@@ -140,7 +161,7 @@ export default function RecordingsPage() {
     return (
         <div id="main" className="container" style={pageStyle}>
 
-            <DynamicRecordingPlayer key={selected?.id} recording={selected}></DynamicRecordingPlayer>
+            <DynamicRecordingPlayer key={selected?.id} recording={selected} signalClose={setIsOpen} isOpen={isOpen}></DynamicRecordingPlayer>
             {/* <div className={classNames({
                 "overlay": true, 
                 "visible": open, 

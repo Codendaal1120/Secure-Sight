@@ -305,6 +305,4 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
   )
 }
 
-
-
 export default CameraViewer;
