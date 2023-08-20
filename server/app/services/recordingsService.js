@@ -11,9 +11,10 @@ const path = require('path');
  * Records the camera feed for the specified amount of time
  * @param {object} _cameraEntry - The camera record
  * @param {Object} _seconds - The number of seconds to record
+ * @param {Function} _callback - Optional callback to execute after recording has finished
  * @returns {Object} Try result
  */
-async function recordCamera(_cameraEntry, _seconds){
+async function recordCamera(_cameraEntry, _seconds, _callback){
 
   if (_seconds < 0){
     _seconds = 1200; // 20 minutes
@@ -30,7 +31,7 @@ async function recordCamera(_cameraEntry, _seconds){
         var fileName = `${_cameraEntry.camera.id}-${currentTime}.mp4`    
 
         //_cameraEntry.record.file = filePath;    
-        _cameraEntry.record.process = runFfmpegRTSP(getRecordingDirectory(), fileName, _cameraEntry, _seconds);             
+        _cameraEntry.record.process = runFfmpegRTSP(getRecordingDirectory(), fileName, _cameraEntry, _seconds, _callback);             
 
         return { success : true, payload : "Recording started" };
     }
@@ -141,7 +142,7 @@ function getRecordingDirectory(){
 /** Stream the RTSP stream to a buffer, which gets saved to file. 
  * This is done to support stopping the recording manually.
  * This format is not suitable for web view and needs to be converted */
-function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds){
+function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds, _callback){
 
   _cameraEntry.record.buffers = [];
 
@@ -196,6 +197,8 @@ function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds){
       }
 
       runFfmpegConvertFile(tempFilePath, `${_directory}/${_fileName}`, _fileName, _cameraEntry);
+
+      if (_callback) { _callback(); }
     }
   )  
 

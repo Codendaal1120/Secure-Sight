@@ -2,13 +2,13 @@ const tcp = require("../modules/tcpModule");
 const tf = require("../modules/tfDetector");
 const svm = require("../modules/svmDetector");
 const detector = require("../modules/motionDetector");
+const evtService = require("../services/eventsService");
+const recService = require("../services/recordingsService");
 const Pipe2Pam = require('pipe2pam');
-const { spawn } = require('node:child_process');
 const cache = require("../modules/cache");
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const jpeg = require('jpeg-js');
 const ffmpegModule = require("../modules/ffmpegModule");
-const ffmpeg = ffmpegModule.getFfmpagPath();
 const logger = require('../modules/loggingModule').getLogger('videoAnalysisService');
 
 let frameIndex = -1;
@@ -72,9 +72,7 @@ async function StartVideoProcessing(cam){
       });
     },
     null
-  )  
-
-  //const cpVa = spawn(ffmpeg, args); 
+  );
 
   const pipe2pam = new Pipe2Pam();
 
@@ -84,26 +82,9 @@ async function StartVideoProcessing(cam){
   });
 
   cpx.stdout.pipe(pipe2pam); 
-
-  // cpVa.stderr.on('data', (data) => {
-  //   let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-  //   logger.log('error', `[${cam.id}] Video analysis stderr`, err);
-  // });
-
-  // cpVa.on('exit', (code, signal) => {
-  //   if (code === 1) {
-  //     logger.log('error', `[${cam.id}] video analysis exit`);
-  //   } else {
-  //     logger.log('info', `[${cam.id}] FFmpeg video analysis process exited (expected)`);
-  //   }
-  // });
-
-  // cpVa.on('close', async () => {
-  //   console.debug(`[${cam.id}] video analysis process closed, restarting...`);
-  //   await timeout(14000);
-  //   await StartVideoProcessing();
-  // });
 }
+
+//https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
 
 /** Performs motion detection and objecty identification */
 async function processFrame(cam, data){
@@ -161,6 +142,15 @@ async function processFrame(cam, data){
         cache.services.ioSocket.sockets.emit(`${cam.id}-detect`, predictions);
 
         // save event + alert
+        if (cam.eventConfig.recordEvents){
+          recService.recordCamera(cache.cameras[cam.id], cam.eventConfig.recordSeconds ?? 10, function(){
+            // save event
+            evtService.tryCreateNew({
+              cameraId : cam.id,
+              occuredOn : new Date() 
+            })
+          })
+        }
       }      
     }
 

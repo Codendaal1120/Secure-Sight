@@ -4,7 +4,7 @@ const fs = require("fs");
 
 let currentLogFile;
 if (!currentLogFile){
-  currentLogFile = getDate() + '.log';
+  currentLogFile = 'logs/' + getDate() + '.log';
 }
 
 const fsFormat = format.combine(
