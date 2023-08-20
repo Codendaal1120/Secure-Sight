@@ -41,11 +41,9 @@ var tryGetSnapshot = async function(_camId){
       return tryGetCam;
   }
 
-  if (tryGetCam.payload.snapshotUrl){
+  if (tryGetCam.payload.snapshotType == "http"){
       return await tryGetSnapshotFromUrl(tryGetCam.payload.snapshotUrl, tryGetCam.payload.id);
   }
-
-  //return { success : false, error : 'cannot' };
 
   return await tryGetSnapshotFromStream(tryGetCam.payload); 
 }
@@ -79,7 +77,7 @@ async function tryGetSnapshotFromStream(_cam){
       '-rtsp_transport',
       'tcp',
       '-i',
-      _cam.url,
+      _cam.snapshotUrl,
       '-vframes',
       '1',
       tempFile,
@@ -100,7 +98,7 @@ async function tryGetSnapshotFromStream(_cam){
     )  
 
     // read file
-    return await getSnapshotImageFile(tempFile, _cam.id, 5);
+    return await getSnapshotImageFile(tempFile, _cam.id, 7);
 
   } catch(error){
       var msg = `Unable to take snapshot from camera stream ${_cam.id} : ${error.message}`;
