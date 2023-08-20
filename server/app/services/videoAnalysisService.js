@@ -19,11 +19,11 @@ let frameBuffer = [];
  */
 async function startVideoAnalysis() {    
 
-  for (let i = 0; i < cache.cameras.length; i++) {
-    if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled && false){
-      await StartVideoProcessing(cache.cameras[i].camera);        
-    }      
-  } 
+  for (const [k, v] of Object.entries(cache.cameras)) {
+    if (v.camera.deletedOn == null && v.camera.videoProcessingEnabled){
+      await StartVideoProcessing(v.camera);        
+    }   
+  }
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -62,6 +62,7 @@ async function StartVideoProcessing(cam){
   const pipe2pam = new Pipe2Pam();
 
   pipe2pam.on('pam', async (data) => {
+    console.log('pam');
     await processFrame(cam, data);
   });
 
@@ -97,8 +98,8 @@ async function processFrame(cam, data){
     //var jpegImageData = jpeg.encode(rawImageData, 50);
     storeFrame(data.pixels);
 
-    let motion = null;
-    //let motion = detector.getMotionRegion(frameBuffer);
+    //let motion = null;
+    let motion = detector.getMotionRegion(frameBuffer);
     // let motion = { 
     //   x: 10, 
     //   y: 20, 
@@ -126,7 +127,6 @@ async function processFrame(cam, data){
             imageWidth : _width,
             imageHeight : _height
           }
-
         }
       }
 
@@ -138,10 +138,13 @@ async function processFrame(cam, data){
         };
         var jpegImageData = jpeg.encode(rawImageData, 50);
         predictions = await tf.processImage(jpegImageData.data, _width, _height);
-        //predictions = await tf.processImage(data.pixels, data.width, data.height);
       }
       
-      cache.services.ioSocket.sockets.emit(`${cam.id}-detect`, predictions);
+      if (predictions.length > 0){
+        cache.services.ioSocket.sockets.emit(`${cam.id}-detect`, predictions);
+        
+        // save event + alert
+      }      
     }
 
   }
