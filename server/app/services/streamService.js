@@ -112,8 +112,10 @@ async function tryGetSnapshotFromStream(_cam){
 
 async function getSnapshotImageFile(_filePath, _camId, _attempts){
 
+  var now = new Date();
+
   if (cache.cameras[_camId].snapshot && 
-      cache.cameras[_camId].snapshot.cacheTill > new Date() && 
+      cache.cameras[_camId].snapshot.cacheTill > now && 
       fs.existsSync(cache.cameras[_camId].snapshot.file)){
 
       var b = fs.readFileSync(cache.cameras[_camId].snapshot.file);
@@ -139,7 +141,7 @@ async function getSnapshotImageFile(_filePath, _camId, _attempts){
   //cache 
   cache.cameras[_camId].snapshot = {
     file : _filePath,
-    cacheTill : new Date(date.getTime() + 10 * 60000)
+    cacheTill : new Date(now.getTime() + 10 * 60000)
   }
 
   return { success : true, payload : b }; 

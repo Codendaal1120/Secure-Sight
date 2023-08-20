@@ -8,7 +8,6 @@ import { HiChevronDoubleLeft, HiChevronDoubleRight } from "react-icons/hi";
 import logo_big from "../public/logo.svg";
 import logo_small from "../public/logo-small.svg";
 
-// add NavItem prop to component prop
 type Props = {
   collapsed: boolean;
   navItems?: NavItem[];

@@ -36,7 +36,15 @@ class JSMpegWritableSource {
   
     write(data: any) {
       if (this.destination){
-        this.destination.write(data);
+        try
+        {
+          this.destination.write(data);
+        }
+        catch(error){
+          console.error('destination error', this.destination);
+        }
+        
+        
       }      
     }
   

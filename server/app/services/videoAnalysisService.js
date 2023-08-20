@@ -56,36 +56,53 @@ async function StartVideoProcessing(cam){
     'fps=2,scale=640:360', 
     '-']
 
-  const cpVa = spawn(ffmpeg, args);
-  logger.log('info', `[${cam.id}] Video analysis stream started on ${streamPort}`);
+  const cpx = ffmpegModule.runFFmpeg(
+    args, 
+    `[${cam.id}] Video analysis stream`, 
+    function(data){
+      // on spawn
+      logger.log('info', `[${cam.id}] Video analysis stream started on ${streamPort}`);
+    },
+    null,
+    null,
+    async function(){
+      console.debug(`[${cam.id}] video analysis process closed, restarting...`);
+      timeout(14000).then(() => {
+        StartVideoProcessing().then(() => {});
+      });
+    },
+    null
+  )  
+
+  //const cpVa = spawn(ffmpeg, args); 
 
   const pipe2pam = new Pipe2Pam();
 
   pipe2pam.on('pam', async (data) => {
-    console.log('pam');
+    //console.log('pam');
     await processFrame(cam, data);
   });
 
-  cpVa.stdout.pipe(pipe2pam); 
+  cpx.stdout.pipe(pipe2pam); 
 
-  cpVa.stderr.on('data', (data) => {
-    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    logger.log('error', `[${cam.id}] Video analysis stderr`, err);
-  });
+  // cpVa.stderr.on('data', (data) => {
+  //   let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
+  //   logger.log('error', `[${cam.id}] Video analysis stderr`, err);
+  // });
 
-  cpVa.on('exit', (code, signal) => {
-    if (code === 1) {
-      logger.log('error', `[${cam.id}] video analysis exit`);
-    } else {
-      logger.log('info', `[${cam.id}] FFmpeg video analysis process exited (expected)`);
-    }
-  });
+  // cpVa.on('exit', (code, signal) => {
+  //   if (code === 1) {
+  //     logger.log('error', `[${cam.id}] video analysis exit`);
+  //   } else {
+  //     logger.log('info', `[${cam.id}] FFmpeg video analysis process exited (expected)`);
+  //   }
+  // });
 
-  cpVa.on('close', async () => {
-    console.debug(`[${cam.id}] video analysis process closed, restarting...`);
-    await timeout(14000);
-    await StartVideoProcessing();
-  });
+  // cpVa.on('close', async () => {
+  //   console.debug(`[${cam.id}] video analysis process closed, restarting...`);
+  //   await timeout(14000);
+  //   await StartVideoProcessing();
+  // });
 }
 
 /** Performs motion detection and objecty identification */
@@ -142,7 +159,7 @@ async function processFrame(cam, data){
       
       if (predictions.length > 0){
         cache.services.ioSocket.sockets.emit(`${cam.id}-detect`, predictions);
-        
+
         // save event + alert
       }      
     }
