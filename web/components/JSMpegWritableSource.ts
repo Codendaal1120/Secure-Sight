@@ -35,7 +35,9 @@ class JSMpegWritableSource {
     }
   
     write(data: any) {
-      this.destination.write(data);
+      if (this.destination){
+        this.destination.write(data);
+      }      
     }
   
     test(data: any) {

@@ -2,8 +2,6 @@ import { useRef, useEffect, useState, useContext } from 'react';
 import classNames from "classnames";
 import JSMpegWritableSource from './JSMpegWritableSource'
 import JSMpeg from '@seydx/jsmpeg/lib/index.js';
-import { Socket, io } from 'socket.io-client';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { BsRecordCircleFill } from "react-icons/bs";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -126,7 +124,7 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
     display: 'block',
     position: 'relative'as const,
     maxWidth: '470px',
-    height: '352px',
+    height: '264px',
     borderRadius: '10px',
     objectFit: 'cover' as const,
     overflow: 'hidden',
