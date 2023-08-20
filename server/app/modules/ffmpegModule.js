@@ -28,9 +28,9 @@ function runFFmpeg(args, processName, onSpawn, onData, onDataError, onClose, onE
     });
   
     cp.stderr.on('data', (data) => {
-      let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - '); 
-      logger.log('error', `${processName} stderr ${err}`);
-      if (onDataError){ onDataError(data); }
+      let parsedError = data.toString().replace(/(\r\n|\n|\r)/gm, ' - '); 
+      logger.log('error', `${processName} stderr ${parsedError}`);
+      if (onDataError){ onDataError(data, parsedError); }
     });
   
     cp.on('exit', (code, signal) => {

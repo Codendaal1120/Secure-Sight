@@ -41,6 +41,9 @@ var tryGetSnapshot = async function(_camId){
       return tryGetCam;
   }
 
+  // not all cameras have an http endpoint
+  // TP-link cameras can only have a single connection to a stream from an IP,
+  // which means we need to use an alternative stream to get the snapshot
   if (tryGetCam.payload.snapshotType == "http"){
       return await tryGetSnapshotFromUrl(tryGetCam.payload.snapshotUrl, tryGetCam.payload.id);
   }
