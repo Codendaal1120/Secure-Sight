@@ -4,3 +4,5 @@ import { createContext, useEffect, useState } from 'react';
 
 export const socket = io(process.env.NEXT_PUBLIC_API!, {  });
 export const SocketContext = createContext<Socket<DefaultEventsMap, DefaultEventsMap>>(socket);
+
+

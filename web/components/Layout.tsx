@@ -1,9 +1,8 @@
 import classNames from "classnames";
 import React, { PropsWithChildren, useContext, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
-import {  toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { SocketContext } from 'context/socket';
+import { Notifier } from "./Notifier";
 
 const Layout = (props: PropsWithChildren) => {
 
@@ -11,40 +10,20 @@ const Layout = (props: PropsWithChildren) => {
   const [showSidebar, setShowSidebar] = useState(true);
   const socket = useContext(SocketContext);
 
-  const notifySuccess = (text:string) => toast.success(text, {
-    position: "top-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
-    theme: "dark",
-  });
-
-  const notifyFail = (text:string) => toast.error(text, {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-  });  
+ 
 
   useEffect(() => {  
     socket.on(`test-sock`, async (data) => {
       console.log('test-from-socket-x', data);  
-      notifySuccess(data);         
+      Notifier.notifySuccess(data);         
     });    
     
     socket.on(`ui-info`, async (data) => { 
-      notifySuccess(data);         
+      Notifier.notifySuccess(data);         
     });    
 
     socket.on(`ui-error`, async (data) => {
-      notifyFail(data);         
+      Notifier.notifyFail(data);         
     });    
   }, []);
 

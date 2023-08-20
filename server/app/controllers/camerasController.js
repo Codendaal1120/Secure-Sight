@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const camService = require("../services/camerService");
+const streamService = require("../services/streamService");
 
 /**
  * Get all configured cameras
@@ -49,7 +50,7 @@ router.get("/:camId", async function (req, res) {
  * @returns {Error}  400 - Bad request
 */
 router.get("/:camId/snapshot", async function (req, res) {  
-  const result = await camService.tryGetSnapshot(req.params.camId); 
+  const result = await streamService.tryGetSnapshot(req.params.camId); 
   if (result.success){
     res.set("Content-Type", "image/jpeg");
     res.send(result.payload);

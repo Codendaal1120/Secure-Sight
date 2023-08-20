@@ -2,7 +2,7 @@ const dataService = require("./dataService");
 const logger = require('../modules/loggingModule').getLogger('camerService');
 const collectionName = "cameras";
 const cache = require('../modules/cache');
-const fetch = require("node-fetch");
+
 
 /**
  * Get all configured cameras from DB
@@ -140,37 +140,6 @@ var tryDeleteCam = async function(_camId){
     return { success : true, payload : "Camera deleted" };
 }
 
-/**
- * Tries to get a image from the camera, some cameras have a snapshot url
- * @param {string} _camId - Camera ID to get the snapshot for
- * @return {Object} Status result
- */
-var tryGetSnapshot = async function(_camId){
-        
-    if (!_camId){
-        return { success : false, error : [ "Invalid camera Id" ] };
-    }
-
-    let tryGetCam = await tryGetOneById(_camId);
-    if (!tryGetCam.success){
-        return tryGetCam;
-    }
-
-    if (!tryGetCam.payload.snapshotUrl){
-        return { success : false, error : `Camera ${_camId} does not have a snapshot endpoint` };
-    }
-
-    try{       
-        const response = await fetch(tryGetCam.payload.snapshotUrl);
-        const b = await response.buffer();
-        return { success : true, payload : b };
-    } catch(error){
-        var msg = `Unable to get snapshot from camera ${_camId} : ${error.message}`;
-        logger.log('error', msg)
-        return { success : false, error : msg };
-    }
-}
-
 function validateCamera(camera){
     var errors = [];
 
@@ -210,4 +179,3 @@ module.exports.getOneById = tryGetOneById;
 module.exports.tryCreateNewCam = tryCreateNewCam;
 module.exports.tryUpdateCam = tryUpdateCam;
 module.exports.tryDeleteCam = tryDeleteCam;
-module.exports.tryGetSnapshot = tryGetSnapshot;

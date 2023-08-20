@@ -20,7 +20,7 @@ let frameBuffer = [];
 async function startVideoAnalysis() {    
 
   for (let i = 0; i < cache.cameras.length; i++) {
-    if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled){
+    if (cache.cameras[i].camera.deletedOn == null && cache.cameras[i].camera.motionDetectionEnabled && false){
       await StartVideoProcessing(cache.cameras[i].camera);        
     }      
   } 

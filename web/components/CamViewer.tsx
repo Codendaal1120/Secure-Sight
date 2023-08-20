@@ -9,6 +9,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { API } from "services/api";
 import { SocketContext } from 'context/socket';
+import { Notifier } from "./Notifier";
 
 interface Props {
   cameraName: string;
@@ -26,30 +27,7 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
   const [isHover, setIsHover] = useState(false);
   const [recording, setRecording] = useState("Start recording");
   const [preview, setPreview] = useState<string>();
-  //const [socket, setSocket] = useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
-
-  // const notifySuccess = (text:string) => toast.success(text, {
-  //     position: "top-right",
-  //     autoClose: 5000,
-  //     hideProgressBar: false,
-  //     closeOnClick: true,
-  //     pauseOnHover: true,
-  //     draggable: true,
-  //     progress: undefined,
-  //     theme: "dark",
-  // });
-
-  // const notifyFail = (text:string) => toast.error(text, {
-  //     position: "top-right",
-  //     autoClose: 5000,
-  //     hideProgressBar: false,
-  //     closeOnClick: true,
-  //     pauseOnHover: true,
-  //     draggable: true,
-  //     progress: undefined,
-  //     theme: "dark",
-  // });
-
+  
   useEffect(() => {
     //console.log('drawCanvas', drawCanvasRef);
     getCameraSnapshot(cameraId).then((res) => {
@@ -60,9 +38,6 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
   }, []);
 
   useEffect(() => {
-    if (!socket){
-      //startStream();
-    }
     if (open){
       startStream();
     }
@@ -70,14 +45,6 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       socket.off(`${cameraId}-stream`);
       socket.off(`${cameraId}-detect`);
     }
-    // if (open){
-    //   //console.log('connecting to ', socket?.id);
-    //   socket?.connect();
-    // }
-    // else{
-    //   //console.log('Disconnecting socket', sock.id);
-    //   socket?.disconnect();
-    // }
   }, [open]);
 
   async function getCameraSnapshot(_camId: string)  { 
@@ -113,37 +80,13 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       audio: true,
       pauseWhenHidden: false,
       videoBufferSize: 1024 * 1024
-    });
-
-    // Start socket
-    // const s = io(process.env.NEXT_PUBLIC_API!, {  });
-    // //console.log('Created socket', s.id);
-    // s.disconnect();    
+    });  
 
     socket.on(`${cameraId}-stream`, async (data) => { 
       player.source.write(data);
     });   
 
-    // s?.on(`${cameraId}-stream`, async (data) => {
-    //   //console.log('--stream2', player);      
-    //   player.source.write(data);
-    // }); 
-
-    // s?.on(`test-sock`, async (data) => {
-    //   console.log('test-sock', data);            
-    // }); 
-
-    //setSocket(s);
-
     const ctx = drawCanvasRef.current?.getContext("2d");
-
-    // socket.on(`${cameraId}-info`, async (data) => {
-    //     notifySuccess(data);
-    // });
-
-    // s.on(`${cameraId}-error`, async (data) => {
-    //     notifyFail(data);
-    // });
 
     socket.on(`${cameraId}-detect`, async (data) => {
 
@@ -281,15 +224,15 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
     if (recording == "Start recording"){
         setRecording("Stop recording"); 
         API.startCameraRecording(cameraId, 20).then(async (res:any) => {
-            if (res.success){ notifySuccess(res.payload); }
-            else{ notifyFail(res.error); }
+            if (res.success){ Notifier.notifySuccess(res.payload); }
+            else{ Notifier.notifyFail(res.error); }
         }); 
     }
     else{
         setRecording("Start recording"); 
         API.stopCameraRecording(cameraId).then(async (res:any) => {
-          if (res.success){ notifySuccess(res.payload); }
-          else{ notifyFail(res.error); }
+          if (res.success){ Notifier.notifySuccess(res.payload); }
+          else{ Notifier.notifyFail(res.error); }
       });         
     }    
   }
