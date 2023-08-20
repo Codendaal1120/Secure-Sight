@@ -57,7 +57,7 @@ router.post("/stop/:camId", async function (req, res) {
 
 /**
  * Returns the saved video file
- * @route GET /api/recordings/:id/stream
+ * @route GET /api/recordings/:id/file
  * @group Recordings api
  * @produces application/json
  * @param {string} req.params.recId - Recording ID
@@ -73,6 +73,30 @@ router.get("/:recId/file", async function (req, res) {
   const result = await recService.getVideoFile(req.params.recId); 
   if (result.success){
       res.sendFile(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
+/**
+ * Downloads a recording
+ * @route GET /api/recordings/:id/download
+ * @group Recordings api
+ * @produces application/json
+ * @param {string} req.params.recId - Recording ID
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.get("/:recId/download", async function (req, res) {
+
+  if (!req.params.recId){
+    res.status(400).json(`Invalid recording id`);
+  }
+
+  const result = await recService.getVideoFile(req.params.recId); 
+  if (result.success){
+      res.download(result.payload);
   }
   else{
       res.status(400).json(result.error);

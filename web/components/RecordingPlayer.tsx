@@ -23,6 +23,7 @@ function RecordingPlayer ({ recording, signalClose, isOpen } : Props) {
     const closeModal = () => {
         console.log('close modal');
         signalClose(false);
+        isOpen = false;
     }
 
     const containerStyle = {
@@ -38,6 +39,11 @@ function RecordingPlayer ({ recording, signalClose, isOpen } : Props) {
         position: 'absolute' as const, 
         left: '25%',
         top: '15%',
+        //opacity: '100% !important',
+        visibility: isOpen ? 'visible' as const :'hidden'  as const,
+       // opacity: isOpen ?'100% !important' : '0',
+        //transition: isOpen ? 'visibility 1s, opacity 0.05s linear' : 'visibility 0s, opacity 0.05s linear'
+        
       };
 
       return (
@@ -46,8 +52,10 @@ function RecordingPlayer ({ recording, signalClose, isOpen } : Props) {
                 "overlay": true, 
                 "visible": isOpen, 
                 })} onClick={closeModal} ref={overlayRef}>
-                <ReactPlayer style={streamStyle} url={url} controls={true} />
+                
             </div>   
+            <ReactPlayer style={streamStyle} 
+            url={url} controls={true} />
             
         </div>
    

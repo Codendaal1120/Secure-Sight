@@ -102,6 +102,19 @@ export class API {
       return { success: true, payload: resText, error: null }
   }
 
+  static async downloadRecordingFile(_recId: string): Promise<TryResult<string>> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/${_recId}/download`, 
+      { method : 'GET' });
+
+      var resText = await response.text()
+
+      if (!response.ok){
+        return { success: false, payload: null, error: resText}
+      }
+      
+      return { success: true, payload: resText, error: null }
+  }
+
   static toTime(seconds: number): string {
     const date = new Date(0);
     date.setSeconds(seconds);
