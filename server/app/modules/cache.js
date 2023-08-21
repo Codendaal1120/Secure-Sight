@@ -12,6 +12,7 @@ module.exports.services = {
     eventEmmiter : null,
     ioSocket : null
 };
+
 module.exports.config = {};
 module.exports.cameras = entries;
 module.exports.getCamera = getCamera;

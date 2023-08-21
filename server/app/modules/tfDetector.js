@@ -1,6 +1,7 @@
 const tf = require('@tensorflow/tfjs-node');
 const coco_ssd = require('@tensorflow-models/coco-ssd');
 const logger = require('../modules/loggingModule').getLogger('tfDetector');
+const utility = require('./utility');
 
 let model = undefined;
 
@@ -24,7 +25,8 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
     const predictions = await model.detect(image, 3, 0.25);
     let detections = [];
 
-    predictions.forEach(element => {      
+    predictions.forEach(element => {     
+      //console.log(element.class, 'detected') ;
       if (element.class === "person"){
         detections.push(createObject(element, _imgWidth, _imgHeight));
       }
@@ -52,12 +54,10 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
 function createObject(_element, _imgWidth, _imgHeight){
   return { 
     detectedOn: new Date(), 
-    x: _element.bbox[0], 
-    y: _element.bbox[1], 
-    width: _element.bbox[2], 
-    height: _element.bbox[3],
-    imageWidth : _imgWidth,
-    imageHeight : _imgHeight
+    x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1280),
+    y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 720), 
+    width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1280), 
+    height: utility.mapRange(_element.bbox[3], 0, _imgHeight, 0, 720),
   }
 }
 

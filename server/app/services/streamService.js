@@ -179,6 +179,9 @@ async function startFeedStream(cam){
     }
   });
 
+  // note eufy cams have lower RTSP quality
+  // https://www.reddit.com/r/EufyCam/comments/hbo2tn/subpar_quality_rtsp_stream_from_2k_indoor_cam/
+
   const args = [
     '-hide_banner',
     '-loglevel',
@@ -186,30 +189,18 @@ async function startFeedStream(cam){
     '-fflags',
     '+genpts',
     '-rtsp_transport',
-    //'udp',
     cam.transport,
-    // '-stimeout',
-    // '100000000',
     '-i',
     cam.url,
     '-vcodec',
-    'libx264',
+    'copy',
     '-preset:v',
     'ultrafast',
-    '-bsf:a',
-    'aac_adtstoasc',
-    '-acodec',
-    'libfdk_aac',
-    '-profile:a',
-    'aac_low',
+    '-an',
     '-flags',
     '+global_header',
     '-ar',
     '8k',
-    '-b:a',
-    '100k',
-    '-ac',
-    '1',
     '-f',
     'tee',
     '-map',
@@ -218,6 +209,8 @@ async function startFeedStream(cam){
     '0:a?',
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
+
+  //-an
 
   const cp = ffmpegModule.runFFmpeg(
     args, 
@@ -256,8 +249,9 @@ async function startWatcherStream(cam){
     'mpegts',
     '-vcodec',
     'mpeg1video',
-    '-an','-s',
-    '1280x720',
+    '-an',
+    // '-s',
+    // '1280x720',
     '-b:v',
     '199k',
     '-r',
