@@ -142,3 +142,4 @@ server/recording.mpeg
 server/recordings/
 server/ffmpeg/*
 server/test/files/
+server/snapshots/
