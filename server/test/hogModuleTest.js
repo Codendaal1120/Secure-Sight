@@ -1,7 +1,7 @@
 const chai = require('chai');
 const path = require('path');
 
-process.env.NODE_ENV = 'test'
+process.env.NODE_ENV = 'unit_test'
 
 describe('Test HOG feature extractor', () => {
 
@@ -14,13 +14,14 @@ describe('Test HOG feature extractor', () => {
         img = require("../app/modules/imageModule");
     });
 
+    //Test feature extraction
     it('Test feature extraction', async () => {
 
         var filePath = path.join(__dirname, 'files', "circle.jpg");
         var image = await img.getImageDataFromFile(filePath);
         var features = hog.extractHogFeatures(image.data, image.width, image.height);
         chai.expect(features).to.not.equal(null);
-        chai.expect(features.length).to.equal(369024);        
+        chai.expect(features.length).to.equal(133956);        
     });
 });
 

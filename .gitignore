@@ -140,7 +140,5 @@ server/recording.mpeg
 .env.development
 .env.production
 server/recordings/
-server/snapshots/
-server/snapshots/*
-server/snapshots/64d9258a6388327a3817446a.jpg
-server/snapshots/64d9258a6388327a3817446a.jpg
+server/ffmpeg/*
+server/test/files/

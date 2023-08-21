@@ -19,6 +19,7 @@ if (!process.env.NODE_ENV){
 }
 
 dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
+
 const port = process.env.PORT; 
 cache.config = {
     recording : {

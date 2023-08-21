@@ -4,7 +4,7 @@ const imgModule = require("../app/modules/imageModule");
 var path = require('path'); 
 
 
-process.env.NODE_ENV = 'test'  
+process.env.NODE_ENV = 'unit_test'  
 
 describe('Test Motion detector', () => {
 

@@ -10,6 +10,9 @@ const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const jpeg = require('jpeg-js');
 const ffmpegModule = require("../modules/ffmpegModule");
 const logger = require('../modules/loggingModule').getLogger('videoAnalysisService');
+const fs = require("fs");
+const GIFEncoder = require('gif-encoder-2');
+const { createCanvas } = require('canvas');
 
 let frameIndex = -1;
 let frameBuffer = [];
@@ -85,6 +88,8 @@ async function StartVideoProcessing(cam){
 }
 
 //https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
+//ffmpeg -i temp.mp4 -i rect-animated.gif -filter_complex "[0:v][1:v] overlay=25:25:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy output.mp4
+//ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
 /** Performs motion detection and objecty identification */
 async function processFrame(cam, data){
@@ -156,7 +161,7 @@ async function processFrame(cam, data){
 
   }
   catch(error){
-    logger.log('error', error);
+    logger.log('error', `[${cam.id}] Video processing error : ${error.message}`);
   }  
 }
 
@@ -170,4 +175,59 @@ function storeFrame(frame){
   frameBuffer[1] = frameBuffer[2];
   frameBuffer[2] = frame;
 }
+
+/**
+ * Generates a gif from the supplied predictions.
+ * All gifs are created using the default size 1280x720
+ * @param {Array} _predictions - Collection of precitions
+ * @param {string} _camId - The camera id
+ * @param {number} _clipLength - Total length of event in milliseconds
+ * @param {string} _outputFile - Path to save gif to
+ */
+function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
+
+  var remaining = _clipLength;
+  var encoder = new GIFEncoder(1280, 720);
+  
+  encoder.start();
+  encoder.setTransparent(true);
+  encoder.setRepeat(0);   
+  encoder.setQuality(10); 
+
+  var canvas = createCanvas(1280, 720);
+  var ctx = canvas.getContext('2d');
+
+  for (let i = 0; i < _predictions.length; i++) {
+
+      ctx.strokeStyle = _predictions[i].c;  
+      var diff = i == _predictions.length - 1
+          ? remaining
+          : _predictions[i + 1].startTime - _predictions[i].startTime;
+
+      remaining -= diff;
+      
+      encoder.setDelay(diff); 
+      ctx.strokeRect(_predictions[i].x, _predictions[i].y, _predictions[i].width, _predictions[i].height);                
+      encoder.addFrame(ctx);
+
+      encoder.setDelay(0);  
+      ctx.clearRect(0, 0, 1280, 720);
+      encoder.addFrame(ctx);
+  }
+
+  encoder.finish();
+
+  const buffer = encoder.out.getData();
+  fs.writeFileSync(_outputFile, buffer);
+  console.log('done');
+}
+
+/*
+  const mapRange = (value : number, inMin : number, inMax: number, outMin: number, outMax: number) => {
+    value = (value - inMin) / (inMax - inMin);
+    return outMin + value * (outMax - outMin);
+  };
+*/
+
+module.exports.createEventGif = createEventGif;
 module.exports.startVideoAnalysis = startVideoAnalysis;
