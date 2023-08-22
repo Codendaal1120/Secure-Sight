@@ -167,7 +167,7 @@ async function handleFrame(_cameraEntry, _frameData){
 
     // start recording, after the recording, we will finish the event.
     // the recording is limited according to our event limit, so this will end the finish the event when reached
-    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 2);
+    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 5);
 
     // without the recording, we cannot proceed
     if (!tryRec.success){
