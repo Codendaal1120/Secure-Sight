@@ -26,16 +26,16 @@ async function startVideoAnalysis() {
 
   for (const [k, v] of Object.entries(cache.cameras)) {
     if (v.camera.deletedOn == null && v.camera.videoProcessingEnabled){
-      await StartVideoProcessing(v.camera);        
+      await StartVideoProcessing(v);        
     }   
   }
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
-async function StartVideoProcessing(cam){
+async function StartVideoProcessing(_cameraEntry){
 
   let streamPort = await tcp.createLocalServer(null, async function(socket){
-    cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {  
+    cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {  
       socket.write(data);    
     });
   });
@@ -63,15 +63,15 @@ async function StartVideoProcessing(cam){
 
   const cpx = ffmpegModule.runFFmpeg(
     args, 
-    `[${cam.id}] Video analysis stream`, 
+    `[${_cameraEntry.camera.id}] Video analysis stream`, 
     function(data){
       // on spawn
-      logger.log('info', `[${cam.id}] Video analysis stream started on ${streamPort}`);
+      logger.log('info', `[${_cameraEntry.camera.id}] Video analysis stream started on ${streamPort}`);
     },
     null,
     null,
     async function(){
-      console.debug(`[${cam.id}] video analysis process closed, restarting...`);
+      console.debug(`[${_cameraEntry.camera.id}] video analysis process closed, restarting...`);
       timeout(14000).then(() => {
         StartVideoProcessing().then(() => {
 
@@ -85,7 +85,7 @@ async function StartVideoProcessing(cam){
 
   pipe2pam.on('pam', async (data) => {
     //console.log('pam');
-    await handleFrame(cam, data)
+    await handleFrame(_cameraEntry, data)
     
   });
 
@@ -93,120 +93,103 @@ async function StartVideoProcessing(cam){
 }
 
 /** Check if the event can be finished.
- * This occurs when the there has been no new events for the 'eventIdleEndSeconds' time
+ * This occurs when the there has been no new events for the 'event.idleEndSeconds' time
  * When this happens we will call the 'finishEvent', if not, we will sleep and run it again.
  */
-async function checkEventFinished(_cam){
+async function checkEventFinished(_cameraEntry){
 
-  if (cache.cameras[_cam.id].event == null){
+  if (_cameraEntry.event == null){
     return;
   }
 
-  var eventIdleMs = globalEventConfig.eventIdleEndSeconds * 1000;
+  var eventIdleMs = cache.config.event.idleEndSeconds * 1000;
 
   // if there is no detection yet, wait a while
-  if (cache.cameras[_cam.id].event?.lastDetection == null){
+  if (_cameraEntry.event?.lastDetection == null){
     await timeout(eventIdleMs);
   }
 
   var now = new Date();
-  var idleTimeOut = new Date(cache.cameras[_cam.id].event.lastDetection.getTime() + eventIdleMs);
+  var idleTimeOut = new Date(_cameraEntry.event.lastDetection.getTime() + eventIdleMs);
 
   if (now > idleTimeOut){
     // no detections for the last x seconds, we can finish the event
-    logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], limit at [${idleTimeOut.toTimeString()}], finishing`);
-    await recService.stopRecordingCamera(cache.cameras[_cam.id]);
+    logger.log('debug', `Last detection at [${_cameraEntry.event.lastDetection.toTimeString()}], limit at [${idleTimeOut.toTimeString()}], finishing`);
+    await recService.stopRecordingCamera(_cameraEntry);
+    await finishEvent(_cameraEntry, now);
     return;
   }
 
-  logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], checking later`);
+  logger.log('debug', `Last detection at [${_cameraEntry.event.lastDetection.toTimeString()}], checking later`);
   await timeout(eventIdleMs / 2);
-  await checkEventFinished(_cam);
-}
-
-//todo: move to config
-const globalEventConfig = {
-  silenceSeconds : 180,
-  eventLimitSeconds : 120,
-  eventIdleEndSeconds : 7,
+  await checkEventFinished(_cameraEntry);
 }
 
 /** Handler for the framedata (detections) */
-async function handleFrame(_cam, _frameData){
+async function handleFrame(_cameraEntry, _frameData){
   
-  var predictions = await processFrame(_cam, _frameData);    
-
-  if (predictions.length > 0){
+  var predictions = await processFrame(_cameraEntry, _frameData);    
   
-    var now = new Date();
-    cache.services.ioSocket.sockets.emit(`${_cam.id}-detect`, predictions);  
+  if (predictions.length == 0){
+    cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect-clear`, _cameraEntry.lastDetection?.toISOString());  
+    return;
+  }
 
-    if (!_cam.eventConfig.recordEvents){    
-      return;  
+  var now = new Date();
+  cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect`, predictions);  
+
+  if (!_cameraEntry.camera.eventConfig.recordEvents){    
+    return;  
+  }
+
+  if (_cameraEntry.eventSilence > now){
+    logger.log('debug', `Detections silenced until [${_cameraEntry.eventSilence.toTimeString()}]`);
+    return;
+  }
+  else{
+    _cameraEntry.eventSilence = null;
+  }
+
+  // create or add to event
+  if (_cameraEntry.event == null){
+    
+    logger.log('debug', 'Creating new event');
+
+    // start new event
+    _cameraEntry.event = {
+      id : evtService.genrateEventId(),
+      camId : _cameraEntry.camera.id,
+      startTime : now,    
+      limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
+      buffer : [],
+      lock: 'handleFrame'
     }
 
-    if (cache.cameras[_cam.id].eventSilence > now){
-      logger.log('debug', `Detections silenced until [${cache.cameras[_cam.id].eventSilence.toTimeString()}]`);
+    // start recording, after the recording, we will finish the event.
+    // the recording is limited according to our event limit, so this will end the finish the event when reached
+    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 2);
+
+    // without the recording, we cannot proceed
+    if (!tryRec.success){
+      logger.error(`Unable to start event recording : ${tryRec.error}`);
+      cache.cameras[_cameraEntry.camera.id].event = null;
+      silenceDetections(_cameraEntry, now);
       return;
     }
-    else{
-      cache.cameras[_cam.id].eventSilence = null;
-    }
 
-    // create or add to event
-    if (cache.cameras[_cam.id].event == null){
-      
-      logger.log('debug', 'Creating new event');
-
-      // start new event
-      cache.cameras[_cam.id].event = {
-        id : evtService.genrateEventId(),
-        camId : _cam.id,
-        startTime : now,    
-        limitTime : new Date(now.getTime() + globalEventConfig.eventLimitSeconds * 1000),
-        buffer : [],
-        lock: 'handleFrame'
-      }
-
-      // start recording, after the recording, we will finish the event.
-      // the recording is limited according to our event limit, so this will end the finish the event when reached
-      var tryRec = await recService.recordCamera(cache.cameras[_cam.id], globalEventConfig.eventLimitSeconds, function(){
-        logger.info(`Recording ended, finishing event`);         
-        finishEvent(_cam, now);
-      });
-
-      // without the recording, we cannot proceed
-      if (!tryRec.success){
-        logger.error(`Unable to start event recording : ${tryRec.error}`);
-        cache.cameras[_cam.id].event = null;
-        silenceDetections(_cam, now);
-        return;
-      }
-
-      cache.cameras[_cam.id].event.recording = tryRec.payload;  
-      checkEventFinished(_cam);
-    }
-
-    if (cache.cameras[_cam.id].event == undefined){
-      console.log('here');
-    }
-
-    // has event limit been reached?
-    if (cache.cameras[_cam.id].event.limitTime < now){
-      logger.log('debug', 'Event limit has been reached');
-      // stop event
-      finishEvent(_cam, now);      
-    }
-
-    cache.cameras[_cam.id].event.lastDetection = new Date();
-    cache.cameras[_cam.id].event.buffer.push(predictions[0]);   
-    cache.cameras[_cam.id].event.lock = null;
+    _cameraEntry.event.recording = tryRec.payload;  
+    checkEventFinished(_cameraEntry);
   }
+
+  _cameraEntry.event.lastDetection = new Date();
+  _cameraEntry.lastDetection = _cameraEntry.event.lastDetection;
+  _cameraEntry.event.buffer.push(predictions[0]);   
+  _cameraEntry.event.lock = null;
 }
 
-function silenceDetections(_cam, _now){
+function silenceDetections(_cameraEntry, _now){
   _now ?? new Date();
-  cache.cameras[_cam.id].eventSilence = new Date(_now.getTime() + globalEventConfig.silenceSeconds * 1000);
+  _cameraEntry.eventSilence = new Date(_now.getTime() + cache.config.event.silenceSeconds * 1000);
 }
 
 /**
@@ -216,63 +199,118 @@ function silenceDetections(_cam, _now){
  * - generating the animation (detections gif)
  * - merging the animation and recording
  * - saving the event details to DB
- * @param {object} _cam - The camera record
+ * @param {object} _cameraEntry - The camera cache record
  * @param {Object} _now - The current time
  */
-async function finishEvent(_cam, _now){
+async function finishEvent(_cameraEntry, _now){
 
   // if event has already finished, we can exit
-  if (cache.cameras[_cam.id].event == null){
+  if (_cameraEntry.event == null){
     return;
   }
 
   logger.log('debug', 'Finishing event');
-  cache.cameras[_cam.id].event.finishTime = new Date();
+  _cameraEntry.event.finishTime = new Date();
 
   // silence new detections for x minutes
-  silenceDetections(_cam, _now);
+  silenceDetections(_cameraEntry, _now);
 
-  while (cache.cameras[_cam.id].event.lock != null) {
+  while (_cameraEntry.event.lock != null) {
     logger.log('debug', 'Waiting for event lock');
     await timeout(10);
   }
 
   // generate gif
-  var gifFile = `temp/anim-${cache.cameras[_cam.id].event.id}.gif`;
-  var eventDuration = cache.cameras[_cam.id].event.finishTime - cache.cameras[_cam.id].event.startTime;
-  await createEventGif(cache.cameras[_cam.id].event.buffer, _cam.id, eventDuration, gifFile);
+  var gifFile = `temp/anim-${_cameraEntry.event.id}.gif`;
+  var eventDuration = _cameraEntry.event.finishTime - _cameraEntry.event.startTime;
+  await createEventGif(_cameraEntry.event.buffer, _cameraEntry, eventDuration, gifFile);
 
   // merge recording and gif
-  await mergeGifAndRecording(gifFile, _cam.id, async function(){
+  await mergeGifAndRecording(gifFile, _cameraEntry, async function(){
 
     // save event
-    var trySave = await evtService.tryCreateNew(cache.cameras[_cam.id].event);
+    var trySave = await evtService.tryCreateNew(_cameraEntry.event);
     if (!trySave.success){
       logger.error(trySave.error);
     }
 
-    cache.cameras[_cam.id].event = null;  
+    _cameraEntry.event = null;  
     logger.debug('Event finished');
   }); 
+}
+
+/**
+ * Generates a gif from the supplied predictions.
+ * All gifs are created using the default size 1280x720
+ * @param {Array} _predictions - Collection of precitions
+ * @param {object} _cameraEntry - The camera cache entry
+ * @param {number} _eventDuration - Total length of event in milliseconds
+ * @param {string} _outputFile - Path to save gif to
+ */
+function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile){
+
+  var remaining = _eventDuration;
+  var encoder = new GIFEncoder(_cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
+  
+  encoder.start();
+  encoder.setTransparent(true);
+  encoder.setRepeat(0);   
+  encoder.setQuality(10); 
+
+  var canvas = createCanvas(_cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
+  var ctx = canvas.getContext('2d');
+
+  // add delay to compensate for time sync
+  //encoder.setDelay(0); 
+  //encoder.addFrame(ctx);
+
+  for (let i = 0; i < _predictions.length; i++) {
+
+      ctx.strokeStyle = _predictions[i].color ?? 'red';  
+      var diff = i == _predictions.length - 1
+          ? remaining
+          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
+
+      remaining -= diff;
+      
+      encoder.setDelay(diff); 
+      const x = utility.mapRange(_predictions[i].x, 0, 1, 0, _cameraEntry.camera.streamResolution.width);
+      const y = utility.mapRange(_predictions[i].y, 0, 1, 0, _cameraEntry.camera.streamResolution.height);
+      const w = utility.mapRange(_predictions[i].width, 0, 1, 0, _cameraEntry.camera.streamResolution.width);
+      const h = utility.mapRange(_predictions[i].height, 0, 1, 0, _cameraEntry.camera.streamResolution.height);
+
+      //ctx.strokeRect(_predictions[i].x, _predictions[i].y, _predictions[i].width, _predictions[i].height);                
+      ctx.strokeRect(x, y, w, h);                
+      encoder.addFrame(ctx);
+
+      encoder.setDelay(0);  
+      ctx.clearRect(0, 0, _cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
+      encoder.addFrame(ctx);
+  }
+
+  encoder.finish();
+
+  const buffer = encoder.out.getData();
+  fs.writeFileSync(_outputFile, buffer);
 }
 
 /**
  * Merges the gif and recording by using ffmpeg
  * @see https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
  * @param {string} _gifFile - The gif file
- * @param {string} _camId - The camera id of the event
+ * @param {object} _cameraEntry - The camera cache record
  * @param {Function} _callback - Optional callback to execute after the merging has finished
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function mergeGifAndRecording(_gifFile, _camId, _callbackAsync){
+async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
 
   //ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
-  var outFile = cache.cameras[_camId].event.recording.replace('.mp4', '-event.mp4');
+  var outFile = _cameraEntry.event.recording.replace('.mp4', '-event.mp4');
 
   const args = [
     '-i',
-    cache.cameras[_camId].event.recording,
+    _cameraEntry.event.recording,
     '-i',
     _gifFile,
     '-filter_complex',
@@ -286,17 +324,16 @@ async function mergeGifAndRecording(_gifFile, _camId, _callbackAsync){
 
   ffmpegModule.runFFmpeg(
     args, 
-    `[${cache.cameras[_camId].event.id}] Event recording merge`, 
+    `[${_cameraEntry.event.id}] Event recording merge`, 
     function(data){
       // on spawn
-      logger.log('info', `[${cache.cameras[_camId].event.id}] Event recording merge`);
+      logger.log('info', `[${_cameraEntry.event.id}] Event recording merge`);
     },
     null,
     null,
     async function(){
-      logger.log('info', `[${cache.cameras[_camId].event.id}] Event recording merge finished`);
-      //fs.unlinkSync(cache.cameras[_camId].event.recording);
-      cache.cameras[_camId].event.recording = outFile;
+      logger.log('info', `[${_cameraEntry.event.id}] Event recording merge finished`);
+      _cameraEntry.event.recording = outFile;
       if (_callbackAsync) { await _callbackAsync(); }
     },
     null
@@ -304,7 +341,7 @@ async function mergeGifAndRecording(_gifFile, _camId, _callbackAsync){
 }
 
 /** Performs motion detection and objecty identification */
-async function processFrame(cam, data){
+async function processFrame(_cameraEntry, data){
 
   let predictions = [];
 
@@ -330,7 +367,7 @@ async function processFrame(cam, data){
       //motion.imageWidth = 640;
       //motion.imageHeight = 360;
 
-      if (cam.objectProcessor == "svm"){
+      if (_cameraEntry.camera.objectProcessor == "svm"){
         var detection = await svm.processImage(data.pixels, width, height); //is data width & height same as image?
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
@@ -344,7 +381,7 @@ async function processFrame(cam, data){
         }
       }
 
-      if (cam.objectProcessor == "tf"){
+      if (_cameraEntry.camera.objectProcessor == "tf"){
         var rawImageData = {
           data: data.pixels,
           width: width,
@@ -357,7 +394,7 @@ async function processFrame(cam, data){
     }
   }
   catch(error){
-    logger.log('error', `[${cam.id}] Video processing error : ${error.message}`);
+    logger.log('error', `[${_cameraEntry.camera.id}] Video processing error : ${error.message}`);
   }  
 
   return predictions;
@@ -374,54 +411,7 @@ function storeFrame(frame){
   frameBuffer[2] = frame;
 }
 
-/**
- * Generates a gif from the supplied predictions.
- * All gifs are created using the default size 1280x720
- * @param {Array} _predictions - Collection of precitions
- * @param {string} _camId - The camera id
- * @param {number} _eventDuration - Total length of event in milliseconds
- * @param {string} _outputFile - Path to save gif to
- */
-function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
 
-  var remaining = _eventDuration;
-  var encoder = new GIFEncoder(1280, 720);
-  
-  encoder.start();
-  encoder.setTransparent(true);
-  encoder.setRepeat(0);   
-  encoder.setQuality(10); 
-
-  var canvas = createCanvas(1280, 720);
-  var ctx = canvas.getContext('2d');
-
-  // add delay to compensate for time sync
-  //encoder.setDelay(0); 
-  //encoder.addFrame(ctx);
-
-  for (let i = 0; i < _predictions.length; i++) {
-
-      ctx.strokeStyle = _predictions[i].color ?? 'red';  
-      var diff = i == _predictions.length - 1
-          ? remaining
-          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
-
-      remaining -= diff;
-      
-      encoder.setDelay(diff); 
-      ctx.strokeRect(_predictions[i].x, _predictions[i].y, _predictions[i].width, _predictions[i].height);                
-      encoder.addFrame(ctx);
-
-      encoder.setDelay(0);  
-      ctx.clearRect(0, 0, 1280, 720);
-      encoder.addFrame(ctx);
-  }
-
-  encoder.finish();
-
-  const buffer = encoder.out.getData();
-  fs.writeFileSync(_outputFile, buffer);
-}
 
 module.exports.createEventGif = createEventGif;
 module.exports.startVideoAnalysis = startVideoAnalysis;

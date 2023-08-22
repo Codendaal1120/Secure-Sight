@@ -11,11 +11,11 @@ const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * Records the camera feed for the specified amount of time
  * @param {object} _cameraEntry - The camera cache record
  * @param {Object} _seconds - The number of seconds to record
- * @param {Function} _callback - Optional callback to execute after recording has finished
  * @param {string} _fileNameSuffix - Optional filename verride suffix
+ * @param {number} _prependSeconds - Optional number of seconds to prepend the recording (add from the buffer before the recording started) 
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
+async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSeconds){
 
   if (_seconds < 0){
     _seconds = 1200; 
@@ -23,6 +23,7 @@ async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
 
   if (!_cameraEntry.record.status){   
     
+    _cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
     _cameraEntry.record.status = 'recording';
 
     logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
@@ -30,23 +31,23 @@ async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
 
     try{
         var currentTime = Math.floor(new Date().getTime() / 1000);  
-        cache.cameras[_cameraEntry.camera.id].record.startTime = new Date();
+        _cameraEntry.record.startTime = new Date();
 
         var fileName = _fileNameSuffix != null 
           ? `${_cameraEntry.camera.id}-${currentTime}-${_fileNameSuffix}.mp4`
           : `${_cameraEntry.camera.id}-${currentTime}.mp4`
 
-        cache.cameras[_cameraEntry.camera.id].record.filePath = `${dir}/${fileName}`;
+          _cameraEntry.record.filePath = `${dir}/${fileName}`;
          
         cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {     
-          if (cache.cameras[_cameraEntry.camera.id].record.status == 'recording'){
-            cache.cameras[_cameraEntry.camera.id].record.buffers.push(data);
+          if (_cameraEntry.record.status == 'recording'){
+            _cameraEntry.record.buffers.push(data);
           }
         });
 
         stopRecordingAfterDelay(_cameraEntry, _seconds);
 
-        return { success : true, payload : cache.cameras[_cameraEntry.camera.id].record.filePath };
+        return { success : true, payload : _cameraEntry.record.filePath };
     }
     catch(err){
         return { success : false, error : err.message };
@@ -58,7 +59,7 @@ async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
 
 async function stopRecordingAfterDelay(_cameraEntry, _seconds){
   await timeout(_seconds * 1000);
-  await stopRecordingCamera(_cameraEntry);
+  await stopRecordingCamera(_cameraEntry, true);
 }
 
 /**
@@ -66,7 +67,9 @@ async function stopRecordingAfterDelay(_cameraEntry, _seconds){
  * @param {object} _cameraEntry - The camera cache record
  * @returns {Object} Try result 
  */
-async function stopRecordingCamera(_cameraEntry){
+async function stopRecordingCamera(_cameraEntry, _fromTimeout){
+
+  _cameraEntry.name = 'TEST';
 
   if (_cameraEntry.record.status != 'recording'){
     return { success : true, payload : "No recording in progress" };
@@ -77,9 +80,15 @@ async function stopRecordingCamera(_cameraEntry){
     _cameraEntry.record.endTime = (new Date()).getTime();
     _cameraEntry.record.length = Math.floor((_cameraEntry.record.endTime - _cameraEntry.record.startTime) / 1000, 0);     
 
-    logger.log('info', `[${_cameraEntry.camera.id}] recording stopped`);    
+    if (_fromTimeout){
+      logger.log('info', `[${_cameraEntry.camera.id}] recording stopped due to time limit`);    
+    }
+    else{
+      logger.log('info', `[${_cameraEntry.camera.id}] recording stopped`);    
+    }
+    
 
-    var file = cache.cameras[_cameraEntry.camera.id].record.filePath;
+    var file = _cameraEntry.record.filePath;
     var tempFilePath = `${file.replace('.mp4', '-temp.mp4')}`;
 
     if (!saveBufferToFile(tempFilePath, _cameraEntry)){
@@ -171,72 +180,6 @@ function getRecordingDirectory(){
   return dir;
 }
 
-/** Stream the RTSP stream to a buffer, which gets saved to file. 
- * This is done to support stopping the recording manually.
- * This format is not suitable for web view and needs to be converted */
-function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds, _callback){
-
-  _cameraEntry.record.buffers = [];
-
-  const args = [
-    '-hide_banner',
-    '-loglevel',
-    'error',
-    '-fflags',
-    '+genpts',
-    '-rtsp_transport',
-    'udp',
-    '-t',
-    _seconds,
-    '-i',
-    _cameraEntry.camera.url,
-    '-vcodec',
-    'copy',
-    '-an','-s',
-    '1280x720',
-    '-f',
-    'mpegts',
-    '-'];
-
-  const cpx = ffmpegModule.runFFmpeg(
-    args, 
-    `[${_cameraEntry.camera.id}] Recording`, 
-    function(data){
-      // on spawn
-      _cameraEntry.record.startTime = (new Date()).getTime();
-    },
-    function(data){
-      // on data
-      _cameraEntry.record.buffers.push(data);
-    },
-    function(data, parsedError){
-      // on data error
-      cache.services.ioSocket.sockets.emit('ui-error', `Error saving recording for [${_cameraEntry.camera.name}]: ${parsedError}`);
-    },
-    null,
-    function(){
-      // on exit
-      _cameraEntry.record.endTime = (new Date()).getTime();
-
-      logger.log('info', `[${_cameraEntry.camera.id}] Temp recording complete`);    
-
-      var tempFileName = `${_fileName.replace('.mp4', '-temp.mp4')}` 
-      var tempFilePath = `${_directory}/${tempFileName}` 
-
-      if (!saveBufferToFile(tempFilePath, tempFileName, _cameraEntry)){
-        cache.services.ioSocket.sockets.emit('ui-error', `Could not save recording for [${_cameraEntry.camera.name}]`);
-        return;
-      }
-
-      runFfmpegConvertFile(tempFilePath, `${_directory}/${_fileName}`, _fileName, _cameraEntry);
-
-      if (_callback) { _callback(); }
-    }
-  )  
-
-  return cpx;
-}
-
 /** Converts the RSTP stream saved buffer to libx264, which can be viewed in a browser */
 function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 
@@ -272,7 +215,7 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
       null,
       function(data, parsedError){
         // on data error
-        cache.services.ioSocket.sockets.emit('ui-error', `Error converting recording for [${_cameraEntry.camera.name}]: ${parsedError}`);
+        //cache.services.ioSocket.sockets.emit('ui-error', `Error converting recording for [${_cameraEntry.camera.name}]: ${parsedError}`);
       },
       null,
       function(){
@@ -301,7 +244,7 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 function saveBufferToFile(_filePath, _cameraEntry){
 
   try{    
-    var frames = _cameraEntry.record.length * 25;
+    var frames = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 25;
     var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
     var buff = Buffer.concat(concat);
     fs.writeFileSync(_filePath, buff);

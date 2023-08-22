@@ -44,6 +44,12 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
     return detections;
 }
 
+/*
+TP - 2304x1296
+eufy - 1920x1088
+revo - 2880x1616
+*/
+
 /**
  * Instantiate the return object
  * @param {Object} _element - Detected object
@@ -54,10 +60,15 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
 function createObject(_element, _imgWidth, _imgHeight){
   return { 
     detectedOn: new Date(), 
-    x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1280),
-    y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 720), 
-    width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1280), 
-    height: utility.mapRange(_element.bbox[3], 0, _imgHeight, 0, 720),
+    // x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1280),
+    // y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 720), 
+    // width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1280), 
+    // height: utility.mapRange(_element.bbox[3], 0, _imgHeight, 0, 720),
+
+    x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1),
+    y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 1), 
+    width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1), 
+    height: utility.mapRange(_element.bbox[3], 0, _imgHeight, 0, 1),
   }
 }
 

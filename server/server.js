@@ -27,7 +27,13 @@ cache.config = {
     },
     env : process.env.NODE_ENV,
     root : root,
-    cameraBufferSize : 1500
+    cameraBufferSize : 1500,
+    event : {
+        silenceSeconds : 180,
+        limitSeconds : 120,
+        idleEndSeconds : 7,
+    }
+    
 };
 
 cache.services.eventEmmiter = new events.EventEmitter();

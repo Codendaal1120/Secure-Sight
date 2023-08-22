@@ -78,13 +78,28 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       audio: true,
       pauseWhenHidden: false,
       videoBufferSize: 1024 * 1024
-    });  
-
-    socket.on(`${cameraId}-stream`, async (data) => { 
-      player.source.write(data);
-    });   
+    });    
 
     const ctx = drawCanvasRef.current?.getContext("2d");
+    const canvasWidth = drawCanvasRef.current?.width || 0;
+    const canvasHeight = drawCanvasRef.current?.height || 0;
+
+    socket.on(`${cameraId}-stream`, async (data) => { 
+      player.source.write(data);      
+    });   
+
+    socket.on(`${cameraId}-detect-clear`, async (data:string | undefined) => {
+   
+      if (data == null || ctx == null){
+        return;
+      }
+
+      var thresh = new Date(new Date().getTime() - 7 * 1000).getTime();
+      var lastDetection = Date.parse(data);
+      if (lastDetection < thresh){
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);  
+      }
+    });
 
     socket.on(`${cameraId}-detect`, async (data) => {
 
@@ -92,24 +107,27 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
         return;
       }
 
-      ctx.strokeStyle = "red";  
-      const canvasWidth = drawCanvasRef.current?.width || 0;
-      const canvasHeight = drawCanvasRef.current?.height || 0;
-
-      if (data.length > 0){
-          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.strokeStyle = "red";
+      
+      if (data == null){
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);     
+        return;
       }
 
+      if (data.length > 0){
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);          
+      }
+      
       requestAnimationFrame(function () {
         for (let i = 0; i < data.length; i++) {
           ctx.font = "10px Arial";
           ctx.fillText(data[i].aveDiff, 5, 15);
 
-          const x = mapRange(data[i].x, 0, 1280, 0, canvasWidth);
-          const y = mapRange(data[i].y, 0, 720, 0, canvasHeight);
-          const w = mapRange(data[i].width, 0, 1280, 0, canvasWidth);
-          const h = mapRange(data[i].height, 0, 720, 0, canvasHeight);
-          
+          const x = mapRange(data[i].x, 0, 1, 0, canvasWidth);
+          const y = mapRange(data[i].y, 0, 1, 0, canvasHeight);
+          const w = mapRange(data[i].width, 0, 1, 0, canvasWidth);
+          const h = mapRange(data[i].height, 0, 1, 0, canvasHeight);
+
           ctx.strokeRect(x, y, w, h);
         }
       });
