@@ -290,8 +290,8 @@ async function startWatcherStream(cam){
 }
 
 function addToCameraBuffer(_camId, _buffer){
-  if (cache.cameras[_camId].buffers.length > cache.config.cameraBufferSize){
-    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, cache.config.cameraBufferSize / 2);
+  if (cache.cameras[_camId].buffers.length > cache.config.cameraBufferSize * 1.2){
+    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, cache.config.cameraBufferSize * 0.2);
   }
 
   cache.cameras[_camId].buffers.push(_buffer);  

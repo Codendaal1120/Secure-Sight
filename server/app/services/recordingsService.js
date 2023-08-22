@@ -1,11 +1,11 @@
 const dataService = require("./dataService");
 const cache = require("../modules/cache");
-const { spawn } = require('node:child_process');
 const ffmpegModule = require("../modules/ffmpegModule");
 const logger = require('../modules/loggingModule').getLogger('recordingService');
 const collectionName = "recordings";
 const fs = require("fs");
 const path = require('path');
+const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Records the camera feed for the specified amount of time
@@ -15,7 +15,7 @@ const path = require('path');
  * @param {string} _fileNameSuffix - Optional filename verride suffix
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function recordCamera_new(_cameraEntry, _seconds, _callback, _fileNameSuffix){
+async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
 
   if (_seconds < 0){
     _seconds = 1200; 
@@ -44,6 +44,8 @@ async function recordCamera_new(_cameraEntry, _seconds, _callback, _fileNameSuff
           }
         });
 
+        stopRecordingAfterDelay(_cameraEntry, _seconds);
+
         return { success : true, payload : cache.cameras[_cameraEntry.camera.id].record.filePath };
     }
     catch(err){
@@ -54,38 +56,9 @@ async function recordCamera_new(_cameraEntry, _seconds, _callback, _fileNameSuff
   return { success : false, error : 'Recording in progress' };
 }
 
-async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
-
-  return await recordCamera_new(_cameraEntry, _seconds, _callback, _fileNameSuffix);
-
-  if (_seconds < 0){
-    _seconds = 1200; 
-  }
-
-  if (!_cameraEntry.record.status){   
-    
-    _cameraEntry.record.status = 'recording';
-
-    logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
-    var dir = getRecordingDirectory();
-
-    try{
-        var currentTime = Math.floor(new Date().getTime() / 1000);  
-        var fileName = _fileNameSuffix != null 
-          ? `${_cameraEntry.camera.id}-${currentTime}-${_fileNameSuffix}.mp4`
-          : `${_cameraEntry.camera.id}-${currentTime}.mp4`
-
-        //_cameraEntry.record.file = filePath;    
-        _cameraEntry.record.process = runFfmpegRTSP(dir, fileName, _cameraEntry, _seconds, _callback);             
-
-        return { success : true, payload : `${dir}/${fileName}` };
-    }
-    catch(err){
-        return { success : false, error : err.message };
-    }   
-  }
-  
-  return { success : false, error : 'Recording in progress' };
+async function stopRecordingAfterDelay(_cameraEntry, _seconds){
+  await timeout(_seconds * 1000);
+  await stopRecordingCamera(_cameraEntry);
 }
 
 /**
@@ -93,7 +66,7 @@ async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
  * @param {object} _cameraEntry - The camera cache record
  * @returns {Object} Try result 
  */
-async function stopRecordingCamera_new(_cameraEntry){
+async function stopRecordingCamera(_cameraEntry){
 
   if (_cameraEntry.record.status != 'recording'){
     return { success : true, payload : "No recording in progress" };
@@ -102,38 +75,20 @@ async function stopRecordingCamera_new(_cameraEntry){
   try{
     _cameraEntry.record.status = null;
     _cameraEntry.record.endTime = (new Date()).getTime();
+    _cameraEntry.record.length = Math.floor((_cameraEntry.record.endTime - _cameraEntry.record.startTime) / 1000, 0);     
 
     logger.log('info', `[${_cameraEntry.camera.id}] recording stopped`);    
 
     var file = cache.cameras[_cameraEntry.camera.id].record.filePath;
     var tempFilePath = `${file.replace('.mp4', '-temp.mp4')}`;
 
-    if (!saveBufferToFile_new(tempFilePath, _cameraEntry)){
+    if (!saveBufferToFile(tempFilePath, _cameraEntry)){
       cache.services.ioSocket.sockets.emit('ui-error', `Could not save recording for [${_cameraEntry.camera.name}]`);
       return { success : false, error : `Could not save recording for [${_cameraEntry.camera.name}]` };
     }
 
     _cameraEntry.record.buffers = [];
-    runFfmpegConvertFile_new(tempFilePath, file, _cameraEntry);
-
-    return { success : true, payload : "Recording stopped" };
-  }
-  catch(err){
-    return { success : false, error : err.message };
-  }
-}
-
-async function stopRecordingCamera(_cameraEntry){
-
-  return await stopRecordingCamera_new(_cameraEntry);
-
-  if (_cameraEntry.record.status != 'recording'){
-    return { success : true, payload : "No recording in progress" };
-  }
-
-  try{
-    _cameraEntry.record.status = null;
-    _cameraEntry.record.process.kill('SIGINT');
+    runFfmpegConvertFile(tempFilePath, file, _cameraEntry);
 
     return { success : true, payload : "Recording stopped" };
   }
@@ -283,68 +238,7 @@ function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds, _callback)
 }
 
 /** Converts the RSTP stream saved buffer to libx264, which can be viewed in a browser */
-function runFfmpegConvertFile(_inputFile, _outputFile, _fileName, _cameraEntry){
-
-  const args = [
-    '-hide_banner',
-    '-loglevel',
-    'error',
-    '-fflags',
-    '+genpts',
-    // '-ss',
-    // '00:00:02',
-    '-i',
-    _inputFile,
-    //'-ss 2',
-    '-c:v',
-    'libx264',
-    // '-crf',
-    // '18',
-    '-c:a',
-    'aac',
-    '-s',
-    '1280x720',
-    _outputFile];
-
-  const cpx = ffmpegModule.runFFmpeg(
-      args, 
-      `[${_cameraEntry.camera.id}] Recording conversion`, 
-      function(data){
-        // on spawn
-        logger.log('info', `[${_cameraEntry.camera.id}] Conversion started`);   
-      },
-      null,
-      function(data, parsedError){
-        // on data error
-        cache.services.ioSocket.sockets.emit('ui-error', `Error converting recording for [${_cameraEntry.camera.name}]: ${parsedError}`);
-      },
-      null,
-      function(){
-        // on exit
-        logger.log('info', `[${_cameraEntry.camera.id}] Recording complete`);    
-         
-        var diff = Math.floor((_cameraEntry.record.endTime - _cameraEntry.record.startTime) / 1000, 0);        
-
-        //save to DB
-        trysaveRecording({ 
-          cameraId : _cameraEntry.camera.id, 
-          recordedOn : _cameraEntry.record.startTime, 
-          filePath : _outputFile, 
-          length : diff 
-        });      
-        
-        // cleanup
-        _cameraEntry.record.status = null; 
-        _cameraEntry.record.startTime = null;
-        //fs.unlinkSync(_inputFile);
-        cache.services.ioSocket.sockets.emit('ui-info', `Recording for [${_cameraEntry.camera.name}] saved.`);
-      }
-    )  
-  
-    return cpx;
-}
-
-function runFfmpegConvertFile_new(_inputFile, _outputFile, _cameraEntry){
+function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 
   const args = [
     '-hide_banner',
@@ -383,16 +277,14 @@ function runFfmpegConvertFile_new(_inputFile, _outputFile, _cameraEntry){
       null,
       function(){
         // on exit
-        logger.log('info', `[${_cameraEntry.camera.id}] Recording complete`);    
-         
-        var diff = Math.floor((_cameraEntry.record.endTime - _cameraEntry.record.startTime) / 1000, 0);        
+        logger.log('info', `[${_cameraEntry.camera.id}] Recording complete`);
 
         //save to DB
         trysaveRecording({ 
           cameraId : _cameraEntry.camera.id, 
           recordedOn : _cameraEntry.record.startTime, 
           filePath : _outputFile, 
-          length : diff 
+          length : _cameraEntry.record.length 
         });      
         
         // cleanup
@@ -406,27 +298,11 @@ function runFfmpegConvertFile_new(_inputFile, _outputFile, _cameraEntry){
     return cpx;
 }
 
-function saveBufferToFile(_filePath, _x, _cameraEntry){
+function saveBufferToFile(_filePath, _cameraEntry){
 
   try{    
-    //var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - 150, 0)).concat(_cameraEntry.record.buffers);
-    var concat = _cameraEntry.record.buffers;
-    var buff = Buffer.concat(concat);
-    fs.writeFileSync(_filePath, buff);
-    logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
-    return true;
-  }
-  catch(err){
-    logger.log('error', `Error saving recording to disk : ${err.message}`);
-  }
-}
-
-function saveBufferToFile_new(_filePath, _cameraEntry){
-
-  try{    
-    //var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - 120, 0)).concat(_cameraEntry.record.buffers);
-    var concat = _cameraEntry.buffers;
-    //var concat = _cameraEntry.record.buffers;
+    var frames = _cameraEntry.record.length * 25;
+    var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
     var buff = Buffer.concat(concat);
     fs.writeFileSync(_filePath, buff);
     logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);

@@ -16,6 +16,10 @@ const cache = require("../modules/cache");
 router.post("/start/:camId", async function (req, res) {
   let sec = req.query.seconds ?? -1;
 
+  if (sec > 600){
+    res.status(400).json("Can only record maximum of 10 minutes (600 seconds");
+  }
+
   let cam = cache.getCamera(req.params.camId);
   if (!cam){
     res.status(400).json(`Could not find camera with id ${req.params.camId}`);
@@ -40,7 +44,7 @@ router.post("/start/:camId", async function (req, res) {
  * @returns {Error}  400 - Bad request
  */
 router.post("/stop/:camId", async function (req, res) {
-  
+
   let cam = cache.getCamera(req.params.camId);
   if (!cam){
     res.status(400).json(`Could not find camera with id ${req.params.camId}`);
