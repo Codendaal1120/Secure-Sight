@@ -105,12 +105,11 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
           ctx.font = "10px Arial";
           ctx.fillText(data[i].aveDiff, 5, 15);
 
-          const x = mapRange(data[i].x, 0, data[i].imageWidth, 0, canvasWidth);
-          const y = mapRange(data[i].y, 0, data[i].imageHeight, 0, canvasHeight);
-          const w = mapRange(data[i].width, 0, data[i].imageWidth, 0, canvasWidth);
-          const h = mapRange(data[i].height, 0, data[i].imageHeight, 0, canvasHeight);
-
-          //console.log(x, y, w, h, data[i]);
+          const x = mapRange(data[i].x, 0, 1280, 0, canvasWidth);
+          const y = mapRange(data[i].y, 0, 720, 0, canvasHeight);
+          const w = mapRange(data[i].width, 0, 1280, 0, canvasWidth);
+          const h = mapRange(data[i].height, 0, 720, 0, canvasHeight);
+          
           ctx.strokeRect(x, y, w, h);
         }
       });
@@ -267,4 +266,4 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
   )
 }
 
-export default CameraViewer;
+export default CameraViewer;;

@@ -158,8 +158,10 @@ async function createCameraStreams(_cam){
     feedStream : feedStream,
     watchStream : watchStream,
     record : {
-      status : null
-    }
+      status : null,
+      buffers : []
+    },
+    buffers : []
   }    
 
   cache.cameras[_cam.id] = camServ;
@@ -230,6 +232,7 @@ async function startWatcherStream(cam){
     cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {     
       //logger.log('info', `watch from ${cam.id}`) ;
       socket.write(data);       
+      addToCameraBuffer(cam.id, data);
     });
   });
 
@@ -279,10 +282,19 @@ async function startWatcherStream(cam){
       // this goes to UI
       //logger.log('info', `writing to ${cam.id}-stream`);
       cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);
+      
     }
   )  
 
   return { port: watcherPort, process: cpx };
+}
+
+function addToCameraBuffer(_camId, _buffer){
+  if (cache.cameras[_camId].buffers.length > cache.config.cameraBufferSize){
+    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, cache.config.cameraBufferSize / 2);
+  }
+
+  cache.cameras[_camId].buffers.push(_buffer);  
 }
 
 /**

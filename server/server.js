@@ -26,7 +26,8 @@ cache.config = {
         path : process.env.RECORD_PATH
     },
     env : process.env.NODE_ENV,
-    root : root
+    root : root,
+    cameraBufferSize : 300
 };
 
 cache.services.eventEmmiter = new events.EventEmitter();

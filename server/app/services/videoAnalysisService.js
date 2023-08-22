@@ -115,23 +115,23 @@ async function checkEventFinished(_cam){
   if (now > idleTimeOut){
     // no detections for the last x seconds, we can finish the event
     logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], limit at [${idleTimeOut.toTimeString()}], finishing`);
-    //await finishEvent(_cam, now);  
     await recService.stopRecordingCamera(cache.cameras[_cam.id]);
     return;
   }
 
   logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], checking later`);
-  //setTimeout(checkEventFinished(_cam), globalEventConfig.eventIdleEndSeconds / 2);
   await timeout(eventIdleMs / 2);
   await checkEventFinished(_cam);
 }
 
+//todo: move to config
 const globalEventConfig = {
   silenceSeconds : 180,
   eventLimitSeconds : 120,
   eventIdleEndSeconds : 7,
 }
 
+/** Handler for the framedata (detections) */
 async function handleFrame(_cam, _frameData){
   
   var predictions = await processFrame(_cam, _frameData);    
@@ -140,6 +140,10 @@ async function handleFrame(_cam, _frameData){
   
     var now = new Date();
     cache.services.ioSocket.sockets.emit(`${_cam.id}-detect`, predictions);  
+
+    if (!_cam.eventConfig.recordEvents){    
+      return;  
+    }
 
     if (cache.cameras[_cam.id].eventSilence > now){
       logger.log('debug', `Detections silenced until [${cache.cameras[_cam.id].eventSilence.toTimeString()}]`);
@@ -164,25 +168,22 @@ async function handleFrame(_cam, _frameData){
         lock: 'handleFrame'
       }
 
-      if (_cam.eventConfig.recordEvents){        
-        // start recording 
-        //var tempFileName = `recordings/${_cam.id}-event.mp4`
+      // start recording, after the recording, we will finish the event.
+      // the recording is limited according to our event limit, so this will end the finish the event when reached
+      var tryRec = await recService.recordCamera(cache.cameras[_cam.id], globalEventConfig.eventLimitSeconds, function(){
+        logger.info(`Recording ended, finishing event`);         
+        finishEvent(_cam, now);
+      });
 
-        var tryRec = await recService.recordCamera(cache.cameras[_cam.id], globalEventConfig.eventLimitSeconds, function(){
-          logger.info(`Recording ended, finishing event`);         
-          finishEvent(_cam, now);
-        });
-
-        if (!tryRec.success){
-          logger.error(`Unable to start event recording : ${tryRec.error}`);
-          cache.cameras[_cam.id].event = null;
-          silenceDetections(_cam, now);
-          return;
-        }
-
-        cache.cameras[_cam.id].event.recording = tryRec.payload;        
+      // without the recording, we cannot proceed
+      if (!tryRec.success){
+        logger.error(`Unable to start event recording : ${tryRec.error}`);
+        cache.cameras[_cam.id].event = null;
+        silenceDetections(_cam, now);
+        return;
       }
 
+      cache.cameras[_cam.id].event.recording = tryRec.payload;  
       checkEventFinished(_cam);
     }
 
@@ -200,27 +201,6 @@ async function handleFrame(_cam, _frameData){
     cache.cameras[_cam.id].event.lastDetection = new Date();
     cache.cameras[_cam.id].event.buffer.push(predictions[0]);   
     cache.cameras[_cam.id].event.lock = null;
-
-  
-    // if (cache.cameras[cam.id].event.status == 'idle'){
-    //   // start new event
-    // }
-
-   
-
-    // // save event + alert
-    // if (cam.eventConfig.recordEvents){
-
-      
-
-    //   recService.recordCamera(cache.cameras[cam.id], cam.eventConfig.recordSeconds ?? 10, function(){
-    //     // save event
-    //     evtService.tryCreateNew({
-    //       cameraId : cam.id,
-    //       occuredOn : new Date() 
-    //     })
-    //   })
-    // }
   }
 }
 
@@ -246,16 +226,10 @@ async function finishEvent(_cam, _now){
     return;
   }
 
-  // stop recording (if any), this will call finish
-  // if (cache.cameras[_cam.id].record.status == 'recording'){
-  //   await recService.stopRecordingCamera(cache.cameras[_cam.id]);
-  //   return;
-  // }
-
   logger.log('debug', 'Finishing event');
   cache.cameras[_cam.id].event.finishTime = new Date();
 
-  // silence new detections for 5 minutes
+  // silence new detections for x minutes
   silenceDetections(_cam, _now);
 
   while (cache.cameras[_cam.id].event.lock != null) {
@@ -269,35 +243,65 @@ async function finishEvent(_cam, _now){
   await createEventGif(cache.cameras[_cam.id].event.buffer, _cam.id, eventDuration, gifFile);
 
   // merge recording and gif
-  await mergeGifAndRecording(gifFile, cache.cameras[_cam.id].event, async function(){
+  await mergeGifAndRecording(gifFile, _cam.id, async function(){
 
-  })
+    // save event
+    var trySave = await evtService.tryCreateNew(cache.cameras[_cam.id].event);
+    if (!trySave.success){
+      logger.error(trySave.error);
+    }
 
-  // save event
-  var trySave = await evtService.tryCreateNew(cache.cameras[_cam.id].event);
-  if (!trySave.success){
-    logger.error(trySave.error);
-  }
-
-  cache.cameras[_cam.id].event = null;  
-  logger.log('debug', 'Event finished');
+    cache.cameras[_cam.id].event = null;  
+    logger.debug('Event finished');
+  }); 
 }
 
 /**
  * Merges the gif and recording by using ffmpeg
  * @see https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
  * @param {string} _gifFile - The gif file
- * @param {object} _event - The event
+ * @param {string} _camId - The camera id of the event
  * @param {Function} _callback - Optional callback to execute after the merging has finished
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function mergeGifAndRecording(_gifFile, _event, _callbackAsync){
+async function mergeGifAndRecording(_gifFile, _camId, _callbackAsync){
 
+  //ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
+
+  var outFile = cache.cameras[_camId].event.recording.replace('.mp4', '-event.mp4');
+
+  const args = [
+    '-i',
+    cache.cameras[_camId].event.recording,
+    '-i',
+    _gifFile,
+    '-filter_complex',
+    '[0:v][1:v] overlay=0:0',
+    '-pix_fmt', 
+    'yuv420p',
+    '-c:a', 
+    'copy', 
+    outFile
+  ]
+
+  ffmpegModule.runFFmpeg(
+    args, 
+    `[${cache.cameras[_camId].event.id}] Event recording merge`, 
+    function(data){
+      // on spawn
+      logger.log('info', `[${cache.cameras[_camId].event.id}] Event recording merge`);
+    },
+    null,
+    null,
+    async function(){
+      logger.log('info', `[${cache.cameras[_camId].event.id}] Event recording merge finished`);
+      //fs.unlinkSync(cache.cameras[_camId].event.recording);
+      cache.cameras[_camId].event.recording = outFile;
+      if (_callbackAsync) { await _callbackAsync(); }
+    },
+    null
+  );
 }
-
-//https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
-//ffmpeg -i temp.mp4 -i rect-animated.gif -filter_complex "[0:v][1:v] overlay=25:25:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy output.mp4
-//ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
 /** Performs motion detection and objecty identification */
 async function processFrame(cam, data){
@@ -390,6 +394,10 @@ function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
 
   var canvas = createCanvas(1280, 720);
   var ctx = canvas.getContext('2d');
+
+  // add delay to compensate for time sync
+  //encoder.setDelay(0); 
+  //encoder.addFrame(ctx);
 
   for (let i = 0; i < _predictions.length; i++) {
 

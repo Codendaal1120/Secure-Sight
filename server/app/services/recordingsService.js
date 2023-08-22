@@ -34,10 +34,17 @@ async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
           ? `${_cameraEntry.camera.id}-${currentTime}-${_fileNameSuffix}.mp4`
           : `${_cameraEntry.camera.id}-${currentTime}.mp4`
 
-        //_cameraEntry.record.file = filePath;    
-        _cameraEntry.record.process = runFfmpegRTSP(dir, fileName, _cameraEntry, _seconds, _callback);             
+        cache.cameras[_cameraEntry.camera.id].record.filePath = `${dir}/${fileName}`;
 
-        return { success : true, payload : `${dir}/${fileName}` };
+        //_cameraEntry.record.file = filePath;    
+        //_cameraEntry.record.process = runFfmpegRTSP(dir, fileName, _cameraEntry, _seconds, _callback);            
+        cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {     
+          if (cache.cameras[_cameraEntry.camera.id].record.status == 'recording'){
+            cache.cameras[_cameraEntry.camera.id].record.buffers.push(data);
+          }
+        });
+
+        return { success : true, payload : cache.cameras[_cameraEntry.camera.id].record.filePath };
     }
     catch(err){
         return { success : false, error : err.message };
@@ -60,7 +67,19 @@ async function stopRecordingCamera(_cameraEntry){
 
   try{
     _cameraEntry.record.status = null;
-    _cameraEntry.record.process.kill('SIGINT');
+    _cameraEntry.record.endTime = (new Date()).getTime();
+
+    logger.log('info', `[${_cameraEntry.camera.id}] recording stopped`);    
+
+    var file = cache.cameras[_cameraEntry.camera.id].record.filePath;
+    var tempFilePath = `${file.replace('.mp4', '-temp.mp4')}`;
+
+    if (!saveBufferToFile(tempFilePath, _cameraEntry)){
+      cache.services.ioSocket.sockets.emit('ui-error', `Could not save recording for [${_cameraEntry.camera.name}]`);
+      return { success : false, error : `Could not save recording for [${_cameraEntry.camera.name}]` };
+    }
+
+    runFfmpegConvertFile(tempFilePath, file, _cameraEntry);
 
     return { success : true, payload : "Recording stopped" };
   }
@@ -210,7 +229,7 @@ function runFfmpegRTSP(_directory, _fileName, _cameraEntry, _seconds, _callback)
 }
 
 /** Converts the RSTP stream saved buffer to libx264, which can be viewed in a browser */
-function runFfmpegConvertFile(_inputFile, _outputFile, _fileName, _cameraEntry, _seconds){
+function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 
   const args = [
     '-hide_banner',
@@ -224,6 +243,8 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _fileName, _cameraEntry, 
     'libx264',
     '-c:a',
     'aac',
+    '-s',
+    '1280x720',
     _outputFile];
 
   const cpx = ffmpegModule.runFFmpeg(
@@ -254,25 +275,24 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _fileName, _cameraEntry, 
           cameraId : _cameraEntry.camera.id, 
           recordedOn : new Date(), 
           filePath : _outputFile, 
-          fileName: _fileName,
           length : diff 
         });      
         
         fs.unlinkSync(_inputFile);
 
-        cache.services.ioSocket.sockets.emit('ui-info', `Recording for [${_cameraEntry.camera.name}] saved as ${_fileName}`);
+        cache.services.ioSocket.sockets.emit('ui-info', `Recording for [${_cameraEntry.camera.name}] saved.`);
       }
     )  
   
     return cpx;
 }
 
-function saveBufferToFile(_filePath, _fileName, _cameraEntry){
+function saveBufferToFile(_filePath, _cameraEntry){
 
   try{
     var buff = Buffer.concat(_cameraEntry.record.buffers);
     fs.writeFileSync(_filePath, buff);
-    logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_fileName}`);
+    logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
     return true;
   }
   catch(err){
