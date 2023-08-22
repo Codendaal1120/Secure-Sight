@@ -9,15 +9,16 @@ const path = require('path');
 
 /**
  * Records the camera feed for the specified amount of time
- * @param {object} _cameraEntry - The camera record
+ * @param {object} _cameraEntry - The camera cache record
  * @param {Object} _seconds - The number of seconds to record
  * @param {Function} _callback - Optional callback to execute after recording has finished
- * @returns {Object} Try result
+ * @param {string} _fileNameSuffix - Optional filename verride suffix
+ * @returns {Object} TryResult<string> - the filepath 
  */
-async function recordCamera(_cameraEntry, _seconds, _callback){
+async function recordCamera(_cameraEntry, _seconds, _callback, _fileNameSuffix){
 
   if (_seconds < 0){
-    _seconds = 1200; // 20 minutes
+    _seconds = 1200; 
   }
 
   if (!_cameraEntry.record.status){   
@@ -25,15 +26,18 @@ async function recordCamera(_cameraEntry, _seconds, _callback){
     _cameraEntry.record.status = 'recording';
 
     logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
+    var dir = getRecordingDirectory();
 
     try{
         var currentTime = Math.floor(new Date().getTime() / 1000);  
-        var fileName = `${_cameraEntry.camera.id}-${currentTime}.mp4`    
+        var fileName = _fileNameSuffix != null 
+          ? `${_cameraEntry.camera.id}-${currentTime}-${_fileNameSuffix}.mp4`
+          : `${_cameraEntry.camera.id}-${currentTime}.mp4`
 
         //_cameraEntry.record.file = filePath;    
-        _cameraEntry.record.process = runFfmpegRTSP(getRecordingDirectory(), fileName, _cameraEntry, _seconds, _callback);             
+        _cameraEntry.record.process = runFfmpegRTSP(dir, fileName, _cameraEntry, _seconds, _callback);             
 
-        return { success : true, payload : "Recording started" };
+        return { success : true, payload : `${dir}/${fileName}` };
     }
     catch(err){
         return { success : false, error : err.message };
@@ -45,7 +49,7 @@ async function recordCamera(_cameraEntry, _seconds, _callback){
 
 /**
  * Records the camera feed for the specified amount of time
- * @param {object} _cameraEntry - The camera record
+ * @param {object} _cameraEntry - The camera cache record
  * @returns {Object} Try result 
  */
 async function stopRecordingCamera(_cameraEntry){

@@ -27,7 +27,7 @@ describe('Test Video processing', () => {
 
             const predictions = [
                 {
-                    startTime : new Date("2023-08-21 10:00:00"),
+                    detectedOn : new Date("2023-08-21 10:00:00"),
                     x: 100, 
                     y: 300,
                     width : 100,
@@ -35,7 +35,7 @@ describe('Test Video processing', () => {
                     c : 'red'
                 },
                 {
-                    startTime : new Date("2023-08-21 10:00:05"),
+                    detectedOn : new Date("2023-08-21 10:00:05"),
                     x: 110, 
                     y: 320,
                     width : 100,
@@ -43,7 +43,7 @@ describe('Test Video processing', () => {
                     c : 'green'
                 },
                 {
-                    startTime : new Date("2023-08-21 10:00:20"),
+                    detectedOn : new Date("2023-08-21 10:00:20"),
                     x: 110, 
                     y: 320,
                     width : 100,

@@ -36,7 +36,7 @@ async function tryCreateNew(_event){
         return { success : false, error : errors };
     }
 
-    let document = await dataService.insertOneAsync(collectionName, _event);    
+    let document = await dataService.insertOneAsync(collectionName, createDBObject(_event));
     if (!document.success){
         return { success : false, error : `Could not create a new event : ${document.error}` };
     }
@@ -48,19 +48,49 @@ function validate(evt){
     var errors = [];
 
     if (!evt){
-        errors.push("Invalid camera");
+        errors.push("Invalid event");
     }
     
-    if (!evt.name){
-        errors.push("Invalid camera name");
+    if (!evt.id){
+        errors.push("Invalid event id");
     }
 
-    if (!evt.url){
-        errors.push("Invalid url");
-    }    
+    if (!evt.camId){
+        errors.push("Invalid event camera id");
+    }
+
+    if (!evt.recording){
+        errors.push("Invalid event recording");
+    }
+
+    if (!evt.buffer){
+        errors.push("Invalid event detections");
+    }
+
+    if (evt.buffer != null && evt.buffer.length == 0){
+        errors.push("No event detections");
+    }
 
     return errors;
 }
 
+function createDBObject(_event){
+    return {
+        _id : dataService.toDbiD(_event.id),
+        camId : _event.camId,
+        startTime : _event.startTime,
+        finishTime : _event.finishTime,
+        limitTime : _event.limitTime,
+        recording : _event.recording,
+        detections : _event.buffer
+    }
+}
+
+/** Generates a new unique id */
+function genrateEventId(){
+    return dataService.genrateObjectId();
+}
+
+module.exports.genrateEventId = genrateEventId;
 module.exports.getAll = getAll;
 module.exports.tryCreateNew = tryCreateNew;

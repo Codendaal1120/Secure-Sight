@@ -14,6 +14,7 @@ const fs = require("fs");
 const GIFEncoder = require('gif-encoder-2');
 const { createCanvas } = require('canvas');
 const utility = require('../modules/utility');
+const { log } = require("console");
 
 let frameIndex = -1;
 let frameBuffer = [];
@@ -101,40 +102,39 @@ async function checkEventFinished(_cam){
     return;
   }
 
+  var eventIdleMs = globalEventConfig.eventIdleEndSeconds * 1000;
+
   // if there is no detection yet, wait a while
   if (cache.cameras[_cam.id].event?.lastDetection == null){
-    await timeout(globalEventConfig.eventIdleEndSeconds);
+    await timeout(eventIdleMs);
   }
 
   var now = new Date();
-  var idleTimeOut = new Date(cache.cameras[_cam.id].event.lastDetection.getTime() + globalEventConfig.eventIdleEndSeconds);
+  var idleTimeOut = new Date(cache.cameras[_cam.id].event.lastDetection.getTime() + eventIdleMs);
 
   if (now > idleTimeOut){
     // no detections for the last x seconds, we can finish the event
     logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], limit at [${idleTimeOut.toTimeString()}], finishing`);
-    await finishEvent(_cam, now);  
+    //await finishEvent(_cam, now);  
+    await recService.stopRecordingCamera(cache.cameras[_cam.id]);
     return;
   }
 
   logger.log('debug', `Last detection at [${cache.cameras[_cam.id].event.lastDetection.toTimeString()}], checking later`);
   //setTimeout(checkEventFinished(_cam), globalEventConfig.eventIdleEndSeconds / 2);
-  await timeout(globalEventConfig.eventIdleEndSeconds / 2);
+  await timeout(eventIdleMs / 2);
   await checkEventFinished(_cam);
 }
 
 const globalEventConfig = {
-  silenceSeconds : 300,
-  limitSeconds : 20 * 1000,
-  eventIdleEndSeconds : 5  * 1000
+  silenceSeconds : 180,
+  eventLimitSeconds : 120,
+  eventIdleEndSeconds : 7,
 }
 
 async function handleFrame(_cam, _frameData){
   
-  var predictions = await processFrame(_cam, _frameData);  
-
-  if (predictions == undefined){
-    console.log('here');
-  }
+  var predictions = await processFrame(_cam, _frameData);    
 
   if (predictions.length > 0){
   
@@ -156,17 +156,38 @@ async function handleFrame(_cam, _frameData){
 
       // start new event
       cache.cameras[_cam.id].event = {
+        id : evtService.genrateEventId(),
+        camId : _cam.id,
         startTime : now,    
-        limitTime : new Date(now.getTime() + globalEventConfig.limitSeconds),
+        limitTime : new Date(now.getTime() + globalEventConfig.eventLimitSeconds * 1000),
         buffer : [],
         lock: 'handleFrame'
       }
 
-      if (_cam.eventConfig.recordEvents){
-        // start recording for max of 30 seconds?
+      if (_cam.eventConfig.recordEvents){        
+        // start recording 
+        //var tempFileName = `recordings/${_cam.id}-event.mp4`
+
+        var tryRec = await recService.recordCamera(cache.cameras[_cam.id], globalEventConfig.eventLimitSeconds, function(){
+          logger.info(`Recording ended, finishing event`);         
+          finishEvent(_cam, now);
+        });
+
+        if (!tryRec.success){
+          logger.error(`Unable to start event recording : ${tryRec.error}`);
+          cache.cameras[_cam.id].event = null;
+          silenceDetections(_cam, now);
+          return;
+        }
+
+        cache.cameras[_cam.id].event.recording = tryRec.payload;        
       }
 
       checkEventFinished(_cam);
+    }
+
+    if (cache.cameras[_cam.id].event == undefined){
+      console.log('here');
     }
 
     // has event limit been reached?
@@ -177,8 +198,7 @@ async function handleFrame(_cam, _frameData){
     }
 
     cache.cameras[_cam.id].event.lastDetection = new Date();
-    cache.cameras[_cam.id].event.buffer.push(predictions[0]);    
-
+    cache.cameras[_cam.id].event.buffer.push(predictions[0]);   
     cache.cameras[_cam.id].event.lock = null;
 
   
@@ -204,6 +224,21 @@ async function handleFrame(_cam, _frameData){
   }
 }
 
+function silenceDetections(_cam, _now){
+  _now ?? new Date();
+  cache.cameras[_cam.id].eventSilence = new Date(_now.getTime() + globalEventConfig.silenceSeconds * 1000);
+}
+
+/**
+ * Finishes the event
+ * This involves 
+ * - silencing detections
+ * - generating the animation (detections gif)
+ * - merging the animation and recording
+ * - saving the event details to DB
+ * @param {object} _cam - The camera record
+ * @param {Object} _now - The current time
+ */
 async function finishEvent(_cam, _now){
 
   // if event has already finished, we can exit
@@ -211,29 +246,54 @@ async function finishEvent(_cam, _now){
     return;
   }
 
-  logger.log('debug', 'Finishing event');
-  // silence new detections for 5 minutes
-  cache.cameras[_cam.id].eventSilence = new Date(_now.getTime() + globalEventConfig.silenceSeconds * 1000);
-  //todo: save events
-  //geenrate gif
-  // generate video
+  // stop recording (if any), this will call finish
+  // if (cache.cameras[_cam.id].record.status == 'recording'){
+  //   await recService.stopRecordingCamera(cache.cameras[_cam.id]);
+  //   return;
+  // }
 
-  await timeout(3000);
+  logger.log('debug', 'Finishing event');
+  cache.cameras[_cam.id].event.finishTime = new Date();
+
+  // silence new detections for 5 minutes
+  silenceDetections(_cam, _now);
 
   while (cache.cameras[_cam.id].event.lock != null) {
     logger.log('debug', 'Waiting for event lock');
     await timeout(10);
   }
 
- 
+  // generate gif
+  var gifFile = `temp/anim-${cache.cameras[_cam.id].event.id}.gif`;
+  var eventDuration = cache.cameras[_cam.id].event.finishTime - cache.cameras[_cam.id].event.startTime;
+  await createEventGif(cache.cameras[_cam.id].event.buffer, _cam.id, eventDuration, gifFile);
 
-  // if (cache.cameras[_cam.id].event.locked)
+  // merge recording and gif
+  await mergeGifAndRecording(gifFile, cache.cameras[_cam.id].event, async function(){
+
+  })
+
+  // save event
+  var trySave = await evtService.tryCreateNew(cache.cameras[_cam.id].event);
+  if (!trySave.success){
+    logger.error(trySave.error);
+  }
+
   cache.cameras[_cam.id].event = null;  
   logger.log('debug', 'Event finished');
-  // var 
-  // if ()
 }
 
+/**
+ * Merges the gif and recording by using ffmpeg
+ * @see https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
+ * @param {string} _gifFile - The gif file
+ * @param {object} _event - The event
+ * @param {Function} _callback - Optional callback to execute after the merging has finished
+ * @returns {Object} TryResult<string> - the filepath 
+ */
+async function mergeGifAndRecording(_gifFile, _event, _callbackAsync){
+
+}
 
 //https://video.stackexchange.com/questions/12105/add-an-image-overlay-in-front-of-video-using-ffmpeg
 //ffmpeg -i temp.mp4 -i rect-animated.gif -filter_complex "[0:v][1:v] overlay=25:25:enable='between(t,0,20)'" -pix_fmt yuv420p -c:a copy output.mp4
@@ -315,12 +375,12 @@ function storeFrame(frame){
  * All gifs are created using the default size 1280x720
  * @param {Array} _predictions - Collection of precitions
  * @param {string} _camId - The camera id
- * @param {number} _clipLength - Total length of event in milliseconds
+ * @param {number} _eventDuration - Total length of event in milliseconds
  * @param {string} _outputFile - Path to save gif to
  */
 function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
 
-  var remaining = _clipLength;
+  var remaining = _eventDuration;
   var encoder = new GIFEncoder(1280, 720);
   
   encoder.start();
@@ -333,10 +393,10 @@ function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
 
   for (let i = 0; i < _predictions.length; i++) {
 
-      ctx.strokeStyle = _predictions[i].c;  
+      ctx.strokeStyle = _predictions[i].color ?? 'red';  
       var diff = i == _predictions.length - 1
           ? remaining
-          : _predictions[i + 1].startTime - _predictions[i].startTime;
+          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
 
       remaining -= diff;
       
@@ -353,7 +413,6 @@ function createEventGif(_predictions, _camId, _eventDuration, _outputFile){
 
   const buffer = encoder.out.getData();
   fs.writeFileSync(_outputFile, buffer);
-  console.log('done');
 }
 
 module.exports.createEventGif = createEventGif;

@@ -236,7 +236,7 @@ function setObjectId(obj){
  * @param {string} _inputId - Input string
  * @return {Object} Mongo DB ID object
  */
-var toDbiD = function(_inputId) {    
+function toDbiD(_inputId) {    
     try{
         return new mongo.ObjectId(_inputId);    
     }
@@ -245,7 +245,18 @@ var toDbiD = function(_inputId) {
     }  
 }
 
+/**
+ * Generates a new unique id 
+ * @see https://mongodb.github.io/node-mongodb-native/api-bson-generated/objectid.html
+ */
+function genrateObjectId(){
+    var timestamp = Math.floor(new Date().getTime()/1000);
+    var objectId = new mongo.ObjectId(timestamp);
+    return objectId.toString();
+}
+
 module.exports.toDbiD = toDbiD;
+module.exports.genrateObjectId = genrateObjectId;
 module.exports.getOneAsync = getOneAsync;
 module.exports.getManyAsync = getManyAsync;
 module.exports.insertOneAsync = insertOneAsync;

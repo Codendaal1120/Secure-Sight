@@ -23,7 +23,7 @@ router.post("/start/:camId", async function (req, res) {
 
   const result = await recService.recordCamera(cam, parseInt(sec)); 
   if (result.success){
-      res.status(200).json(result.payload);
+      res.status(200).json('Recording started');
   }
   else{
       res.status(400).json(result.error);
