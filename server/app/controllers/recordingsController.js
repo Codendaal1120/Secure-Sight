@@ -40,7 +40,7 @@ router.post("/start/:camId", async function (req, res) {
  * @returns {Error}  400 - Bad request
  */
 router.post("/stop/:camId", async function (req, res) {
-
+  
   let cam = cache.getCamera(req.params.camId);
   if (!cam){
     res.status(400).json(`Could not find camera with id ${req.params.camId}`);
