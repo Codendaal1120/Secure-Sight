@@ -1,4 +1,4 @@
-const { createLogger, format, transports } = require('winston');
+const { createLogger, format, transports, Logger } = require('winston');
 const loggers = {};
 const fs = require("fs");
 
@@ -93,7 +93,7 @@ function tryGetLogs(lines = 100) {
 
 function getDate() {    
   var date = new Date(Date.now()).toLocaleString().split(',')[0]
-  return date.replaceAll("/", '');
+  return date.replace(/\//gm, '-');
 };
 
 module.exports.getLogger = getLogger;
