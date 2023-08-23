@@ -2,3 +2,6 @@
 
 # Secure Sight
 Security system for managing surveillance cameras
+
+# Running on Ubuntu
+- NODE_ENV=production pm2 start server.js --name secure-sight

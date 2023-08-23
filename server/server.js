@@ -32,9 +32,12 @@ cache.config = {
         silenceSeconds : 180,
         limitSeconds : 120,
         idleEndSeconds : 7,
-    }
-    
+    }    
 };
+
+if (port == undefined){
+    throw new Error('Unable to read config for env ' + process.env.NODE_ENV);
+}
 
 cache.services.eventEmmiter = new events.EventEmitter();
 

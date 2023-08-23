@@ -16,8 +16,8 @@ let mpegTsParser = null;
 async function startStreams() {    
   mpegTsParser = createMpegTsParser();
   
-  let cameras = await camService.getAll();
-
+  let cameras = await camService.getAll();  
+  
   for (let i = 0; i < cameras.payload.length; i++) {
     if (cameras.payload[i].deletedOn == null){
       await createCameraStreams(cameras.payload[i]);   
