@@ -35,7 +35,7 @@ cache.config = {
     }    
 };
 
-if (port == undefined){
+if (port == undefined && process.env.NODE_ENV != 'unit_test'){
     throw new Error('Unable to read config for env ' + process.env.NODE_ENV);
 }
 
