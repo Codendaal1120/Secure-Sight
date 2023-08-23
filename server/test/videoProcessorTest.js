@@ -74,7 +74,7 @@ describe('Test Video processing', () => {
     
         const predictions = [
             {
-                startTime : new Date("2023-08-21 10:00:00"),
+                startedOn : new Date("2023-08-21 10:00:00"),
                 x: 100, 
                 y: 300,
                 width : 100,
@@ -82,7 +82,7 @@ describe('Test Video processing', () => {
                 c : 'red'
             },
             {
-                startTime : new Date("2023-08-21 10:00:05"),
+                startedOn : new Date("2023-08-21 10:00:05"),
                 x: 110, 
                 y: 320,
                 width : 100,
@@ -90,7 +90,7 @@ describe('Test Video processing', () => {
                 c : 'green'
             },
             {
-                startTime : new Date("2023-08-21 10:00:15"),
+                startedOn : new Date("2023-08-21 10:00:15"),
                 x: 200, 
                 y: 320,
                 width : 100,
@@ -98,7 +98,7 @@ describe('Test Video processing', () => {
                 c : 'blue'
             },
             {
-                startTime : new Date("2023-08-21 10:00:17"),
+                startedOn : new Date("2023-08-21 10:00:17"),
                 x: 250, 
                 y: 350,
                 width : 100,
@@ -132,18 +132,10 @@ describe('Test Video processing', () => {
 
             for (let i = 0; i < predictions.length; i++) {
 
-            
-
-                // var dayMs = 1000*60*60*24;
-                // var t1 = predictions[i + 1].startTime.getTime();
-                // var t2 = predictions[i].startTime.getTime();
-                // var t3 = Math.round((t1 - t2) / (dayMs));
-                // var d = (predictions[i + 1].startTime - predictions[i].startTime);
-
                 ctx.strokeStyle = predictions[i].c;  
                 var diff = i == predictions.length - 1
                     ? 5 // debug
-                    : predictions[i + 1].startTime - predictions[i].startTime;
+                    : predictions[i + 1].startedOn - predictions[i].startedOn;
                 
                 encoder.setDelay(diff); 
                 ctx.strokeRect(predictions[i].x, predictions[i].y, predictions[i].width, predictions[i].height);                

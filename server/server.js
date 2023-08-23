@@ -27,12 +27,13 @@ cache.config = {
     },
     env : process.env.NODE_ENV,
     root : root,
-    cameraBufferSize : 1500,
+    cameraBufferSeconds : 600,
     event : {
-        silenceSeconds : 180,
+        silenceSeconds : 30,
         limitSeconds : 120,
         idleEndSeconds : 7,
-    }    
+    },
+    removeTempFiles : false    
 };
 
 if (port == undefined && process.env.NODE_ENV != 'unit_test'){

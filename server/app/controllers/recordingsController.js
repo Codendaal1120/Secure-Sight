@@ -125,5 +125,28 @@ router.get("/", async function (req, res) {
   }     
 });
 
+/**
+ * Deletes a recording
+ * @route DEL /api/recordings/:id
+ * @group Recordings api
+ * @produces application/json
+ * @param {string} req.params.recId - Recording ID
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.delete("/:recId", async function (req, res) {
+
+  if (!req.params.recId){
+    res.status(400).json(`Invalid recording id`);
+  }
+
+  const result = await recService.tryDeleteRecording(req.params.recId); 
+  if (result.success){
+      res.download(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
 
 module.exports = router;

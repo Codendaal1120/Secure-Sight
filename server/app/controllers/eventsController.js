@@ -20,4 +20,28 @@ router.get("/", async function (req, res) {
   }     
 });
 
+/**
+ * Deletes an event
+ * @route DEL /api/events/:id
+ * @group Events api
+ * @produces application/json
+ * @param {string} req.params.recId - Recording ID
+ * @returns {object} 200 - Status message
+ * @returns {Error}  400 - Bad request
+ */
+router.delete("/:evtId", async function (req, res) {
+
+  if (!req.params.evtId){
+    res.status(400).json(`Invalid recording id`);
+  }
+
+  const result = await eventsService.tryDeleteEvent(req.params.evtId); 
+  if (result.success){
+      res.download(result.payload);
+  }
+  else{
+      res.status(400).json(result.error);
+  }    
+});
+
 module.exports = router;

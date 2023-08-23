@@ -14,7 +14,7 @@ let mpegTsParser = null;
  * Start streaming service
  */
 async function startStreams() {    
-  mpegTsParser = createMpegTsParser();
+  mpegTsParser = ffmpegModule.createMpegTsParser();
   
   let cameras = await camService.getAll();  
   
@@ -161,7 +161,8 @@ async function createCameraStreams(_cam){
       status : null,
       buffers : []
     },
-    buffers : []
+    buffers : [],
+    buffers2 : []
   }    
 
   cache.cameras[_cam.id] = camServ;
@@ -173,9 +174,12 @@ async function startFeedStream(cam){
   // this is the main stream port
   let mpegTsStreamPort = await tcp.createLocalServer(null, async function(socket){
     for await (const chunks of mpegTsParser.parse(socket)) {
+        addToCameraBuffer2(cam.id, { chunk: chunks, time: Date.now() });
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
             //if (cam.id == '64d8f3416388327a381604e4'){ console.log(`${cam.id}-stream-data`) }
+            //console.log('chunk', chunk.length);
+            
             cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
@@ -231,7 +235,8 @@ async function startWatcherStream(cam){
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
     cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {     
       //logger.log('info', `watch from ${cam.id}`) ;
-      socket.write(data);       
+      socket.write(data);     
+      //console.log('data', data.length);  
       addToCameraBuffer(cam.id, data);
     });
   });
@@ -290,99 +295,24 @@ async function startWatcherStream(cam){
 }
 
 function addToCameraBuffer(_camId, _buffer){
-  if (cache.cameras[_camId].buffers.length > cache.config.cameraBufferSize * 1.2){
-    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, cache.config.cameraBufferSize * 0.2);
+  var bufferSize = cache.config.cameraBufferSeconds * 25;
+  if (cache.cameras[_camId].buffers.length > bufferSize * 1.2){
+    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, bufferSize * 0.2);
   }
 
   cache.cameras[_camId].buffers.push(_buffer);  
 }
 
-/**
- * @url https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L44
- * (c) koush <https://github.com/koush>
- **/
-const createLengthParser = (length, verify) => {
-    async function* parse(socket) {
-      let pending = [];
-      let pendingSize = 0;
-  
-      while (true) {
-        const data = socket.read();
-  
-        if (!data) {
-          await once(socket, 'readable');
-          continue;
-        }
-  
-        pending.push(data);
-        pendingSize += data.length;
-  
-        if (pendingSize < length) {
-          continue;
-        }
-  
-        const concat = Buffer.concat(pending);
-  
-        verify?.(concat);
-  
-        const remaining = concat.length % length;
-        const left = concat.slice(0, concat.length - remaining);
-        const right = concat.slice(concat.length - remaining);
-  
-        pending = [right];
-        pendingSize = right.length;
-  
-        yield {
-          chunks: [left],
-        };
-      }
-    }
-  
-    return parse;
-};
-  
-/**
- * @url https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L92
- * (c) koush <https://github.com/koush>
- **/
-const createMpegTsParser = () => {
-    return {
-      container: 'mpegts',
-      outputArguments: '[f=mpegts]',
-      parse: createLengthParser(188, (concat) => {
-        if (concat[0] != 0x47) {
-          throw new Error('Invalid sync byte in mpeg-ts packet. Terminating stream.');
-        }
-      }),
-      findSyncFrame(streamChunks) {
-        for (let prebufferIndex = 0; prebufferIndex < streamChunks.length; prebufferIndex++) {
-          const streamChunk = streamChunks[prebufferIndex];
-  
-          for (let chunkIndex = 0; chunkIndex < streamChunk.chunks.length; chunkIndex++) {
-            const chunk = streamChunk.chunks[chunkIndex];
-            let offset = 0;
-  
-            while (offset + 188 < chunk.length) {
-              const pkt = chunk.subarray(offset, offset + 188);
-              const pid = ((pkt[1] & 0x1f) << 8) | pkt[2];
-  
-              if (
-                pid == 256 && // found video stream
-                pkt[3] & 0x20 &&
-                pkt[4] > 0 && // have AF
-                pkt[5] & 0x40
-              ) {
-                return streamChunks.slice(prebufferIndex);
-              }
-  
-              offset += 188;
-            }
-          }
-        }  
-        return findSyncFrame(streamChunks);
-      },
-    };
-};
+function addToCameraBuffer2(_camId, _buffer){
+  var bufferSize = cache.config.cameraBufferSeconds * 25;
+  if (cache.cameras[_camId].buffers2.length > bufferSize * 1.2){
+    cache.cameras[_camId].buffers2 = cache.cameras[_camId].buffers2.splice(0, bufferSize * 0.2);
+  }
+
+  cache.cameras[_camId].buffers2.push(_buffer);  
+}
+
+
 
 module.exports.startStreams = startStreams;
 module.exports.tryGetSnapshot = tryGetSnapshot;

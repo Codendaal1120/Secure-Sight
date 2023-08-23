@@ -5,6 +5,7 @@ const logger = require('../modules/loggingModule').getLogger('recordingService')
 const collectionName = "recordings";
 const fs = require("fs");
 const path = require('path');
+const { forEach } = require("mathjs");
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -23,15 +24,17 @@ async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSec
 
   if (!_cameraEntry.record.status){   
     
-    _cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
+    //_cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
+    _cameraEntry.record.prependSeconds = 0;
     _cameraEntry.record.status = 'recording';
+    _cameraEntry.record.id = dataService.genrateObjectId();
 
     logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
     var dir = getRecordingDirectory();
 
     try{
         var currentTime = Math.floor(new Date().getTime() / 1000);  
-        _cameraEntry.record.startTime = new Date();
+        _cameraEntry.record.startedOn = new Date();
 
         var fileName = _fileNameSuffix != null 
           ? `${_cameraEntry.camera.id}-${currentTime}-${_fileNameSuffix}.mp4`
@@ -47,7 +50,7 @@ async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSec
 
         stopRecordingAfterDelay(_cameraEntry, _seconds);
 
-        return { success : true, payload : _cameraEntry.record.filePath };
+        return { success : true, payload : { path: _cameraEntry.record.filePath, id: _cameraEntry.record.id  } };
     }
     catch(err){
         return { success : false, error : err.message };
@@ -77,8 +80,8 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
 
   try{
     _cameraEntry.record.status = null;
-    _cameraEntry.record.endTime = (new Date()).getTime();
-    _cameraEntry.record.length = Math.floor((_cameraEntry.record.endTime - _cameraEntry.record.startTime) / 1000, 0);     
+    _cameraEntry.record.endedOn = (new Date()).getTime();
+    _cameraEntry.record.length = Math.round((_cameraEntry.record.endedOn - _cameraEntry.record.startedOn) / 1000, 0);     
 
     if (_fromTimeout){
       logger.log('info', `[${_cameraEntry.camera.id}] recording stopped due to time limit`);    
@@ -86,7 +89,6 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
     else{
       logger.log('info', `[${_cameraEntry.camera.id}] recording stopped`);    
     }
-    
 
     var file = _cameraEntry.record.filePath;
     var tempFilePath = `${file.replace('.mp4', '-temp.mp4')}`;
@@ -140,7 +142,7 @@ async function getAll(){
 
 /**
  * Returns the video file path
- * @param {object} _recordingId - The recording id to play
+ * @param {string} _recordingId - The recording id to play
  * @returns {Array} Collection of recordings
  */
 async function getVideoFile(_recordingId){
@@ -160,10 +162,39 @@ async function getVideoFile(_recordingId){
 
 }
 
+/**
+ * Returns the video file path
+ * @param {string} _recordingId - The recording id to play
+ * @returns {Array} Collection of recordings
+ */
+async function tryDeleteRecording(_recordingId){
+
+  let tryGet = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });
+  if (!tryGet.success){
+    return tryGet;
+  }
+
+  var fullPath = path.join(cache.config.root, 'server', tryGet.payload.filePath);
+
+  if (!fs.existsSync(fullPath)) {
+    return { success: false, error: `Could not find the recording file at ${tryGet.payload.filePath}` }
+  } 
+
+  try{
+    fs.unlinkSyncfs(fullPath);
+  }catch(err){
+    return { success: false, error: `Could not delete the recording file at ${tryGet.payload.filePath} : ${err.message}` }
+  }
+
+  var tryDel = await dataService.deleteOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });
+
+  return tryDel;
+}
+
 /** Save recording to db */
 async function trysaveRecording( _recording){
 
-    let document = await dataService.insertOneAsync(collectionName, _recording);    
+    let document = await dataService.insertOneAsync(collectionName, createDBObject(_recording));    
     if (!document.success){
         return { success : false, error : `Could not save new recording : ${document.error}` };
     }
@@ -224,16 +255,20 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 
         //save to DB
         trysaveRecording({ 
+          id : _cameraEntry.record.id,
           cameraId : _cameraEntry.camera.id, 
-          recordedOn : _cameraEntry.record.startTime, 
+          recordedOn : _cameraEntry.record.startedOn, 
           filePath : _outputFile, 
           length : _cameraEntry.record.length 
         });      
         
         // cleanup
+        _cameraEntry.record.id = null;
         _cameraEntry.record.status = null; 
-        _cameraEntry.record.startTime = null;
-        //fs.unlinkSync(_inputFile);
+        _cameraEntry.record.startedOn = null;
+        _cameraEntry.record.endedOn = null;
+        //_cameraEntry.record = {};
+        if (cache.config.removeTempFiles) { fs.unlinkSync(_inputFile); }        
         cache.services.ioSocket.sockets.emit('ui-info', `Recording for [${_cameraEntry.camera.name}] saved.`);
       }
     )  
@@ -244,9 +279,43 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 function saveBufferToFile(_filePath, _cameraEntry){
 
   try{    
-    var frames = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 25;
-    var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
-    var buff = Buffer.concat(concat);
+    //const now = Date.now();
+    const now = _cameraEntry.record.startedOn.valueOf();
+    console.log("now1", _cameraEntry.record.startedOn);
+    console.log("now2", now);
+   
+    const seekLength = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 1000;
+    const seekTime = now - seekLength;
+    console.log('seekTime', seekTime);
+    const parser = ffmpegModule.createMpegTsParser();    
+    //const st = _cameraEntry.buffers2.filter((b) => b.time >= now).map((pb) => pb.chunk);
+    let st = [];
+    let minTime = 99999999999999999;
+    for (let k = 0; k < _cameraEntry.buffers2.length; k++) {
+      if (_cameraEntry.buffers2[k].time >= now){
+        minTime = Math.min(_cameraEntry.buffers2[k].time, minTime);
+        st.push(_cameraEntry.buffers2[k].chunk);
+      }
+    }
+
+    console.log("minTime", minTime);
+    const buffs = parser.findSyncFrame(st
+      
+    );
+
+    var con = [];
+    for (let i = 0; i < buffs.length; i++) {
+      for (let j = 0; j < buffs[i].chunks.length; j++) {
+        con.push(Buffer.from(buffs[i].chunks[j]));        
+      }
+      
+    }
+
+    var buff = Buffer.concat(con)
+    // var frames = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 25;
+    // var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
+    // _cameraEntry.record.additionalBuffer = ((concat.length - _cameraEntry.record.length * 25) / 25) * 1000;
+    // var buff = Buffer.concat(concat);
     fs.writeFileSync(_filePath, buff);
     logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
     return true;
@@ -256,7 +325,18 @@ function saveBufferToFile(_filePath, _cameraEntry){
   }
 }
 
+function createDBObject(_obj){
+  return {
+      _id : dataService.toDbiD(_obj.id),
+      cameraId : _obj.camId,
+      recordedOn : _obj.recordedOn,
+      filePath : _obj.filePath,
+      length : _obj.length
+  }
+}
+
 module.exports.recordCamera = recordCamera;
 module.exports.stopRecordingCamera = stopRecordingCamera;
 module.exports.getAll = getAll;
 module.exports.getVideoFile = getVideoFile;
+module.exports.tryDeleteRecording = tryDeleteRecording;

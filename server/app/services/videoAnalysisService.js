@@ -159,7 +159,7 @@ async function handleFrame(_cameraEntry, _frameData){
     _cameraEntry.event = {
       id : evtService.genrateEventId(),
       camId : _cameraEntry.camera.id,
-      startTime : now,    
+      startedOn : now,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],
       lock: 'handleFrame'
@@ -177,7 +177,8 @@ async function handleFrame(_cameraEntry, _frameData){
       return;
     }
 
-    _cameraEntry.event.recording = tryRec.payload;  
+    _cameraEntry.event.recording = tryRec.payload.path;  
+    _cameraEntry.event.recordingId = tryRec.payload.id;
     checkEventFinished(_cameraEntry);
   }
 
@@ -210,7 +211,7 @@ async function finishEvent(_cameraEntry, _now){
   }
 
   logger.log('debug', 'Finishing event');
-  _cameraEntry.event.finishTime = new Date();
+  _cameraEntry.event.endedOn = new Date();
 
   // silence new detections for x minutes
   silenceDetections(_cameraEntry, _now);
@@ -222,7 +223,7 @@ async function finishEvent(_cameraEntry, _now){
 
   // generate gif
   var gifFile = `temp/anim-${_cameraEntry.event.id}.gif`;
-  var eventDuration = _cameraEntry.event.finishTime - _cameraEntry.event.startTime;
+  var eventDuration = _cameraEntry.event.endedOn - _cameraEntry.event.startedOn;
   await createEventGif(_cameraEntry.event.buffer, _cameraEntry, eventDuration, gifFile);
 
   // merge recording and gif
@@ -249,7 +250,8 @@ async function finishEvent(_cameraEntry, _now){
  */
 function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile){
 
-  var remaining = _eventDuration;
+  logger.debug(`additionalBuffer ${_cameraEntry.record.additionalBuffer}`);
+
   var encoder = new GIFEncoder(_cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
   
   encoder.start();
@@ -261,17 +263,17 @@ function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile)
   var ctx = canvas.getContext('2d');
 
   // add delay to compensate for time sync
-  //encoder.setDelay(0); 
-  //encoder.addFrame(ctx);
+  var delay = _cameraEntry.record.additionalBuffer - 2100;
+  logger.debug(`delay ${delay}`);
+  // encoder.setDelay(_cameraEntry.record.additionalBuffer - 2100); 
+  // encoder.addFrame(ctx);
 
   for (let i = 0; i < _predictions.length; i++) {
 
       ctx.strokeStyle = _predictions[i].color ?? 'red';  
       var diff = i == _predictions.length - 1
-          ? remaining
-          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
-
-      remaining -= diff;
+          ? 500
+          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn - 200;
       
       encoder.setDelay(diff); 
       const x = utility.mapRange(_predictions[i].x, 0, 1, 0, _cameraEntry.camera.streamResolution.width);
@@ -306,6 +308,8 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
 
   //ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
+
+
   var outFile = _cameraEntry.event.recording.replace('.mp4', '-event.mp4');
 
   const args = [
@@ -332,11 +336,19 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
     null,
     null,
     async function(){
+
       logger.log('info', `[${_cameraEntry.event.id}] Event recording merge finished`);
+
+      if (cache.config.removeTempFiles) { fs.unlinkSync(_cameraEntry.event.recording) };  
+
       _cameraEntry.event.recording = outFile;
+
+      if (cache.config.removeTempFiles) { fs.unlinkSync(_gifFile) };  
+
       if (_callbackAsync) { await _callbackAsync(); }
     },
-    null
+    null,
+    false
   );
 }
 
@@ -350,29 +362,18 @@ async function processFrame(_cameraEntry, data){
     width = parseInt(data.width);
     height = parseInt(data.height);
     
-    //var jpegImageData = jpeg.encode(rawImageData, 50);
     storeFrame(data.pixels);
 
-    //let motion = null;
     let motion = detector.getMotionRegion(frameBuffer);
-    // let motion = { 
-    //   x: 10, 
-    //   y: 20, 
-    //   width : 100,
-    //   height : 50
-    // };
   
     if (motion != null){
-      // this is the dimentions from the ffmpeg stream
-      //motion.imageWidth = 640;
-      //motion.imageHeight = 360;
 
       if (_cameraEntry.camera.objectProcessor == "svm"){
         var detection = await svm.processImage(data.pixels, width, height); //is data width & height same as image?
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
           return [{ 
-            startTime: new Date(), 
+            startedOn: new Date(), 
             x: utility.mapRange(motion.x, 0, width, 0, 1280), 
             y: utility.mapRange(motion.y, 0, height, 0, 720),
             width: utility.mapRange(motion.width, 0, width, 0, 1280), 
@@ -410,8 +411,6 @@ function storeFrame(frame){
   frameBuffer[1] = frameBuffer[2];
   frameBuffer[2] = frame;
 }
-
-
 
 module.exports.createEventGif = createEventGif;
 module.exports.startVideoAnalysis = startVideoAnalysis;

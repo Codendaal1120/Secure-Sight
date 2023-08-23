@@ -24,6 +24,36 @@ async function getAll() {
     }
 };
 
+
+/**
+ * Returns the video file path
+ * @param {string} _recordingId - The recording id to play
+ * @returns {Array} Collection of recordings
+ */
+async function tryDeleteEvent(_recordingId){
+
+    let tryGet = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });
+    if (!tryGet.success){
+      return tryGet;
+    }
+  
+    var fullPath = path.join(cache.config.root, 'server', tryGet.payload.filePath);
+  
+    if (!fs.existsSync(fullPath)) {
+      return { success: false, error: `Could not find the recording file at ${tryGet.payload.filePath}` }
+    } 
+  
+    try{
+      fs.unlinkSyncfs(fullPath);
+    }catch(err){
+      return { success: false, error: `Could not delete the recording file at ${tryGet.payload.filePath} : ${err.message}` }
+    }
+  
+    var tryDel = await dataService.deleteOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });
+  
+    return tryDel;
+  }
+
 /**
  * Save new event to DB
  * @param {Object} _event - Event to save
@@ -63,6 +93,10 @@ function validate(evt){
         errors.push("Invalid event recording");
     }
 
+    if (!evt.recordingId){
+        errors.push("Invalid event recordingId");
+    }
+
     if (!evt.buffer){
         errors.push("Invalid event detections");
     }
@@ -77,10 +111,11 @@ function validate(evt){
 function createDBObject(_event){
     return {
         _id : dataService.toDbiD(_event.id),
-        camId : _event.camId,
-        startTime : _event.startTime,
-        finishTime : _event.finishTime,
+        cameraId : _event.camId,
+        startedOn : _event.startedOn,
+        endedOn : _event.endedOn,
         limitTime : _event.limitTime,
+        recordingId : _event.recordingId,
         recording : _event.recording,
         detections : _event.buffer
     }
@@ -94,3 +129,4 @@ function genrateEventId(){
 module.exports.genrateEventId = genrateEventId;
 module.exports.getAll = getAll;
 module.exports.tryCreateNew = tryCreateNew;
+module.exports.tryDeleteEvent = tryDeleteEvent;
