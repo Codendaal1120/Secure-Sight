@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const camService = require("../services/camerService");
-const recService = require("../services/recordingService");
-const cache = require("../modules/cache");
+const streamService = require("../services/streamService");
 
 /**
  * Get all configured cameras
@@ -23,7 +22,7 @@ router.get("/", async function (req, res) {
 });
 
 /**
- * Get all configured cameras
+ * Get a specific camera
  * @route GET /api/cameras/:camId
  * @produces application/json 
  * @group Cameras api
@@ -38,7 +37,28 @@ router.get("/:camId", async function (req, res) {
   }
   else{
     res.status(400).json(result.error);
-  }    
+  }     
+});
+
+/**
+ * Get camera snapshot
+ * @route GET /api/cameras/:camId/snapshot
+ * @produces application/json 
+ * @group Cameras api
+ * @param {string} req.params.camId - Camera DB id
+ * @returns {object} 200 - Returns single camera
+ * @returns {Error}  400 - Bad request
+*/
+router.get("/:camId/snapshot", async function (req, res) {  
+  const result = await streamService.tryGetSnapshot(req.params.camId); 
+  if (result.success){
+    res.set("Content-Type", "image/jpeg");
+    res.send(result.payload);
+  }
+  else{
+    res.status(400).json(result.error);
+  }  
+   
 });
 
 /**
@@ -100,28 +120,6 @@ router.delete("/:camId", async function (req, res) {
 });
 
 /**
- * Starts recording
- * @route POST /api/cameras
- * @group Cameras api
- * @produces application/json
- * @param {string} req.params.camId - Camera DB id
- * @param {Number} req.query.seconds - Seconds to record, default = 10
- * @returns {object} 200 - Status message
- * @returns {Error}  400 - Bad request
- */
-router.post("/:camId/record", async function (req, res) {
-  let sec = req.query.seconds ?? 10;
-  let cam = cache.getCamera(req.params.camId);
-  const result = await recService.recordCamera(cam, parseInt(sec)); 
-  if (result.success){
-      res.status(200).json(result.payload);
-  }
-  else{
-      res.status(400).json(result.error);
-  }    
-});
-
-/**
  * temp endpoint to check stream
  * @returns {string} HTML page
  */
@@ -138,5 +136,97 @@ router.get('/test', (req, res) =>
   </script>
 `),
 );
+
+router.get('/test2/test2', async (req, res) => {
+
+  //let un = 'secure-sight-share';
+  //let pwd = 'LetiXnNoKghG';
+
+  let un = 'guest';
+  let pwd = '';
+
+  let ip = '192.168.86.16';
+  let shareFolder = 'secure-sight';
+
+  /*************** hsmb2 ***************/
+  const SMB2 = require('smb2');
+  const smb2Client = new SMB2({
+    share: "\\\\192.168.86.16\\secure-sight",
+    domain: 'WORKGROUP',
+    debug: false,
+    autoCloseTimeout: 0,
+    username : un,   
+    password: pwd
+  });
+
+
+  smb2Client.readdir('', function(err, files){
+    if(err) throw err;
+    console.log('files', files);
+  });
+  //const SMB2 = require('smb2');
+  // const SMB2 = require('@marsaud/smb2');
+
+  // // create an SMB2 instance
+  // //smbclient //192.168.86.16/secure-sight --user=secure-sight-share[LetiXnNoKghG]
+
+  // const smb2Client = new SMB2({
+  //   share: "\\\\192.168.86.16\\secure-sight",
+  //   domain: 'WORKGROUP',
+  //   debug: false,
+  //   autoCloseTimeout: 0,
+  //   // username : 'guest',    
+  //   // password: '',
+  //   username : 'secure-sight-share',   
+  //   password: 'LetiXnNoKghG'
+  // });
+
+  // smb2Client.readdir('', function(err, files){
+  //   if(err) throw err;
+  //   console.log('files', files);
+  // });
+
+  // smb2Client.mkdir('test', function(err) {
+  //   if (err) throw err;
+  //   console.log('Directory created!');
+  // });
+
+  // smb2Client.writeFile('file.txt', 'Hello Node', function (err) {
+  //   if (err) throw err;
+  //   console.log('It\'s saved!');
+  // });
+
+  // const SambaClient = require('samba-client');
+
+  // let client = new SambaClient({
+  //   address: '//192.168.86.16/secure-sight', // required
+  //   username: un, // not required, defaults to guest
+  //   password: pwd, // not required
+  //   domain: 'WORKGROUP', // not required
+  //   maxProtocol: 'SMB3', // not required
+  //   maskCmd: true, // not required, defaults to false
+  // });
+
+  /*************** https://www.npmjs.com/package/mount-share ***************/
+//   const share = require('mount-share')({
+//     server: ip,
+//     share: shareFolder,
+//     drive: 'M',
+//     username: un,
+//     password: pwd
+//   })
+ 
+// share.mount().then(() => {
+//   console.log('mounted!');
+// })
+ 
+// // some time later
+// share.dismount()
+//     .then(() => {
+//       console.log('dismounted!');
+//     })
+
+  res.sendStatus(200);
+});
 
 module.exports = router;

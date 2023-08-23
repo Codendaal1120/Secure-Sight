@@ -143,7 +143,7 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
         bins: 6,
         norm: "L2"
     };
-    var desc = hog2.extractHOG(img, options_hog);
+    var desc = hog.extractHOG(img, options_hog);
     kc = kernel.compute(descriptor).addColumn(0, range(1, descriptor.length + 1))
     let p = svm.predictOne(desc);
 

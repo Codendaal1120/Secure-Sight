@@ -12,7 +12,13 @@ const logger = require('../modules/loggingModule').getLogger('tcpModule');
 async function createLocalServer(_targetPort, _callback){
     const server = createServer(async (socket) => {
       server.close();
-      _callback(socket);
+      try
+      {
+        _callback(socket);
+      }catch(err){
+        console.error(err.message);
+      }
+      
     });
 
     let tryCount = 0;

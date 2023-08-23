@@ -139,3 +139,7 @@ server/ffmpeg/ffmpeg.exe
 server/recording.mpeg
 .env.development
 .env.production
+server/recordings/
+server/ffmpeg/*
+server/test/files/
+server/snapshots/

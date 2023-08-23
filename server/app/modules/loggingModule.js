@@ -1,10 +1,10 @@
-const { createLogger, format, transports } = require('winston');
+const { createLogger, format, transports, Logger } = require('winston');
 const loggers = {};
 const fs = require("fs");
 
 let currentLogFile;
 if (!currentLogFile){
-  currentLogFile = getDate() + '.log';
+  currentLogFile = 'logs/' + getDate() + '.log';
 }
 
 const fsFormat = format.combine(
@@ -74,13 +74,14 @@ function getLogger(service){
 */
 function tryGetLogs(lines = 100) {    
   try{
+    lines += 1;
     var logLines = [];
     var logContents = fs.readFileSync(currentLogFile, { encoding: 'utf8', flag: 'r' }).split('\n');
-    for (let i = logContents.length - lines; i < logContents.length; i++) {
+    for (let i = logContents.length - lines; i <= logContents.length; i++) {
       if (logContents[i] && logContents[i].length > 0){
         logLines.push(logContents[i].replaceAll('\t', ' ').replaceAll('\r', ''));        
       }            
-    }
+    }  
 
     return { success : true, payload : logLines };
       
@@ -92,7 +93,7 @@ function tryGetLogs(lines = 100) {
 
 function getDate() {    
   var date = new Date(Date.now()).toLocaleString().split(',')[0]
-  return date.replaceAll("/", '');
+  return date.replace(/\//gm, '-');
 };
 
 module.exports.getLogger = getLogger;

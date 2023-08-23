@@ -1,30 +1,23 @@
 const camService = require("./camerService");
-const recService = require("./recordingService");
 const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
 const { once } = require('node:events');
-const { spawn } = require('node:child_process');
 const ffmpegModule = require("../modules/ffmpegModule");
-const ffmpeg = ffmpegModule.getFfmpagPath();
 const logger = require('../modules/loggingModule').getLogger('streamService');
+const fetch = require("node-fetch");
+const fs = require("fs");
+const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let mpegTsParser = null;
-let io = null;
-let em = null;
 
 /**
  * Start streaming service
- * @param {object} _ioServer - The global sockect.io reference to use for events
- * @param {Object} _eventEmitter - The global event emitter
  */
-async function startStreams(_ioServer, _eventEmitter) {    
-
-  io = _ioServer;
-  em = _eventEmitter;
+async function startStreams() {    
   mpegTsParser = createMpegTsParser();
   
-  let cameras = await camService.getAll();
-
+  let cameras = await camService.getAll();  
+  
   for (let i = 0; i < cameras.payload.length; i++) {
     if (cameras.payload[i].deletedOn == null){
       await createCameraStreams(cameras.payload[i]);   
@@ -32,23 +25,146 @@ async function startStreams(_ioServer, _eventEmitter) {
   } 
 }
 
+/**
+ * Tries to get a image from the camera, some cameras have a snapshot url
+ * @param {string} _camId - Camera ID to get the snapshot for
+ * @return {Object} Status result
+ */
+var tryGetSnapshot = async function(_camId){
+        
+  if (!_camId){
+      return { success : false, error : [ "Invalid camera Id" ] };
+  }
+
+  let tryGetCam = await camService.getOneById(_camId);
+  if (!tryGetCam.success){
+      return tryGetCam;
+  }
+
+  // not all cameras have an http endpoint
+  // TP-link cameras can only have a single connection to a stream from an IP,
+  // which means we need to use an alternative stream to get the snapshot
+  if (tryGetCam.payload.snapshotType == "http"){
+      return await tryGetSnapshotFromUrl(tryGetCam.payload.snapshotUrl, tryGetCam.payload.id);
+  }
+
+  return await tryGetSnapshotFromStream(tryGetCam.payload); 
+}
+
+async function tryGetSnapshotFromUrl(_url, _camId){
+  try{       
+      const response = await fetch(_url);
+      const b = await response.buffer();
+      return { success : true, payload : b };
+  } catch(error){
+      var msg = `Unable to get snapshot from camera ${_camId} : ${error.message}`;
+      logger.log('error', msg)
+      return { success : false, error : msg };
+  }
+}
+
+async function tryGetSnapshotFromStream(_cam){
+  try{    
+
+    var tempFile = `snapshots/${_cam.id}.jpg`
+    if (fs.existsSync(tempFile)){
+      fs.unlinkSync(tempFile);
+    }    
+
+    const args = [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-fflags',
+      '+genpts',
+      '-rtsp_transport',
+      'tcp',
+      '-i',
+      _cam.snapshotUrl,
+      '-vframes',
+      '1',
+      tempFile,
+    ];
+
+    const cpx = ffmpegModule.runFFmpeg(
+        args, 
+        `[${_cam.id}] snapper`, 
+        function(data){
+          // on spawn
+          logger.log('info', `[${_cam.id}] Taking snapshot`);
+        },
+        null,
+        null,
+        function(){
+          done = true;
+        }
+    )  
+
+    // read file
+    return await getSnapshotImageFile(tempFile, _cam.id, 7);
+
+  } catch(error){
+      var msg = `Unable to take snapshot from camera stream ${_cam.id} : ${error.message}`;
+      logger.log('error', msg);
+      return { success : false, error : msg };
+  }
+}
+
+async function getSnapshotImageFile(_filePath, _camId, _attempts){
+
+  var now = new Date();
+
+  if (cache.cameras[_camId].snapshot && 
+      cache.cameras[_camId].snapshot.cacheTill > now && 
+      fs.existsSync(cache.cameras[_camId].snapshot.file)){
+
+      var b = fs.readFileSync(cache.cameras[_camId].snapshot.file);
+      return { success : true, payload : b }; 
+  }
+
+  for (let i = 0; i < _attempts; i++) {
+    if (!fs.existsSync(_filePath)){
+      await timeout(500);
+    }
+    else{
+      break;
+    }
+  }
+
+  if (!fs.existsSync(_filePath)){
+    logger.log('error', 'Timeout waiting for snapshot');
+    return { success : false, error : 'Timeout waiting for snapshot' };
+  }  
+
+  var b = fs.readFileSync(_filePath);
+
+  //cache 
+  cache.cameras[_camId].snapshot = {
+    file : _filePath,
+    cacheTill : new Date(now.getTime() + 10 * 60000)
+  }
+
+  return { success : true, payload : b }; 
+}
+
 /** Create streams for each camera */
 async function createCameraStreams(_cam){   
 
-  let mpegTsPort = await startFeedStream(_cam);   
-  let watcherPort = await startWatcherStream(_cam);   
+  let feedStream = await startFeedStream(_cam);   
+  let watchStream = await startWatcherStream(_cam);   
 
   let camServ = {
-    index : cache.cameras.length,
     camera : _cam,
-    mpegTsPort : mpegTsPort,
-    watcherPort : watcherPort,
+    feedStream : feedStream,
+    watchStream : watchStream,
     record : {
-      status : null
-    }
+      status : null,
+      buffers : []
+    },
+    buffers : []
   }    
 
-  cache.cameras.push(camServ);
+  cache.cameras[_cam.id] = camServ;
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -59,10 +175,14 @@ async function startFeedStream(cam){
     for await (const chunks of mpegTsParser.parse(socket)) {
         for (const chunk of chunks.chunks) {
             // emit the stream data to the event handler
-            em.emit(`${cam.id}-stream-data`, chunk);            
+            //if (cam.id == '64d8f3416388327a381604e4'){ console.log(`${cam.id}-stream-data`) }
+            cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
   });
+
+  // note eufy cams have lower RTSP quality
+  // https://www.reddit.com/r/EufyCam/comments/hbo2tn/subpar_quality_rtsp_stream_from_2k_indoor_cam/
 
   const args = [
     '-hide_banner',
@@ -71,29 +191,18 @@ async function startFeedStream(cam){
     '-fflags',
     '+genpts',
     '-rtsp_transport',
-    'udp',
-    // '-stimeout',
-    // '100000000',
+    cam.transport,
     '-i',
     cam.url,
     '-vcodec',
-    'libx264',
+    'copy',
     '-preset:v',
     'ultrafast',
-    '-bsf:a',
-    'aac_adtstoasc',
-    '-acodec',
-    'libfdk_aac',
-    '-profile:a',
-    'aac_low',
+    '-an',
     '-flags',
     '+global_header',
     '-ar',
     '8k',
-    '-b:a',
-    '100k',
-    '-ac',
-    '1',
     '-f',
     'tee',
     '-map',
@@ -103,37 +212,27 @@ async function startFeedStream(cam){
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
 
-  const cp = spawn(ffmpeg, args);
-  logger.log('info', `[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
+  //-an
 
-  cp.stderr.on('data', (data) => {
-    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    logger.log('error', `[${cam.id}] Feed stream stderr`, err);
-  });
+  const cp = ffmpegModule.runFFmpeg(
+    args, 
+    `[${cam.id}] feed stream`, 
+    function(data){
+      // on spawn
+      logger.log('info', `[${cam.id}] Feed stream started on ${mpegTsStreamPort}`);
+  })  
 
-  cp.on('exit', (code, signal) => {
-    if (code === 1) {
-      logger.log('error', `[${cam.id}] Main stream exited`);
-    } else {
-      logger.log('error', `[${cam.id}] FFmpeg main process exited (expected)`);
-    }
-  });
-
-  cp.on('close', () => {
-    logger.log('info', `[${cam.id}] main stream process closed`);
-  });  
-
-  return mpegTsStreamPort;
+  return { port: mpegTsStreamPort, process: cp };
 }
 
 /** Creates the watcher stream, which wiil stream the feed stream to the io.socket for the UI */
 async function startWatcherStream(cam){
 
-
   let watcherPort = await tcp.createLocalServer(null, async function(socket){
-    em.on(`${cam.id}-stream-data`, function (data) {     
-      //logger.log('info', 'watch') ;
-      socket.write(data);    
+    cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {     
+      //logger.log('info', `watch from ${cam.id}`) ;
+      socket.write(data);       
+      addToCameraBuffer(cam.id, data);
     });
   });
 
@@ -153,12 +252,13 @@ async function startWatcherStream(cam){
     'mpegts',
     '-vcodec',
     'mpeg1video',
-    '-an','-s',
-    '1280x720',
+    '-an',
+    // '-s',
+    // '1280x720',
     '-b:v',
     '199k',
     '-r',
-    20,
+    30,
     '-bf',
     '0',
     '-preset:v',
@@ -171,33 +271,30 @@ async function startWatcherStream(cam){
     '1024',
     '-']
 
-  const cp = spawn(ffmpeg, args);  
-  logger.log('info', `[${cam.id}] Watcher stream started on ${watcherPort}`);
-
-  cp.stdout.on('data', (data) => {
-    // this goes to UI
-    //logger.log('info', 'writing to ', `${cam.id}-stream`);
-    io.sockets.emit(`${cam.id}-stream`, data);
-  });
-
-  cp.stderr.on('data', (data) => {
-    let err = data.toString().replace(/(\r\n|\n|\r)/gm, ' - ');
-    logger.log('error', `[${cam.id}] watcher stderr`, err);
-  });
-
-  cp.on('exit', (code, signal) => {
-    if (code === 1) {
-      logger.log('error', `${cam.id} watcher exit`);
-    } else {
-      logger.log('error', `[${cam.id}] FFmpeg watcher process exited (expected)`);
+  const cpx = ffmpegModule.runFFmpeg(
+      args, 
+      `[${cam.id}] feed stream`, 
+      function(data){
+        // on spawn
+        logger.log('info', `[${cam.id}] Watcher stream started on ${watcherPort}`);
+    },
+    function(data){
+      // this goes to UI
+      //logger.log('info', `writing to ${cam.id}-stream`);
+      cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);
+      
     }
-  });
+  )  
 
-  cp.on('close', () => {
-    logger.log('info', `[${cam.id}] Watcher process closed`);
-  });
+  return { port: watcherPort, process: cpx };
+}
 
-  return watcherPort;
+function addToCameraBuffer(_camId, _buffer){
+  if (cache.cameras[_camId].buffers.length > cache.config.cameraBufferSize * 1.2){
+    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, cache.config.cameraBufferSize * 0.2);
+  }
+
+  cache.cameras[_camId].buffers.push(_buffer);  
 }
 
 /**
@@ -288,3 +385,4 @@ const createMpegTsParser = () => {
 };
 
 module.exports.startStreams = startStreams;
+module.exports.tryGetSnapshot = tryGetSnapshot;

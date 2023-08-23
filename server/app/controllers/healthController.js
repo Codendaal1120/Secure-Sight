@@ -23,13 +23,24 @@ router.get("/", async function (req, res) {
  * @returns {Array} Log lines
  */
 router.get("/logs", function (req, res) {  
-    let tryGetLogs = loggingModule.tryGetLogs(req.params.lines);
+    let tryGetLogs = loggingModule.tryGetLogs(parseInt(req.query.lines));
     if (tryGetLogs.success){
         res.status(200).json(tryGetLogs.payload);
     }
     else{
         res.status(500).json(tryGetLogs.error);
     }  
+});
+
+/**
+ * Tests the socket messages
+ * @param {string} req.params.key - Scoket topic
+ * @param {string} req.params.msg - Message to send
+ */
+router.get("/sock/:topic/:msg", async function (req, res) {  
+
+    await healthService.testMessage(req.params.topic, req.params.msg);    
+    res.sendStatus(200); 
 });
 
 module.exports = router;

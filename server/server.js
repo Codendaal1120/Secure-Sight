@@ -6,7 +6,6 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const events = require('events');
-const em = new events.EventEmitter();
 const cache = require('./app/modules/cache');
 const logger = require('./app/modules/loggingModule').getLogger();
 const fs = require("fs");
@@ -20,14 +19,27 @@ if (!process.env.NODE_ENV){
 }
 
 dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
+
 const port = process.env.PORT; 
 cache.config = {
     recording : {
         path : process.env.RECORD_PATH
     },
     env : process.env.NODE_ENV,
-    root : root
+    root : root,
+    cameraBufferSize : 1500,
+    event : {
+        silenceSeconds : 180,
+        limitSeconds : 120,
+        idleEndSeconds : 7,
+    }    
 };
+
+if (port == undefined){
+    throw new Error('Unable to read config for env ' + process.env.NODE_ENV);
+}
+
+cache.services.eventEmmiter = new events.EventEmitter();
 
 /** Setup */
 var build = fs.readFileSync('build.txt').toString().trim();
@@ -38,8 +50,9 @@ if (process.env.NODE_ENV != 'unit_test'){
     videoAnalysisService = require("./app/services/videoAnalysisService");
 }
 
+logger.log('info', `CORS origin :${process.env.CORS_ORIGIN}`);
 app.use(cors({
-    origin : process.env.ORIGIN, 
+    origin : process.env.CORS_ORIGIN, 
     credentials: true, 
     allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
 }));
@@ -50,15 +63,23 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const http = require('http').createServer(app);
 
 /** Socket IO config */
-const io = require('socket.io')(http, {
+cache.services.ioSocket = require('socket.io')(http, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST']
     }
 });
 
-io.on("connection", (socket) => {
-    logger.log('info', `New client connected ${socket.id}`); 
+cache.services.ioSocket.on("connection", (socket) => {
+    logger.log('info', `New client connected ${socket.id}`);   
+
+    socket.on('disconnect', function(reason) {
+        logger.log('info', `${socket.id} Got disconnect! ${reason}`);
+    });
+});
+
+cache.services.ioSocket.on('disconnect', function(reason) {
+    console.log(`${reason} Got disconnect!`);
 });
 
 /** Endpoints */
@@ -69,13 +90,14 @@ app.get('/echo', async (req, res) => {
 app.use("/api/health", require("./app/controllers/healthController"));
 app.use("/api/cameras", require("./app/controllers/camerasController"));
 app.use("/api/svm", require("./app/controllers/svmController"));
+app.use("/api/recordings", require("./app/controllers/recordingsController"));
 
 /** Stream setup */
 if (streamService != null && streamService != null){
     logger.log('info', 'Starting streaming');
     (async () => {
-        await streamService.startStreams(io, em);
-        await videoAnalysisService.startVideoAnalysis(io, em);
+        await streamService.startStreams();
+        await videoAnalysisService.startVideoAnalysis();
     })();
 }
 

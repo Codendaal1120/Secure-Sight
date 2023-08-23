@@ -1,16 +1,18 @@
-const entries = [];
+const entries = {};
 /**
  * Returns the cached camera with the specified id
- * @param {Number} _camId - the camera db id
+ * @param {string} _camId - the camera db id
  * @return {object} The camera cache entry
  */
 function getCamera(_camId){
-    for (let i = 0; i < entries.length; i++) {
-        if (entries[i].camera.id == _camId){
-            return entries[i];
-        }        
-    }
+    return entries[_camId];
 }
+
+module.exports.services = {
+    eventEmmiter : null,
+    ioSocket : null
+};
+
 module.exports.config = {};
 module.exports.cameras = entries;
 module.exports.getCamera = getCamera;

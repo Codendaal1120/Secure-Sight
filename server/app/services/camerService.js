@@ -1,6 +1,8 @@
 const dataService = require("./dataService");
 const logger = require('../modules/loggingModule').getLogger('camerService');
 const collectionName = "cameras";
+const cache = require('../modules/cache');
+
 
 /**
  * Get all configured cameras from DB
@@ -29,13 +31,20 @@ async function getAll() {
  * @param {string} _cameraId - Unique ID of camera
  * @return {Object} Camera
  */
-async function getOneById(_cameraId) {    
+async function tryGetOneById(_cameraId) {    
     // validate input
     if (!_cameraId){
         return { success : false, error : "Invalid cameraId" };
     }
 
     try{
+        // try to fetch from cache
+        let cam = cache[_cameraId];
+        if (cam){
+            return { success : true, payload : cam.camera };
+        }
+
+        // fetch from DB
         let tryGetCams = await dataService.getOneAsync(collectionName, { "_id" : dataService.toDbiD(_cameraId), deletedOn : null });
 
         if (!tryGetCams.success){
@@ -149,8 +158,24 @@ function validateCamera(camera){
     return errors;
 }
 
+function httpRequest(options) {
+    return new Promise ((resolve, reject) => {
+      let req = http.request(options);
+  
+      req.on('response', res => {
+        resolve(res);
+      });
+  
+      req.on('error', err => {
+        reject(err);
+      });
+  
+      req.end();
+    }); 
+  }
+
 module.exports.getAll = getAll;
-module.exports.getOneById = getOneById;
+module.exports.getOneById = tryGetOneById;
 module.exports.tryCreateNewCam = tryCreateNewCam;
 module.exports.tryUpdateCam = tryUpdateCam;
 module.exports.tryDeleteCam = tryDeleteCam;

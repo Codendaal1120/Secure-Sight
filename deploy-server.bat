@@ -8,6 +8,6 @@ cd /d %~dp0\server
 set /p build=< build.txt
 set /A build = build + 1
 echo %build% > build.txt
-xcopy /Y "%~dp0\build.txt" "E:\Development\BSC\Sem7\CM3070-Final Project\.SecureSight-deploy\server"
+xcopy /Y "build.txt" "E:\Development\BSC\Sem7\CM3070-Final Project\.SecureSight-deploy\server"
 echo BUILD %build%
 pause
