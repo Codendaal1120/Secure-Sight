@@ -18,6 +18,14 @@ interface TryResult<T> {
   payload: T | null;
   error: string | null
 }
+
+export interface Config {
+  cameraBufferSeconds: number;
+  eventSilenceSeconds : number;
+  eventLimitSeconds: number;
+  eventIdleEndSeconds: number;
+}
+
 export class API {
 
   static async stopCameraRecording(_camId: string):Promise<TryResult<string>> {

@@ -35,7 +35,9 @@ const Layout = (props: PropsWithChildren) => {
     <div
       style={layoutStyle}
       className={classNames({
-        "grid bg-slate-800 ": true,
+        "b-white" : true,
+        "bg-gray-900 " : false,
+        "grid ": true,
         "grid-cols-sidebar": !collapsed,
         "grid-cols-sidebar-collapsed": collapsed,
         "transition-[grid-template-columns] duration-300 ease-in-out": true,
