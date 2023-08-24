@@ -24,19 +24,19 @@ let frameBuffer = [];
 async function startVideoAnalysis() {    
 
   for (const [k, v] of Object.entries(cache.cameras)) {
-    if (v.camera.videoProcessingEnabled){
-      await StartVideoProcessing(v);        
-    }  
+    await StartVideoProcessing(v);  
   }
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
 async function StartVideoProcessing(_cameraEntry){
-
   let streamPort = await tcp.createLocalServer(null, async function(socket){
     cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {  
-      socket.write(data);    
+      if (isInSchedule(_cameraEntry.camera)){
+        socket.write(data);   
+      }        
     });
+         
   });
 
   const args = [
@@ -90,6 +90,27 @@ async function StartVideoProcessing(_cameraEntry){
   });
 
   cpx.stdout.pipe(pipe2pam); 
+}
+
+function isInSchedule(_camera){
+  if (!_camera.videoProcessingEnabled){
+    return false;
+  }
+
+  const now = new Date();
+  const dateString = now.toISOString().split('T')[0]; 
+  const day = now.getDay();
+  
+  if (_camera.eventConfig.schedule[day].ranges != null){
+    for (let i = 0; i < _camera.eventConfig.schedule[day].ranges.length; i++) {
+      var scheduleStart = Date.parse(dateString + 'T' + _camera.eventConfig.schedule[day].ranges[i].start);
+      var scheduleEnd = Date.parse(dateString + 'T' + _camera.eventConfig.schedule[day].ranges[i].end);
+
+      var inSched = scheduleStart < now && scheduleEnd > now;
+      return inSched;      
+    }
+  }
+
 }
 
 /** Check if the event can be finished.
