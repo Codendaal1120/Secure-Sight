@@ -65,15 +65,13 @@ async function stopRecordingAfterDelay(_cameraEntry, _seconds){
  */
 async function stopRecordingCamera(_cameraEntry, _fromTimeout){
 
-  _cameraEntry.name = 'TEST';
-
   if (_cameraEntry.record.status != 'recording'){
     return { success : true, payload : "No recording in progress" };
   }
 
   try{
     _cameraEntry.record.status = null;
-    _cameraEntry.record.endedOn = (new Date()).getTime();
+    _cameraEntry.record.endedOn = new Date();
     _cameraEntry.record.length = Math.round((_cameraEntry.record.endedOn - _cameraEntry.record.startedOn) / 1000, 0);     
 
     if (_fromTimeout){
@@ -86,13 +84,12 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
     var file = _cameraEntry.record.filePath;
     var tempFilePath = `${file.replace('.mp4', '-temp.mp4')}`;
 
-    if (!saveBufferToFile(tempFilePath, _cameraEntry)){
+    if (!await saveBufferToFile(tempFilePath, _cameraEntry)){
       cache.services.ioSocket.sockets.emit('ui-error', `Could not save recording for [${_cameraEntry.camera.name}]`);
       return { success : false, error : `Could not save recording for [${_cameraEntry.camera.name}]` };
     }
 
-    //_cameraEntry.record.buffers = [];
-    runFfmpegConvertFile(tempFilePath, file, _cameraEntry);
+    runFfmpegConvertFile(tempFilePath, file, _cameraEntry, _cameraEntry.record.length);
 
     return { success : true, payload : "Recording stopped" };
   }
@@ -204,7 +201,7 @@ function getRecordingDirectory(){
 }
 
 /** Converts the RSTP stream saved buffer to libx264, which can be viewed in a browser */
-function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
+function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry, _length){
 
   const args = [
     '-hide_banner',
@@ -212,20 +209,16 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
     'error',
     '-fflags',
     '+genpts',
-    // '-ss',
-    // '00:00:03',
     '-i',
     _inputFile,
-    //'-ss 2',
+    '-ss',
+    '00:00:00',
+    '-to',
+    _length >= 10 ? `00:00:${_length}` : `00:00:0${_length}`,
     '-c:v',
     'copy',
-    //'libx265',
-    // '-crf',
-    // '18',
     '-c:a',
     'aac',
-    // '-vf',
-    // 'scale=1280x720',
     _outputFile];
 
   const cpx = ffmpegModule.runFFmpeg(
@@ -274,99 +267,79 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
     return cpx;
 }
 
-function saveBufferToFile(_filePath, _cameraEntry){
+async function saveBufferToFile(_filePath, _cameraEntry){
 
-  try{    
-    const seekTime = _cameraEntry.record.startedOn.valueOf() - _cameraEntry.record.prependSeconds;
-    const buffers = _cameraEntry.buffer.filter((b) => b.time >= seekTime).map((pb) => pb.chunk);
-    const parsedBuffers = parser.findSyncFrame(buffers)
-    .map(function(b){ return b.chunks; })
-    .reduce(function(a, b){ return a.concat(b); }, []);
-    var buffer = Buffer.concat(parsedBuffers);
-
-    // var con = [];
-    // for (let i = 0; i < parsedBuffers.length; i++) {
-    //   for (let j = 0; j < parsedBuffers[i].chunks.length; j++) {
-    //     con.push(Buffer.from(parsedBuffers[i].chunks[j]));        
-    //   }      
-    // }
-
-    // let st = [];
-    // for (let k = 0; k < _cameraEntry.buffers.length; k++) {
-    //   if (_cameraEntry.buffers2[k].time >= now){
-    //     st.push(_cameraEntry.buffers2[k].chunk);
-    //   }
-    // }
-
-    /**
-     * var arr = [[1,2],[3, 4]];
-arr.reduce(function(a, b){ return a.concat(b); }, []);
-=>  [1,2,3,4]
-
-var arr = [{ name: "name1", phoneNumbers : [5551111, 5552222]},{ name: "name2",phoneNumbers : [5553333] }];
-arr.map(function(p){ return p.phoneNumbers; })
-   .reduce(function(a, b){ return a.concat(b); }, [])
-=>  [5551111, 5552222, 5553333]
-     */
-
-
- 
+  try{        
+    // since there could be a delay in recieving and processing the stream, we cannot always garuntee that the length will be what was requested. To mitigate this, we will start the stream earlier, then wait to record some additional time, then trim to the exact time in the conversion process
     /*
-    console.log("now1", _cameraEntry.record.startedOn);
-    console.log("now2", now);
-   
-    const seekLength = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 1000;
-    const seekTime = now - seekLength;
-    console.log('seekTime', seekTime);
-   
-    //const st = _cameraEntry.buffers2.filter((b) => b.time >= now).map((pb) => pb.chunk);
-    let st = [];
-    let minTime = 99999999999999999;
-    for (let k = 0; k < _cameraEntry.buffers2.length; k++) {
-      if (_cameraEntry.buffers2[k].time >= now){
-        minTime = Math.min(_cameraEntry.buffers2[k].time, minTime);
-        st.push(_cameraEntry.buffers2[k].chunk);
+    var now = new Date();
+    console.log('now1', now);
+    console.log('now2', now.valueOf());
+    console.log('latest buffer', _cameraEntry.buffer[_cameraEntry.buffer.length - 1].time);
+    console.log('prepend', _cameraEntry.record.prependSeconds);
+    */
+    await timeout(3000);
+    const seekTime = _cameraEntry.record.startedOn.valueOf() - 2000 - (_cameraEntry.record.prependSeconds * 1000);
+    const buffers = _cameraEntry.buffer.filter((b) => b.time >= seekTime).map((pb) => pb.chunk);
+
+    /*
+    var rangeStart = 999999999999999;1692894012430
+
+    var rangeEnd = 0;
+    var buffers = [];
+    for (let i = 0; i < _cameraEntry.buffer.length; i++) {
+      if (_cameraEntry.buffer[i].time >= seekTime){
+        rangeStart = Math.min(rangeStart, _cameraEntry.buffer[i].time);
+        rangeEnd = Math.max(rangeEnd, _cameraEntry.buffer[i].time);
+        buffers.push(_cameraEntry.buffer[i].chunk);
       }
     }
+    console.log('Recording range = ' + rangeStart + ' --> ' + rangeEnd);
+    */
 
-    console.log("minTime", minTime);
-    const buffs = parser.findSyncFrame(st
-      
-    );
-   
-
-    var con = [];
-    for (let i = 0; i < buffs.length; i++) {
-      for (let j = 0; j < buffs[i].chunks.length; j++) {
-        con.push(Buffer.from(buffs[i].chunks[j]));        
-      }
-      
+    if (buffers.length == 0){
+      logger.log('error', `Error saving recording to disk : No buffers could be loaded`);
+      return false;
     }
 
-    var buff = Buffer.concat(con)
-     */
-    // var frames = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 25;
-    // var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
-    // _cameraEntry.record.additionalBuffer = ((concat.length - _cameraEntry.record.length * 25) / 25) * 1000;
-    // var buff = Buffer.concat(concat);
+    const parsedBuffers = parser.findSyncFrame(buffers)
+      .map(function(b){ return b.chunks; })
+      .reduce(function(a, b){ return a.concat(b); }, []);
 
+    var buffer = Buffer.concat(parsedBuffers);
     fs.writeFileSync(_filePath, buffer);
     logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
+
+    console.log('original time', _cameraEntry.record.startedOn.valueOf());
+    console.log('original time2', _cameraEntry.record.startedOn);
+    console.log('new time', seekTime);
+    console.log('new time2',  new Date(seekTime));
+
+
+    _cameraEntry.record.startedOn = new Date(seekTime);
+    _cameraEntry.record.endedOn = new Date(seekTime + _cameraEntry.record.length);
+
     return true;
   }
   catch(err){
     logger.log('error', `Error saving recording to disk : ${err.message}`);
+    return false;
   }
 }
 
 function createDBObject(_obj){
-  return {
-      _id : dataService.toDbiD(_obj.id),
-      cameraId : _obj.camId,
-      recordedOn : _obj.recordedOn,
-      filePath : _obj.filePath,
-      length : _obj.length
-  }
+
+  var ret = {};
+  for (const [k, v] of Object.entries(_obj)) {
+
+    if (k == 'id'){
+      ret['_id'] = dataService.toDbiD(_obj.id);
+      continue;
+    }
+    ret[k] = v;
+  }  
+
+  return ret;
 }
 
 module.exports.recordCamera = recordCamera;

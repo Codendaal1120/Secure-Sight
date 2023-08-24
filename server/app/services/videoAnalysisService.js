@@ -14,7 +14,6 @@ const fs = require("fs");
 const GIFEncoder = require('gif-encoder-2');
 const { createCanvas } = require('canvas');
 const utility = require('../modules/utility');
-const { log } = require("console");
 
 let frameIndex = -1;
 let frameBuffer = [];
@@ -25,10 +24,26 @@ let frameBuffer = [];
 async function startVideoAnalysis() {    
 
   for (const [k, v] of Object.entries(cache.cameras)) {
-    if (v.camera.deletedOn == null && v.camera.videoProcessingEnabled){
+    if (hasVideoAnalisys(v)){
       await StartVideoProcessing(v);        
-    }   
+    }  
   }
+}
+
+function hasVideoAnalisys(cam){
+  if (cam.camera.deletedOn != null){
+    return false;
+  }
+
+  if (cache.config.enableCamVaOverride.includes(cam.camera.id)){
+    return true;
+  }
+
+  if (cache.config.disableCamVaOverride.includes(cam.camera.id)){
+    return false;
+  }
+
+  return cam.camera.videoProcessingEnabled;
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -85,8 +100,8 @@ async function StartVideoProcessing(_cameraEntry){
 
   pipe2pam.on('pam', async (data) => {
     //console.log('pam');
-    await handleFrame(_cameraEntry, data)
-    
+    var now = new Date(new Date().getTime() -0);
+    await handleFrame(_cameraEntry, data, now);    
   });
 
   cpx.stdout.pipe(pipe2pam); 
@@ -126,9 +141,9 @@ async function checkEventFinished(_cameraEntry){
 }
 
 /** Handler for the framedata (detections) */
-async function handleFrame(_cameraEntry, _frameData){
+async function handleFrame(_cameraEntry, _frameData, _detectedOn){
   
-  var predictions = await processFrame(_cameraEntry, _frameData);    
+  var predictions = await processFrame(_cameraEntry, _frameData, _detectedOn);    
   
   if (predictions.length == 0){
     cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect-clear`, _cameraEntry.lastDetection?.toISOString());  
@@ -167,7 +182,7 @@ async function handleFrame(_cameraEntry, _frameData){
 
     // start recording, after the recording, we will finish the event.
     // the recording is limited according to our event limit, so this will end the finish the event when reached
-    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 7);
+    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 4);
 
     // without the recording, we cannot proceed
     if (!tryRec.success){
@@ -237,6 +252,9 @@ async function finishEvent(_cameraEntry, _now){
 
     _cameraEntry.event = null;  
     logger.debug('Event finished');
+  }, function(){
+    _cameraEntry.event = null;  
+    logger.debug('Event finished with errors');
   }); 
 }
 
@@ -264,7 +282,7 @@ function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile)
   // var delay = _cameraEntry.record.additionalBuffer - 2100;
   // logger.debug(`delay ${delay}`);
   // 3000 for prepend + 1000
-  encoder.setDelay(4000); 
+  encoder.setDelay(3000); 
   encoder.addFrame(ctx);
 
   for (let i = 0; i < _predictions.length; i++) {
@@ -303,18 +321,18 @@ function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile)
  * @param {Function} _callback - Optional callback to execute after the merging has finished
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
+async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync, _onFailCallback){
 
   //ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
   if (!fs.existsSync(_gifFile)){
-    logger.error(`[${_cameraEntry.event.id}] Unable to conver recording, could not find the gif file at '${_gifFile}'`);
-    return false;
+    logger.error(`[${_cameraEntry.event.id}] Unable to convert recording, could not find the gif file at '${_gifFile}'`);
+    _onFailCallback();
   }
 
   if (!fs.existsSync(_cameraEntry.event.recording)){
-    logger.error(`[${_cameraEntry.event.id}] Unable to conver recording, could not find the recording file at '${_cameraEntry.event.recording}'`);
-    return false;
+    logger.error(`[${_cameraEntry.event.id}] Unable to convert recording, could not find the recording file at '${_cameraEntry.event.recording}'`);
+    _onFailCallback();
   }
 
   var outFile = _cameraEntry.event.recording.replace('.mp4', '-event.mp4');
@@ -357,12 +375,10 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
     null,
     false
   );
-
-  return true;
 }
 
 /** Performs motion detection and objecty identification */
-async function processFrame(_cameraEntry, data){
+async function processFrame(_cameraEntry, data, _detectedOn){
 
   let predictions = [];
 
@@ -382,7 +398,7 @@ async function processFrame(_cameraEntry, data){
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
           return [{ 
-            startedOn: new Date(), 
+            startedOn: _detectedOn, 
             x: utility.mapRange(motion.x, 0, width, 0, 1280), 
             y: utility.mapRange(motion.y, 0, height, 0, 720),
             width: utility.mapRange(motion.width, 0, width, 0, 1280), 
@@ -399,7 +415,7 @@ async function processFrame(_cameraEntry, data){
         };
         var jpegImageData = jpeg.encode(rawImageData, 50);
         //fs.writeFileSync('image.jpg', jpegImageData.data);
-        predictions = await tf.processImage(jpegImageData.data, width, height);
+        predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);
       }
     }
   }

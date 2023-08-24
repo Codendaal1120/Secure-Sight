@@ -173,13 +173,9 @@ async function startFeedStream(cam){
 
   // this is the main stream port
   let mpegTsStreamPort = await tcp.createLocalServer(null, async function(socket){
-    for await (const chunks of mpegTsParser.parse(socket)) {
-        addToCameraBuffer2(cam.id, { chunk: chunks, time: Date.now() });
-        for (const chunk of chunks.chunks) {
-            // emit the stream data to the event handler
-            //if (cam.id == '64d8f3416388327a381604e4'){ console.log(`${cam.id}-stream-data`) }
-            //console.log('chunk', chunk.length);
-            
+    for await (const parsed of mpegTsParser.parse(socket)) {
+        addToCameraBuffer(cam.id, { chunk: parsed, time: parsed.time});
+        for (const chunk of parsed.chunks) {
             cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
@@ -236,8 +232,6 @@ async function startWatcherStream(cam){
     cache.services.eventEmmiter.on(`${cam.id}-stream-data`, function (data) {     
       //logger.log('info', `watch from ${cam.id}`) ;
       socket.write(data);     
-      //console.log('data', data.length);  
-      //addToCameraBuffer(cam.id, data);
     });
   });
 
@@ -294,16 +288,7 @@ async function startWatcherStream(cam){
   return { port: watcherPort, process: cpx };
 }
 
-// function addToCameraBuffer(_camId, _buffer){
-//   var bufferSize = cache.config.cameraBufferSeconds * 25;
-//   if (cache.cameras[_camId].buffers.length > bufferSize * 1.2){
-//     cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, bufferSize * 0.2);
-//   }
-
-//   cache.cameras[_camId].buffers.push(_buffer);  
-// }
-
-function addToCameraBuffer2(_camId, _buffer){
+function addToCameraBuffer(_camId, _buffer){
   var minDate = Date.now() - (cache.config.cameraBufferSeconds * 1000);
   while (cache.cameras[_camId].buffer.length > 0 && cache.cameras[_camId].buffer[0].time < minDate) {
     // remove the first element

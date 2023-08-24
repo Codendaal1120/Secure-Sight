@@ -18,7 +18,7 @@ async function getAll() {
         }
     
         // return the cameras
-        return { success : true, payload : tryGetCams.payload };        
+        return { success : true, payload : tryGetCams.payload.map((c) => createReturnObject(c)) };        
     }
     catch (err) {
         logger.log('error', err);
@@ -53,7 +53,7 @@ async function tryGetOneById(_cameraId) {
         }
     
         // return the cameras
-        return { success : true, payload : tryGetCams.payload };        
+        return { success : true, payload : createReturnObject(tryGetCams.payload) };        
     }
     catch (err) {
         logger.log('error', err);
@@ -78,7 +78,7 @@ async function tryCreateNewCam(_camera){
         return { success : false, error : `Could not create a new camera : ${document.error}` };
     }
 
-    return { success : true, payload : document.payload };
+    return { success : true, payload : createReturnObject(document.payload) };
 }
 
 /**
@@ -114,7 +114,7 @@ async function tryUpdateCam(_camId, _camera){
         return { success : false, error : `Could not update camera with id '${_camId}'` };
     }
 
-    return { success : true, payload : doc.payload };
+    return { success : true, payload : createReturnObject(doc.payload) };
 }
 
 /**
@@ -158,21 +158,9 @@ function validateCamera(camera){
     return errors;
 }
 
-function httpRequest(options) {
-    return new Promise ((resolve, reject) => {
-      let req = http.request(options);
-  
-      req.on('response', res => {
-        resolve(res);
-      });
-  
-      req.on('error', err => {
-        reject(err);
-      });
-  
-      req.end();
-    }); 
-  }
+function createReturnObject(doc){
+    return doc;
+}
 
 module.exports.getAll = getAll;
 module.exports.getOneById = tryGetOneById;

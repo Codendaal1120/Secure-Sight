@@ -25,7 +25,7 @@ let kernel = null;
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-async function processImage(_imgData, _imgWidth, _imgHeight) {    
+async function processImage(_imgData, _imgWidth, _imgHeight) {       
     if (!svm){
         logger.log('info', 'Loading model');
         svm = loadModelFromFile();

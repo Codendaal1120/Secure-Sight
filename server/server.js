@@ -33,7 +33,9 @@ cache.config = {
         limitSeconds : 120,
         idleEndSeconds : 7,
     },
-    removeTempFiles : false    
+    removeTempFiles : false,
+    enableCamVaOverride : process.env.ENABLE_MOTION_VA_OVERRIDE.split(' '),
+    disableCamVaOverride : process.env.DISABLE_MOTION_VA_OVERRIDE.split(' ')
 };
 
 if (port == undefined && process.env.NODE_ENV != 'unit_test'){
