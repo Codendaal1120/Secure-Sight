@@ -161,8 +161,8 @@ async function createCameraStreams(_cam){
       status : null,
       buffers : []
     },
-    buffers : [],
-    buffers2 : []
+    buffer : [],
+    buffers : []
   }    
 
   cache.cameras[_cam.id] = camServ;
@@ -237,7 +237,7 @@ async function startWatcherStream(cam){
       //logger.log('info', `watch from ${cam.id}`) ;
       socket.write(data);     
       //console.log('data', data.length);  
-      addToCameraBuffer(cam.id, data);
+      //addToCameraBuffer(cam.id, data);
     });
   });
 
@@ -294,25 +294,24 @@ async function startWatcherStream(cam){
   return { port: watcherPort, process: cpx };
 }
 
-function addToCameraBuffer(_camId, _buffer){
-  var bufferSize = cache.config.cameraBufferSeconds * 25;
-  if (cache.cameras[_camId].buffers.length > bufferSize * 1.2){
-    cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, bufferSize * 0.2);
-  }
+// function addToCameraBuffer(_camId, _buffer){
+//   var bufferSize = cache.config.cameraBufferSeconds * 25;
+//   if (cache.cameras[_camId].buffers.length > bufferSize * 1.2){
+//     cache.cameras[_camId].buffers = cache.cameras[_camId].buffers.splice(0, bufferSize * 0.2);
+//   }
 
-  cache.cameras[_camId].buffers.push(_buffer);  
-}
+//   cache.cameras[_camId].buffers.push(_buffer);  
+// }
 
 function addToCameraBuffer2(_camId, _buffer){
-  var bufferSize = cache.config.cameraBufferSeconds * 25;
-  if (cache.cameras[_camId].buffers2.length > bufferSize * 1.2){
-    cache.cameras[_camId].buffers2 = cache.cameras[_camId].buffers2.splice(0, bufferSize * 0.2);
+  var minDate = Date.now() - (cache.config.cameraBufferSeconds * 1000);
+  while (cache.cameras[_camId].buffer.length > 0 && cache.cameras[_camId].buffer[0].time < minDate) {
+    // remove the first element
+    cache.cameras[_camId].buffer.shift();
   }
 
-  cache.cameras[_camId].buffers2.push(_buffer);  
+  cache.cameras[_camId].buffer.push(_buffer);    
 }
-
-
 
 module.exports.startStreams = startStreams;
 module.exports.tryGetSnapshot = tryGetSnapshot;

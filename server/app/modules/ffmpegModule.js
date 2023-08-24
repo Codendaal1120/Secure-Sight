@@ -103,8 +103,6 @@ const createLengthParser = (length, verify) => {
 **/
 const createMpegTsParser = () => {
   return {
-    container: 'mpegts',
-    outputArguments: '[f=mpegts]',
     parse: createLengthParser(188, (concat) => {
       if (concat[0] != 0x47) {
         throw new Error('Invalid sync byte in mpeg-ts packet. Terminating stream.');

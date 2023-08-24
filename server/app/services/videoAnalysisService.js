@@ -167,7 +167,7 @@ async function handleFrame(_cameraEntry, _frameData){
 
     // start recording, after the recording, we will finish the event.
     // the recording is limited according to our event limit, so this will end the finish the event when reached
-    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 5);
+    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 7);
 
     // without the recording, we cannot proceed
     if (!tryRec.success){
@@ -250,8 +250,6 @@ async function finishEvent(_cameraEntry, _now){
  */
 function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile){
 
-  logger.debug(`additionalBuffer ${_cameraEntry.record.additionalBuffer}`);
-
   var encoder = new GIFEncoder(_cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
   
   encoder.start();
@@ -263,17 +261,18 @@ function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile)
   var ctx = canvas.getContext('2d');
 
   // add delay to compensate for time sync
-  var delay = _cameraEntry.record.additionalBuffer - 2100;
-  logger.debug(`delay ${delay}`);
-  // encoder.setDelay(_cameraEntry.record.additionalBuffer - 2100); 
-  // encoder.addFrame(ctx);
+  // var delay = _cameraEntry.record.additionalBuffer - 2100;
+  // logger.debug(`delay ${delay}`);
+  // 3000 for prepend + 1000
+  encoder.setDelay(4000); 
+  encoder.addFrame(ctx);
 
   for (let i = 0; i < _predictions.length; i++) {
 
       ctx.strokeStyle = _predictions[i].color ?? 'red';  
       var diff = i == _predictions.length - 1
           ? 500
-          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn - 200;
+          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
       
       encoder.setDelay(diff); 
       const x = utility.mapRange(_predictions[i].x, 0, 1, 0, _cameraEntry.camera.streamResolution.width);
@@ -308,7 +307,15 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
 
   //ffmpeg -i sample.mp4 -i unit_test1.gif -filter_complex "[0:v][1:v] overlay=0:0'" -pix_fmt yuv420p -c:a copy output.mp4
 
+  if (!fs.existsSync(_gifFile)){
+    logger.error(`[${_cameraEntry.event.id}] Unable to conver recording, could not find the gif file at '${_gifFile}'`);
+    return false;
+  }
 
+  if (!fs.existsSync(_cameraEntry.event.recording)){
+    logger.error(`[${_cameraEntry.event.id}] Unable to conver recording, could not find the recording file at '${_cameraEntry.event.recording}'`);
+    return false;
+  }
 
   var outFile = _cameraEntry.event.recording.replace('.mp4', '-event.mp4');
 
@@ -350,6 +357,8 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync){
     null,
     false
   );
+
+  return true;
 }
 
 /** Performs motion detection and objecty identification */

@@ -5,8 +5,8 @@ const logger = require('../modules/loggingModule').getLogger('recordingService')
 const collectionName = "recordings";
 const fs = require("fs");
 const path = require('path');
-const { forEach } = require("mathjs");
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const parser = ffmpegModule.createMpegTsParser();    
 
 /**
  * Records the camera feed for the specified amount of time
@@ -24,8 +24,7 @@ async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSec
 
   if (!_cameraEntry.record.status){   
     
-    //_cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
-    _cameraEntry.record.prependSeconds = 0;
+    _cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
     _cameraEntry.record.status = 'recording';
     _cameraEntry.record.id = dataService.genrateObjectId();
 
@@ -41,12 +40,6 @@ async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSec
           : `${_cameraEntry.camera.id}-${currentTime}.mp4`
 
           _cameraEntry.record.filePath = `${dir}/${fileName}`;
-         
-        cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {     
-          if (_cameraEntry.record.status == 'recording'){
-            _cameraEntry.record.buffers.push(data);
-          }
-        });
 
         stopRecordingAfterDelay(_cameraEntry, _seconds);
 
@@ -98,7 +91,7 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
       return { success : false, error : `Could not save recording for [${_cameraEntry.camera.name}]` };
     }
 
-    _cameraEntry.record.buffers = [];
+    //_cameraEntry.record.buffers = [];
     runFfmpegConvertFile(tempFilePath, file, _cameraEntry);
 
     return { success : true, payload : "Recording stopped" };
@@ -159,7 +152,6 @@ async function getVideoFile(_recordingId){
   } 
 
   return { success: true, payload: fullPath }
-
 }
 
 /**
@@ -257,7 +249,8 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
         trysaveRecording({ 
           id : _cameraEntry.record.id,
           cameraId : _cameraEntry.camera.id, 
-          recordedOn : _cameraEntry.record.startedOn, 
+          startedOn : _cameraEntry.record.startedOn, 
+          endedOn : _cameraEntry.record.endedOn, 
           filePath : _outputFile, 
           length : _cameraEntry.record.length 
         });      
@@ -267,8 +260,13 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
         _cameraEntry.record.status = null; 
         _cameraEntry.record.startedOn = null;
         _cameraEntry.record.endedOn = null;
-        //_cameraEntry.record = {};
-        if (cache.config.removeTempFiles) { fs.unlinkSync(_inputFile); }        
+        _cameraEntry.record.endedOn = null;
+        _cameraEntry.record.filePath = null;
+        _cameraEntry.record.prependSeconds = 0;
+        _cameraEntry.record.length = 0;
+
+        if (cache.config.removeTempFiles) { fs.unlinkSync(_inputFile); }      
+
         cache.services.ioSocket.sockets.emit('ui-info', `Recording for [${_cameraEntry.camera.name}] saved.`);
       }
     )  
@@ -279,15 +277,48 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry){
 function saveBufferToFile(_filePath, _cameraEntry){
 
   try{    
-    //const now = Date.now();
-    const now = _cameraEntry.record.startedOn.valueOf();
+    const seekTime = _cameraEntry.record.startedOn.valueOf() - _cameraEntry.record.prependSeconds;
+    const buffers = _cameraEntry.buffer.filter((b) => b.time >= seekTime).map((pb) => pb.chunk);
+    const parsedBuffers = parser.findSyncFrame(buffers)
+    .map(function(b){ return b.chunks; })
+    .reduce(function(a, b){ return a.concat(b); }, []);
+    var buffer = Buffer.concat(parsedBuffers);
+
+    // var con = [];
+    // for (let i = 0; i < parsedBuffers.length; i++) {
+    //   for (let j = 0; j < parsedBuffers[i].chunks.length; j++) {
+    //     con.push(Buffer.from(parsedBuffers[i].chunks[j]));        
+    //   }      
+    // }
+
+    // let st = [];
+    // for (let k = 0; k < _cameraEntry.buffers.length; k++) {
+    //   if (_cameraEntry.buffers2[k].time >= now){
+    //     st.push(_cameraEntry.buffers2[k].chunk);
+    //   }
+    // }
+
+    /**
+     * var arr = [[1,2],[3, 4]];
+arr.reduce(function(a, b){ return a.concat(b); }, []);
+=>  [1,2,3,4]
+
+var arr = [{ name: "name1", phoneNumbers : [5551111, 5552222]},{ name: "name2",phoneNumbers : [5553333] }];
+arr.map(function(p){ return p.phoneNumbers; })
+   .reduce(function(a, b){ return a.concat(b); }, [])
+=>  [5551111, 5552222, 5553333]
+     */
+
+
+ 
+    /*
     console.log("now1", _cameraEntry.record.startedOn);
     console.log("now2", now);
    
     const seekLength = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 1000;
     const seekTime = now - seekLength;
     console.log('seekTime', seekTime);
-    const parser = ffmpegModule.createMpegTsParser();    
+   
     //const st = _cameraEntry.buffers2.filter((b) => b.time >= now).map((pb) => pb.chunk);
     let st = [];
     let minTime = 99999999999999999;
@@ -302,6 +333,7 @@ function saveBufferToFile(_filePath, _cameraEntry){
     const buffs = parser.findSyncFrame(st
       
     );
+   
 
     var con = [];
     for (let i = 0; i < buffs.length; i++) {
@@ -312,11 +344,13 @@ function saveBufferToFile(_filePath, _cameraEntry){
     }
 
     var buff = Buffer.concat(con)
+     */
     // var frames = (_cameraEntry.record.length + _cameraEntry.record.prependSeconds) * 25;
     // var concat = _cameraEntry.buffers.slice(Math.max(_cameraEntry.buffers.length - frames, 0));
     // _cameraEntry.record.additionalBuffer = ((concat.length - _cameraEntry.record.length * 25) / 25) * 1000;
     // var buff = Buffer.concat(concat);
-    fs.writeFileSync(_filePath, buff);
+
+    fs.writeFileSync(_filePath, buffer);
     logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
     return true;
   }
