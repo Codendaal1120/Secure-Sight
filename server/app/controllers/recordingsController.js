@@ -25,7 +25,7 @@ router.post("/start/:camId", async function (req, res) {
     res.status(400).json(`Could not find camera with id ${req.params.camId}`);
   }
 
-  const result = await recService.recordCamera(cam, parseInt(sec)); 
+  const result = await recService.recordCamera(cam, parseInt(sec), null, null, "Manual recording"); 
   if (result.success){
       res.status(200).json('Recording started');
   }

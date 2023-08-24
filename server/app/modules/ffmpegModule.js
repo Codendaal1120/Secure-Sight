@@ -58,13 +58,14 @@ function runFFmpeg(args, processName, onSpawn, onData, onDataError, onClose, onE
  * (c) koush <https://github.com/koush>
  **/
 const createLengthParser = (length, verify) => {
-  async function* parse(socket) {
+  async function* parse(socket, timeOffset) {
     
+    timeOffset = timeOffset ?? 0;
     let pending = [];
     let pendingSize = 0;
 
     while (true) {
-      var now = Date.now();
+      //var now = Date.now();
       const data = socket.read();
 
       if (!data) {
@@ -92,7 +93,7 @@ const createLengthParser = (length, verify) => {
 
       yield {
         chunks: [left],
-        time: now
+        time: Date.now() + timeOffset
       };
     }
   }
@@ -111,49 +112,6 @@ const createMpegTsParser = () => {
         throw new Error('Invalid sync byte in mpeg-ts packet. Terminating stream.');
       }
     }),
-  //   findSyncFrame(streamChunks) {
-  //     for (let prebufferIndex = 0; prebufferIndex < streamChunks.length; prebufferIndex++) {
-  //         const streamChunk = streamChunks[prebufferIndex];
-
-  //         for (let chunkIndex = 0; chunkIndex < streamChunk.chunks.length; chunkIndex++) {
-  //             const chunk = streamChunk.chunks[chunkIndex];
-
-  //             let offset = 0;
-  //             while (offset + 188 < chunk.length) {
-  //                 const pkt = chunk.subarray(offset, offset + 188);
-  //                 const pid = ((pkt[1] & 0x1F) << 8) | pkt[2];
-  //                 if (pid == 256) {
-  //                     // found video stream
-  //                     if ((pkt[3] & 0x20) && (pkt[4] > 0)) {
-  //                         // have AF
-  //                         if (pkt[5] & 0x40) {
-  //                             // we found the sync frame, but also need to send the pat and pmt
-  //                             // which might be at the start of this chunk before the keyframe.
-  //                             // yolo!
-  //                             return streamChunks.slice(prebufferIndex);
-  //                             // const chunks = streamChunk.chunks.slice(chunkIndex + 1);
-  //                             // const take = chunk.subarray(offset);
-  //                             // chunks.unshift(take);
-
-  //                             // const remainingChunks = streamChunks.slice(prebufferIndex + 1);
-  //                             // const ret = Object.assign({}, streamChunk);
-  //                             // ret.chunks = chunks;
-  //                             // return [
-  //                             //     ret,
-  //                             //     ...remainingChunks
-  //                             // ];
-  //                         }
-  //                     }
-  //                 }
-
-  //                 offset += 188;
-  //             }
-
-  //         }
-  //     }
-
-  //     return findSyncFrame(streamChunks);
-  // }
   findSyncFrame(streamChunks) {
 
     for (let prebufferIndex = 0; prebufferIndex < streamChunks.length; prebufferIndex++) {

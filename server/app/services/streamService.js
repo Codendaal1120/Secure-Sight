@@ -173,7 +173,7 @@ async function startFeedStream(cam){
 
   // this is the main stream port
   let mpegTsStreamPort = await tcp.createLocalServer(null, async function(socket){
-    for await (const parsed of mpegTsParser.parse(socket)) {
+    for await (const parsed of mpegTsParser.parse(socket, cam.eventConfig.frameTimeOffset)) {
         addToCameraBuffer(cam.id, { chunk: parsed, time: parsed.time});
         for (const chunk of parsed.chunks) {
             cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            

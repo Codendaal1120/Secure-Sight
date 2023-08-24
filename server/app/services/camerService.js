@@ -3,7 +3,6 @@ const logger = require('../modules/loggingModule').getLogger('camerService');
 const collectionName = "cameras";
 const cache = require('../modules/cache');
 
-
 /**
  * Get all configured cameras from DB
  * @return {Array} Cameras

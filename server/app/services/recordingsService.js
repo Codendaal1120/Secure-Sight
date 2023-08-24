@@ -14,9 +14,10 @@ const parser = ffmpegModule.createMpegTsParser();
  * @param {Object} _seconds - The number of seconds to record
  * @param {string} _fileNameSuffix - Optional filename verride suffix
  * @param {number} _prependSeconds - Optional number of seconds to prepend the recording (add from the buffer before the recording started) 
+ * @param {string} _type - Type of recording
  * @returns {Object} TryResult<string> - the filepath 
  */
-async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSeconds){
+async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSeconds, _type){
 
   if (_seconds < 0){
     _seconds = 1200; 
@@ -27,6 +28,7 @@ async function recordCamera(_cameraEntry, _seconds, _fileNameSuffix, _prependSec
     _cameraEntry.record.prependSeconds = _prependSeconds ?? 0;
     _cameraEntry.record.status = 'recording';
     _cameraEntry.record.id = dataService.genrateObjectId();
+    _cameraEntry.record.type = _type;
 
     logger.log('info', `[${_cameraEntry.camera.id}] Recording started`);
     var dir = getRecordingDirectory();
@@ -181,7 +183,7 @@ async function tryDeleteRecording(_recordingId){
 }
 
 /** Save recording to db */
-async function trysaveRecording( _recording){
+async function trySaveRecording( _recording){
 
     let document = await dataService.insertOneAsync(collectionName, createDBObject(_recording));    
     if (!document.success){
@@ -189,6 +191,17 @@ async function trysaveRecording( _recording){
     }
 
     return { success : true, payload : document.payload };
+}
+
+/** Save recording to db */
+async function tryUpdateRecordingFile(_recordingId, _newPath){
+
+  let document = await dataService.updateOneAsync(collectionName, { _id: dataService.toDbiD(_recordingId) }, { $set: { filePath: _newPath } });    
+  if (!document.success){
+      return { success : false, error : `Could not update recording : ${document.error}` };
+  }
+
+  return { success : true, payload : document.payload };
 }
 
 function getRecordingDirectory(){
@@ -239,13 +252,14 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry, _length){
         logger.log('info', `[${_cameraEntry.camera.id}] Recording complete`);
 
         //save to DB
-        trysaveRecording({ 
+        trySaveRecording({ 
           id : _cameraEntry.record.id,
+          type : _cameraEntry.record.type,
           cameraId : _cameraEntry.camera.id, 
           startedOn : _cameraEntry.record.startedOn, 
           endedOn : _cameraEntry.record.endedOn, 
           filePath : _outputFile, 
-          length : _cameraEntry.record.length 
+          length : _cameraEntry.record.length
         });      
         
         // cleanup
@@ -255,6 +269,7 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry, _length){
         _cameraEntry.record.endedOn = null;
         _cameraEntry.record.endedOn = null;
         _cameraEntry.record.filePath = null;
+        _cameraEntry.record.type = null;
         _cameraEntry.record.prependSeconds = 0;
         _cameraEntry.record.length = 0;
 
@@ -267,35 +282,16 @@ function runFfmpegConvertFile(_inputFile, _outputFile, _cameraEntry, _length){
     return cpx;
 }
 
+/**
+ * NOTE: this does not work correctly as we cannot accuratly (to the second) calculate when the recording started, 
+ * we can only capture the time we receive the data from the rtsp stream, but this is not accurate.
+ */
 async function saveBufferToFile(_filePath, _cameraEntry){
 
-  try{        
-    // since there could be a delay in recieving and processing the stream, we cannot always garuntee that the length will be what was requested. To mitigate this, we will start the stream earlier, then wait to record some additional time, then trim to the exact time in the conversion process
-    /*
-    var now = new Date();
-    console.log('now1', now);
-    console.log('now2', now.valueOf());
-    console.log('latest buffer', _cameraEntry.buffer[_cameraEntry.buffer.length - 1].time);
-    console.log('prepend', _cameraEntry.record.prependSeconds);
-    */
+  try{      
     await timeout(3000);
-    const seekTime = _cameraEntry.record.startedOn.valueOf() - 2000 - (_cameraEntry.record.prependSeconds * 1000);
-    const buffers = _cameraEntry.buffer.filter((b) => b.time >= seekTime).map((pb) => pb.chunk);
-
-    /*
-    var rangeStart = 999999999999999;1692894012430
-
-    var rangeEnd = 0;
-    var buffers = [];
-    for (let i = 0; i < _cameraEntry.buffer.length; i++) {
-      if (_cameraEntry.buffer[i].time >= seekTime){
-        rangeStart = Math.min(rangeStart, _cameraEntry.buffer[i].time);
-        rangeEnd = Math.max(rangeEnd, _cameraEntry.buffer[i].time);
-        buffers.push(_cameraEntry.buffer[i].chunk);
-      }
-    }
-    console.log('Recording range = ' + rangeStart + ' --> ' + rangeEnd);
-    */
+    const seekTime = _cameraEntry.record.startedOn.valueOf() - 0 - (_cameraEntry.record.prependSeconds * 1000);
+    const buffers = _cameraEntry.buffer.filter((b) => b.time >= seekTime + 0).map((pb) => pb.chunk);
 
     if (buffers.length == 0){
       logger.log('error', `Error saving recording to disk : No buffers could be loaded`);
@@ -310,14 +306,8 @@ async function saveBufferToFile(_filePath, _cameraEntry){
     fs.writeFileSync(_filePath, buffer);
     logger.log('info', `Recording from '${_cameraEntry.camera.id}' saved to ${_filePath}`);
 
-    console.log('original time', _cameraEntry.record.startedOn.valueOf());
-    console.log('original time2', _cameraEntry.record.startedOn);
-    console.log('new time', seekTime);
-    console.log('new time2',  new Date(seekTime));
-
-
-    _cameraEntry.record.startedOn = new Date(seekTime);
-    _cameraEntry.record.endedOn = new Date(seekTime + _cameraEntry.record.length);
+    _cameraEntry.record.startedOn = new Date(buffers[0].time);
+    _cameraEntry.record.endedOn = new Date(_cameraEntry.record.startedOn + (_cameraEntry.record.length * 1000));
 
     return true;
   }
@@ -347,3 +337,4 @@ module.exports.stopRecordingCamera = stopRecordingCamera;
 module.exports.getAll = getAll;
 module.exports.getVideoFile = getVideoFile;
 module.exports.tryDeleteRecording = tryDeleteRecording;
+module.exports.tryUpdateRecordingFile = tryUpdateRecordingFile;

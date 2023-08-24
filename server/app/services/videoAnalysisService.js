@@ -24,26 +24,10 @@ let frameBuffer = [];
 async function startVideoAnalysis() {    
 
   for (const [k, v] of Object.entries(cache.cameras)) {
-    if (hasVideoAnalisys(v)){
+    if (v.camera.videoProcessingEnabled){
       await StartVideoProcessing(v);        
     }  
   }
-}
-
-function hasVideoAnalisys(cam){
-  if (cam.camera.deletedOn != null){
-    return false;
-  }
-
-  if (cache.config.enableCamVaOverride.includes(cam.camera.id)){
-    return true;
-  }
-
-  if (cache.config.disableCamVaOverride.includes(cam.camera.id)){
-    return false;
-  }
-
-  return cam.camera.videoProcessingEnabled;
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/
@@ -100,7 +84,8 @@ async function StartVideoProcessing(_cameraEntry){
 
   pipe2pam.on('pam', async (data) => {
     //console.log('pam');
-    var now = new Date(new Date().getTime() -0);
+    // compensate for slow processing, frames seems to be somewhat delayed
+    var now = new Date(new Date().getTime() + _cameraEntry.eventConfig.detectionOffset);
     await handleFrame(_cameraEntry, data, now);    
   });
 
@@ -174,7 +159,7 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
     _cameraEntry.event = {
       id : evtService.genrateEventId(),
       camId : _cameraEntry.camera.id,
-      startedOn : now,    
+      startedOn : predictions[0].detectedOn,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],
       lock: 'handleFrame'
@@ -182,7 +167,7 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
 
     // start recording, after the recording, we will finish the event.
     // the recording is limited according to our event limit, so this will end the finish the event when reached
-    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 4);
+    var tryRec = await recService.recordCamera(_cameraEntry, cache.config.event.limitSeconds, null, 4, 'Event recording');
 
     // without the recording, we cannot proceed
     if (!tryRec.success){
@@ -237,6 +222,25 @@ async function finishEvent(_cameraEntry, _now){
   }
 
   // generate gif
+  if (_cameraEntry.camera.eventConfig.printPredictions){
+    await finishEventWithGif(_cameraEntry);
+    return;
+  }
+
+  await updateRecordingAndClearEvent(_cameraEntry, true);
+}
+
+async function updateRecordingAndClearEvent(_cameraEntry, saveToDb){
+  if (saveToDb){
+    var trySave = await evtService.tryCreateNew(_cameraEntry.event);
+    if (!trySave.success){
+      logger.error(trySave.error);
+    }
+  }  
+  _cameraEntry.event = null; 
+}
+
+async function finishEventWithGif(_cameraEntry){
   var gifFile = `temp/anim-${_cameraEntry.event.id}.gif`;
   var eventDuration = _cameraEntry.event.endedOn - _cameraEntry.event.startedOn;
   await createEventGif(_cameraEntry.event.buffer, _cameraEntry, eventDuration, gifFile);
@@ -244,23 +248,29 @@ async function finishEvent(_cameraEntry, _now){
   // merge recording and gif
   await mergeGifAndRecording(gifFile, _cameraEntry, async function(){
 
-    // save event
-    var trySave = await evtService.tryCreateNew(_cameraEntry.event);
-    if (!trySave.success){
-      logger.error(trySave.error);
-    }
+    var tryUpdate = await recService.tryUpdateRecordingFile(_cameraEntry.event.recordingId, _cameraEntry.event.recording);
+   
+     // save event
+     await updateRecordingAndClearEvent(_cameraEntry, tryUpdate.success);  
 
-    _cameraEntry.event = null;  
-    logger.debug('Event finished');
+     if (!tryUpdate.success){
+      logger.error(tryUpdate.error);
+      logger.debug('Event with gif finished with errors');
+    }
+    else{
+      logger.debug('Event with gif finished');
+    }
   }, function(){
     _cameraEntry.event = null;  
-    logger.debug('Event finished with errors');
+    logger.debug('Event with gif finished with errors');
   }); 
 }
 
 /**
  * Generates a gif from the supplied predictions.
  * All gifs are created using the default size 1280x720
+ * NOTE: this does not work correctly as we cannot get a precice timestamp when the frame occurs, 
+ * which means we cannot sync the event with the recording
  * @param {Array} _predictions - Collection of precitions
  * @param {object} _cameraEntry - The camera cache entry
  * @param {number} _eventDuration - Total length of event in milliseconds
@@ -277,20 +287,18 @@ function createEventGif(_predictions, _cameraEntry, _eventDuration, _outputFile)
 
   var canvas = createCanvas(_cameraEntry.camera.streamResolution.width, _cameraEntry.camera.streamResolution.height);
   var ctx = canvas.getContext('2d');
+  var diff = _cameraEntry.event.startedOn - _cameraEntry.record.startedOn + _cameraEntry.camera.eventConfig.gifDelayOffset ?? 0;
 
   // add delay to compensate for time sync
-  // var delay = _cameraEntry.record.additionalBuffer - 2100;
-  // logger.debug(`delay ${delay}`);
-  // 3000 for prepend + 1000
-  encoder.setDelay(3000); 
+  encoder.setDelay(diff); 
   encoder.addFrame(ctx);
 
   for (let i = 0; i < _predictions.length; i++) {
 
       ctx.strokeStyle = _predictions[i].color ?? 'red';  
-      var diff = i == _predictions.length - 1
-          ? 500
-          : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
+      diff = i == _predictions.length - 1
+        ? 500
+        : _predictions[i + 1].detectedOn - _predictions[i].detectedOn;
       
       encoder.setDelay(diff); 
       const x = utility.mapRange(_predictions[i].x, 0, 1, 0, _cameraEntry.camera.streamResolution.width);
