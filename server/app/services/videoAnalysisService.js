@@ -15,9 +15,6 @@ const GIFEncoder = require('gif-encoder-2');
 const { createCanvas } = require('canvas');
 const utility = require('../modules/utility');
 
-let frameIndex = -1;
-let frameBuffer = [];
-
 /**
  * Starts video analasys on all configured cameras
  */
@@ -421,10 +418,10 @@ async function processFrame(_cameraEntry, data, _detectedOn){
 
     width = parseInt(data.width);
     height = parseInt(data.height);
-    
-    storeFrame(data.pixels);
 
-    let motion = detector.getMotionRegion(frameBuffer);
+    storeFrame(_cameraEntry, data.pixels);
+
+    let motion = detector.getMotionRegion(_cameraEntry.frameBuffer);
   
     if (motion != null){
 
@@ -461,15 +458,24 @@ async function processFrame(_cameraEntry, data, _detectedOn){
   return predictions;
 }
 
-function storeFrame(frame){
-  if (frameBuffer.length < 3){
-    frameBuffer.push(frame);
+function storeFrame(_cameraEntry, frame){
+
+  if (frame == undefined){
     return;
   }
 
-  frameBuffer[0] = frameBuffer[1];
-  frameBuffer[1] = frameBuffer[2];
-  frameBuffer[2] = frame;
+  if (!_cameraEntry.frameBuffer){
+    _cameraEntry.frameBuffer = [];
+  }
+
+  if (_cameraEntry.frameBuffer.length < 3){
+    _cameraEntry.frameBuffer.push(frame);
+    return;
+  }
+
+  _cameraEntry.frameBuffer[0] = _cameraEntry.frameBuffer[1];
+  _cameraEntry.frameBuffer[1] = _cameraEntry.frameBuffer[2];
+  _cameraEntry.frameBuffer[2] = frame;
 }
 
 module.exports.createEventGif = createEventGif;
