@@ -60,7 +60,6 @@ function getLogger(service){
     defaultMeta: { service: service },
     transports: [
       new transports.Console(options.console),
-      new transports.Console(),
       new transports.File(options.file)
     ],
   });

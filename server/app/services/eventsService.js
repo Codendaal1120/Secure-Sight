@@ -108,19 +108,6 @@ function validate(evt){
     return errors;
 }
 
-function createDBObject(_event){
-    return {
-        _id : dataService.toDbiD(_event.id),
-        cameraId : _event.camId,
-        startedOn : _event.startedOn,
-        endedOn : _event.endedOn,
-        limitTime : _event.limitTime,
-        recordingId : _event.recordingId,
-        recording : _event.recording,
-        detections : _event.buffer
-    }    
-}
-
 function createDBObject(_obj){
 
     var ret = {};
