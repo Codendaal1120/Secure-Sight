@@ -102,29 +102,35 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
 
 /**
  * Get all recordings
+ * @param {number} _page - Optional page number ot fetch, default 1
  * @returns {Array} Collection of recordings
  */
-async function getAll(){
-
+async function getAll(_page){
+//
   try{
-    let tryGet = await dataService.getManyAsync(collectionName, {});
+    if (!_page){
+      _page = 1;
+    }
+
+    let tryGet = await dataService.getManyAsync(collectionName, {}, null, null, _page);
 
     if (!tryGet.success){
         logger.log('error', `ERROR : cannot get recordings : ${tryGet.error}`);
         return { success : false, error : tryGet.message };
     }    
 
-    var recordings = tryGet.payload.map((rec) => {
-      return {
-        id : rec.id,
-        fileName : rec.fileName,
-        recordedOn : rec.recordedOn,
-        length : rec.length,
-        cameraName : cache.cameras[rec.cameraId].camera.name,
-      }
+    tryGet.payload.collection = tryGet.payload.collection.map((rec) => {
+       return createReturnObject(rec);
+      // return {
+      //   id : rec.id,
+      //   fileName : rec.fileName,
+      //   recordedOn : rec.recordedOn,
+      //   length : rec.length,
+      //   cameraName : cache.cameras[rec.cameraId].camera.name,
+      // }
     });
 
-    return { success : true, payload : recordings };        
+    return { success : true, payload : tryGet.payload };        
   }
   catch (err) {
       logger.log('error', err);
@@ -326,6 +332,18 @@ function createDBObject(_obj){
       ret['_id'] = dataService.toDbiD(_obj.id);
       continue;
     }
+    ret[k] = v;
+  }  
+
+  return ret;
+}
+
+function createReturnObject(doc){
+
+  var ret = {
+    cameraName : cache.cameras[doc.cameraId].camera.name
+  };
+  for (const [k, v] of Object.entries(doc)) {
     ret[k] = v;
   }  
 

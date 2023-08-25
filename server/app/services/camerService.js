@@ -17,7 +17,7 @@ async function getAll() {
         }
     
         // return the cameras
-        return { success : true, payload : tryGetCams.payload.map((c) => createReturnObject(c)) };        
+        return { success : true, payload : tryGetCams.payload.collection.map((c) => createReturnObject(c)) };        
     }
     catch (error) {
         logger.log('error', error);

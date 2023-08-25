@@ -176,7 +176,7 @@ async function startFeedStream(cam){
     for await (const parsed of mpegTsParser.parse(socket, cam.eventConfig.frameTimeOffset)) {
         addToCameraBuffer(cam.id, { chunk: parsed, time: parsed.time});
         for (const chunk of parsed.chunks) {
-            cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
+          cache.services.eventEmmiter.emit(`${cam.id}-stream-data`, chunk);            
         }
     }
   });
@@ -211,8 +211,6 @@ async function startFeedStream(cam){
     '0:a?',
     `[f=mpegts]tcp://127.0.0.1:${mpegTsStreamPort}`
   ];
-
-  //-an
 
   const cp = ffmpegModule.runFFmpeg(
     args, 

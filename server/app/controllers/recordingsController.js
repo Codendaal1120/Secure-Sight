@@ -112,11 +112,11 @@ router.get("/:recId/download", async function (req, res) {
  * @route GET /api/recordings
  * @produces application/json 
  * @group Recordings api
- * @returns {Array.<object>} 200 - Array of recordings
+ * @returns {object} 200 - Paginated results of recordings
  * @returns {Error}  500 - Unexpected error
 */
 router.get("/", async function (req, res) {  
-  const result = await recService.getAll(); 
+  const result = await recService.getAll(req.query.page); 
   if (result.success){
       res.send(result.payload);
   }

@@ -1,6 +1,7 @@
 const mongo = require('mongodb');
 const MongoClient = mongo.MongoClient;
 const logger = require('../modules/loggingModule').getLogger('dataService');
+const cache = require('../modules/cache');
 
 /**
  * Read single records from db
@@ -35,15 +36,17 @@ async function getOneAsync(_collectionName, _filter, _project) {
     }
 }
 
+
 /**
  * Read collection from db
  * @param {string} _collectionName - Target collection name
  * @param {Object} _filter - Optional filter definition
  * @param {Object} _project - Projection definition
  * @param {Object} _sort - Sort definition
+ * @param {number} _page - page number to fetch, send null to not use paging
  * @return {Object} TryResult with the selected records
  */
-async function getManyAsync(_collectionName, _filter, _project, _sort) {
+async function getManyAsync(_collectionName, _filter, _project, _sort, _page) {
 
     var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
@@ -60,11 +63,26 @@ async function getManyAsync(_collectionName, _filter, _project, _sort) {
             _sort = {};
         }
 
-        let res = await collection.payload.find(_filter, _project).sort(_sort).toArray();
+        let usePagination = false;
+        let count = 0;
+        let recToSkip = 0;
+        if (_page != null){
+            recToSkip = cache.config.itemsPerPage * (_page - 1);
+            count = await collection.payload.countDocuments(_filter);
+            usePagination = true;
+        }
+       
+        let res = usePagination 
+            ? await collection.payload.find(_filter, _project).sort(_sort).skip(recToSkip).limit(cache.config.itemsPerPage).toArray()
+            : await collection.payload.find(_filter, _project).sort(_sort).toArray()
+
         res.forEach(element => {
             element = setObjectId(element)
         });
-        return { success : true, payload : res };
+
+        return usePagination 
+        ? { success : true, payload : { collection:res, paging : { total: count, page: _page } }}
+        : { success : true, payload : { collection:res }};
     } 
     catch (err) {
         logger.log('error', err);
