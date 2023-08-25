@@ -257,12 +257,12 @@ async function getMlData(_imageDirectory){
 
     for (let i = 0; i < labels.length; i++) {
 
-        var labelDirectory = _imageDirectory + '\\' + labels[i];
+        var labelDirectory = _imageDirectory + '/' + labels[i];
         var files = fs.readdirSync(labelDirectory);
 
         for (let j = 0; j < files.length; j++) {
-            logger.log('info', 'Loading ', files[j]);        
-            var loadHog = await loadImageAndGetHog(labelDirectory + '\\' + files[j]);
+            logger.log('info', 'Loading ' + files[j]);        
+            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
             if (loadHog.success){
                 fileNames.push(files[j]);
 

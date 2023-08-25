@@ -11,6 +11,7 @@ const jpeg = require('jpeg-js');
 const ffmpegModule = require("../modules/ffmpegModule");
 const logger = require('../modules/loggingModule').getLogger('videoAnalysisService');
 const fs = require("fs");
+const path = require('path');
 const GIFEncoder = require('gif-encoder-2');
 const { createCanvas } = require('canvas');
 const utility = require('../modules/utility');
@@ -448,6 +449,8 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         var jpegImageData = jpeg.encode(rawImageData, 50);
         //fs.writeFileSync('image.jpg', jpegImageData.data);
         predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);
+
+        storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data);        
       }
     }
   }
@@ -456,6 +459,23 @@ async function processFrame(_cameraEntry, data, _detectedOn){
   }  
 
   return predictions;
+}
+
+function storeImage(label, imgData){
+  var rnd = Math.random();
+  var shouldStore = label == 1 ? rnd < cache.config.ml.chanceToStore1 : rnd < cache.config.ml.chanceToStore0;
+  if (!shouldStore){
+    return;
+  }
+
+  logger.debug('Saving image data for training');
+  var storePath = path.join(cache.config.root, 'server', 'app', 'ml', 'persons', label.toString());
+  var currentTime = Math.floor(new Date().getTime() / 1000);
+  if (!fs.existsSync(storePath)){
+    fs.mkdirSync(storePath, { recursive: true });
+  }
+  
+  fs.writeFileSync(path.join(storePath, `${currentTime}.jpg`), imgData);
 }
 
 function storeFrame(_cameraEntry, frame){
