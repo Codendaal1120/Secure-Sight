@@ -24,7 +24,7 @@ const options = {
   file: {
       level: 'info',
       filename: currentLogFile,
-      handleExceptions: true,
+      //handleExceptions: true,
       json: true,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
@@ -33,7 +33,7 @@ const options = {
   },
   console: {
       level: 'debug',
-      handleExceptions: true,
+      //handleExceptions: true,
       json: false,
       colorize: true,
       format : consoleFormat
@@ -55,14 +55,17 @@ function getLogger(service){
     return loggers[service];
   }
 
-  loggers[service] = createLogger({
+  var thisLogger = createLogger({
     level: 'info',
     defaultMeta: { service: service },
     transports: [
       new transports.Console(options.console),
+      new transports.Console(),
       new transports.File(options.file)
     ],
   });
+
+  loggers[service] = thisLogger;
 
   return loggers[service];
 }
