@@ -5,10 +5,11 @@ import { CiWarning } from "react-icons/ci";
 interface Props {
     confirmModal: Function,
     cancelModal: Function,
+    modalText: string,
     isOpen: boolean
 }
 
-export default function QuestionModal({ confirmModal, cancelModal, isOpen } : Props) {
+export default function QuestionModal({ confirmModal, cancelModal, isOpen, modalText } : Props) {
   const [open, setOpen] = useState(true);
   const cancelButtonRef = useRef(null);
 
@@ -16,8 +17,6 @@ export default function QuestionModal({ confirmModal, cancelModal, isOpen } : Pr
     fill : '#b91c1c',
     size: 40
 }
-  //const [open, setOpen] = useState(true);
-
   return (
     <Transition.Root show={isOpen} as={Fragment}>
     <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setOpen}>
@@ -55,8 +54,7 @@ export default function QuestionModal({ confirmModal, cancelModal, isOpen } : Pr
                                 </Dialog.Title>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500">
-                                    Are you sure you want to delete this recording? 
-                                    This action cannot be undone.
+                                    {modalText}
                                     </p>
                                 </div>
                                 </div>

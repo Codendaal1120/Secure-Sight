@@ -1,29 +1,40 @@
 const dataService = require("./dataService");
 const logger = require('../modules/loggingModule').getLogger('eventsService');
 const collectionName = "events";
+const cache = require("../modules/cache");
+const fs = require("fs");
+const path = require('path');
 
 /**
  * Get all events
- * @return {Array} Cameras
+ * @param {number} _page - Optional page number ot fetch, default 1
+ * @returns {Array} Collection of events
  */
-async function getAll() {    
-    try{
-        let tryGetAll = await dataService.getManyAsync(collectionName, { });
+async function getAll(_page){ 
+  if (!_page){
+    _page = 1;
+  }
+  try{
+		var fullPath = path.join(cache.config.root, 'server');
+		let tryGetAll = await dataService.getManyAsync(collectionName, {}, null, { startedOn: -1 }, _page);
 
-        if (!tryGetAll.success){
-            logger.log('error', `ERROR : cannot get events : ${tryGetAll.error}`);
-            return { success : false, error : tryGetAll.message };
-        }
-    
-        // return the events
-        return { success : true, payload : tryGetAll.payload };        
-    }
-    catch (err) {
-        logger.log('error', err);
-        return { success : false, error : err.message };
-    }
+		if (!tryGetAll.success){
+				logger.log('error', `ERROR : cannot get events : ${tryGetAll.error}`);
+				return { success : false, error : tryGetAll.message };
+		}
+
+		tryGetAll.payload.collection = tryGetAll.payload.collection.map((evt) => {
+			return createReturnObject(evt, fullPath);
+	 	});
+
+		// return the events
+		return { success : true, payload : tryGetAll.payload };        
+  }
+  catch (err) {
+      logger.log('error', err);
+      return { success : false, error : err.message };
+  }
 };
-
 
 /**
  * Returns the video file path
@@ -127,7 +138,34 @@ function createDBObject(_obj){
     }  
   
     return ret;
-  }
+}
+
+function createReturnObject(doc, fullPath){
+
+  var ret = {
+    cameraName : cache.cameras[doc.cameraId] != null ? cache.cameras[doc.cameraId].camera.name : 'unknown'
+  };
+
+  for (const [k, v] of Object.entries(doc)) {
+
+		if (k == 'detectionMethod'){
+			ret[k] = v == 'tf' ? 'Tensor Flow' : 'Support Vector Machine';	
+			continue;
+		}
+
+		if (k == 'lock'){
+			continue;
+		}
+
+    ret[k] = v;
+  }  
+
+	var p = path.join(fullPath, ret.recording);
+	ret['fileIsValid'] = fs.existsSync(p);
+	ret['duration'] = Math.round(((ret.endedOn - ret.startedOn) / 1000), 0);
+
+  return ret;
+}
 
 /** Generates a new unique id */
 function genrateEventId(){

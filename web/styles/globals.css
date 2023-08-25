@@ -10,6 +10,10 @@
 
 @layer components { 
 
+  .red{
+    fill: #dc2626 !important; 
+  }
+
   .component-wrapper{
     width: 100%;
     height: 100%;

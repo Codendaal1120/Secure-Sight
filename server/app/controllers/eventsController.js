@@ -11,7 +11,7 @@ const eventsService = require("../services/eventsService");
  * @returns {Error}  500 - Unexpected error
 */
 router.get("/", async function (req, res) {  
-  const result = await eventsService.getAll(); 
+  const result = await eventsService.getAll(req.query.page); 
   if (result.success){
       res.send(result.payload);
   }

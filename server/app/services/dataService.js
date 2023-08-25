@@ -48,6 +48,7 @@ async function getOneAsync(_collectionName, _filter, _project) {
  */
 async function getManyAsync(_collectionName, _filter, _project, _sort, _page) {
 
+    _page = parseInt(_page);
     var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return collection;

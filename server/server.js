@@ -82,6 +82,7 @@ function startServer(){
     app.use("/api/svm", require("./app/controllers/svmController"));
     app.use("/api/recordings", require("./app/controllers/recordingsController"));
     app.use("/api/config", require("./app/controllers/configController"));
+    app.use("/api/events", require("./app/controllers/eventsController"));
 
     /** Stream setup */
     if (streamService != null && streamService != null){

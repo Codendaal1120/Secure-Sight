@@ -106,28 +106,22 @@ async function stopRecordingCamera(_cameraEntry, _fromTimeout){
  * @returns {Array} Collection of recordings
  */
 async function getAll(_page){
-//
+
   try{
     if (!_page){
       _page = 1;
     }
 
-    let tryGet = await dataService.getManyAsync(collectionName, {}, null, null, _page);
+    let tryGet = await dataService.getManyAsync(collectionName, {}, null, { startedOn: -1 }, _page);
 
     if (!tryGet.success){
         logger.log('error', `ERROR : cannot get recordings : ${tryGet.error}`);
         return { success : false, error : tryGet.message };
-    }    
-
+    }   
+		
+		var fullPath = path.join(cache.config.root, 'server');
     tryGet.payload.collection = tryGet.payload.collection.map((rec) => {
-       return createReturnObject(rec);
-      // return {
-      //   id : rec.id,
-      //   fileName : rec.fileName,
-      //   recordedOn : rec.recordedOn,
-      //   length : rec.length,
-      //   cameraName : cache.cameras[rec.cameraId].camera.name,
-      // }
+       return createReturnObject(rec, fullPath);
     });
 
     return { success : true, payload : tryGet.payload };        
@@ -336,14 +330,17 @@ function createDBObject(_obj){
   return ret;
 }
 
-function createReturnObject(doc){
+function createReturnObject(doc, fullPath){
 
   var ret = {
     cameraName : cache.cameras[doc.cameraId].camera.name
   };
   for (const [k, v] of Object.entries(doc)) {
     ret[k] = v;
-  }  
+  }  	
+
+	var p = path.join(fullPath, ret.filePath);
+	ret['fileIsValid'] = fs.existsSync(p);
 
   return ret;
 }

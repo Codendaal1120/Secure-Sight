@@ -1,7 +1,6 @@
 const camService = require("./camerService");
 const tcp = require("../modules/tcpModule");
 const cache = require("../modules/cache");
-const { once } = require('node:events');
 const ffmpegModule = require("../modules/ffmpegModule");
 const logger = require('../modules/loggingModule').getLogger('streamService');
 const fetch = require("node-fetch");
