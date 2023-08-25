@@ -32,7 +32,7 @@ async function startVideoAnalysis() {
 async function StartVideoProcessing(_cameraEntry){
   let streamPort = await tcp.createLocalServer(null, async function(socket){
     cache.services.eventEmmiter.on(`${_cameraEntry.camera.id}-stream-data`, function (data) {  
-      if (isInSchedule(_cameraEntry.camera)){
+      if (isInSchedule(_cameraEntry)){
         socket.write(data);   
       }        
     });
@@ -73,7 +73,6 @@ async function StartVideoProcessing(_cameraEntry){
       console.debug(`[${_cameraEntry.camera.id}] video analysis process closed, restarting...`);
       timeout(14000).then(() => {
         StartVideoProcessing().then(() => {
-
         });
       });
     },
@@ -85,27 +84,33 @@ async function StartVideoProcessing(_cameraEntry){
   pipe2pam.on('pam', async (data) => {
     //console.log('pam');
     // compensate for slow processing, frames seems to be somewhat delayed
-    var now = new Date(new Date().getTime() + _cameraEntry.eventConfig.detectionOffset);
+    var now = new Date(new Date().getTime() + _cameraEntry.camera.eventConfig.detectionOffset);
     await handleFrame(_cameraEntry, data, now);    
   });
 
   cpx.stdout.pipe(pipe2pam); 
 }
 
-function isInSchedule(_camera){
-  if (!_camera.videoProcessingEnabled){
+function isInSchedule(_cameraEntry){
+  if (!_cameraEntry.camera.videoProcessingEnabled){
     return false;
   }
 
-  const now = new Date();
+  const now = new Date();  
+  if (_cameraEntry.cacheEventScheduleTill != null && _cameraEntry.cacheEventScheduleTill > now){
+    return true;
+  }
+ 
   const dateString = now.toISOString().split('T')[0]; 
   const day = now.getDay();
   
-  if (_camera.eventConfig.schedule[day].ranges != null){
-    for (let i = 0; i < _camera.eventConfig.schedule[day].ranges.length; i++) {
-      var scheduleStart = Date.parse(dateString + 'T' + _camera.eventConfig.schedule[day].ranges[i].start);
-      var scheduleEnd = Date.parse(dateString + 'T' + _camera.eventConfig.schedule[day].ranges[i].end);
+  if (_cameraEntry.camera.eventConfig.schedule[day].ranges != null){
+    for (let i = 0; i < _cameraEntry.camera.eventConfig.schedule[day].ranges.length; i++) {
+      var scheduleStart = Date.parse(dateString + 'T' + _cameraEntry.camera.eventConfig.schedule[day].ranges[i].start);
+      var scheduleEnd = Date.parse(dateString + 'T' + _cameraEntry.camera.eventConfig.schedule[day].ranges[i].end);
 
+      // chache the config for a while (2.5 minutes)
+      _cameraEntry.cacheEventScheduleTill = new Date(now.getTime() + 150000);
       var inSched = scheduleStart < now && scheduleEnd > now;
       return inSched;      
     }
@@ -183,7 +188,8 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
       startedOn : predictions[0].detectedOn,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],
-      lock: 'handleFrame'
+      lock: 'handleFrame',
+      detectionMethod : _cameraEntry.camera.detectionMethod 
     }
 
     // start recording, after the recording, we will finish the event.
@@ -422,7 +428,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
   
     if (motion != null){
 
-      if (_cameraEntry.camera.objectProcessor == "svm"){
+      if (_cameraEntry.camera.detectionMethod == "svm"){
         var detection = await svm.processImage(data.pixels, width, height); //is data width & height same as image?
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
@@ -436,7 +442,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         }
       }
 
-      if (_cameraEntry.camera.objectProcessor == "tf"){
+      if (_cameraEntry.camera.detectionMethod == "tf"){
         var rawImageData = {
           data: data.pixels,
           width: width,

@@ -31,7 +31,7 @@ router.get("/", async function (req, res) {
  * @returns {Error}  400 - Bad request
 */
 router.get("/:camId", async function (req, res) {  
-  const result = await camService.getOneById(req.params.camId); 
+  const result = await camService.getOneById(req.params.camId, req.query.fromCache); 
   if (result.success){
       res.send(result.payload);
   }

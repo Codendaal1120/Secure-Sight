@@ -118,8 +118,29 @@ function createDBObject(_event){
         recordingId : _event.recordingId,
         recording : _event.recording,
         detections : _event.buffer
-    }
+    }    
 }
+
+function createDBObject(_obj){
+
+    var ret = {};
+    for (const [k, v] of Object.entries(_obj)) {
+  
+      if (k == 'id'){
+        ret['_id'] = dataService.toDbiD(_obj.id);
+        continue;
+      }
+
+      if (k == 'buffer'){
+        ret['detections'] = v;
+        continue;
+      }
+
+      ret[k] = v;
+    }  
+  
+    return ret;
+  }
 
 /** Generates a new unique id */
 function genrateEventId(){

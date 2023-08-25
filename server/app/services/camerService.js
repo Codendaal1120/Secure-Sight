@@ -19,18 +19,19 @@ async function getAll() {
         // return the cameras
         return { success : true, payload : tryGetCams.payload.map((c) => createReturnObject(c)) };        
     }
-    catch (err) {
-        logger.log('error', err);
-        return { success : false, error : err.message };
+    catch (error) {
+        logger.log('error', error);
+        return { success : false, error : error.message };
     }
 };
 
 /**
  * Get a camera by id
  * @param {string} _cameraId - Unique ID of camera
+ * @param {boolean} _fromCache - true to return the current cache entry
  * @return {Object} Camera
  */
-async function tryGetOneById(_cameraId) {    
+async function tryGetOneById(_cameraId, _fromCache) {    
     // validate input
     if (!_cameraId){
         return { success : false, error : "Invalid cameraId" };
@@ -38,9 +39,19 @@ async function tryGetOneById(_cameraId) {
 
     try{
         // try to fetch from cache
-        let cam = cache[_cameraId];
+        let cam = cache.cameras[_cameraId];
         if (cam){
+
+            if (_fromCache){
+                return { success : true, payload : formatCacheCamera(cam) };
+            }
+
             return { success : true, payload : cam.camera };
+        }
+        else if (_fromCache){
+            if (_fromCache){
+                return { success : false, error : `ERROR : cannot get camera from cache with id : ${_cameraId}` };
+            }
         }
 
         // fetch from DB
@@ -54,9 +65,9 @@ async function tryGetOneById(_cameraId) {
         // return the cameras
         return { success : true, payload : createReturnObject(tryGetCams.payload) };        
     }
-    catch (err) {
-        logger.log('error', err);
-        return { success : false, error : err.message };
+    catch (error) {
+        logger.log('error', error);
+        return { success : false, error : error.message };
     }
 };
 
@@ -159,6 +170,43 @@ function validateCamera(camera){
 
 function createReturnObject(doc){
     return doc;
+}
+
+/** Filters out large properties from the cache object like the buffers */
+function formatCacheCamera(_obj){
+    var ret = {};
+    var ex = [ 'buffer', 'stdio', 'stdin', 'buffers' ];
+    for (const [k, v] of Object.entries(_obj)) {
+        ret[k] = getField(k, v, null, ex);
+    }  
+
+    return ret;
+}
+
+function getField(_fieldName, _fieldValue, _parentName, _ecluded){    
+
+    var obj = {};
+
+    var fullName = _parentName != null 
+        ? `${_parentName}.${_fieldName}` 
+        : _fieldName;
+
+    if (_ecluded.includes(_fieldName)){
+        obj[_fieldName] = 'cannot be returned';
+    }
+    else if (typeof _fieldValue == "object"){
+        
+        if (_fieldValue != null){
+            for (const [k, v] of Object.entries(_fieldValue)) {
+                obj[k] = getField(k, v, fullName, _ecluded);
+            }
+        }     
+    }
+    else{
+        obj[_fieldName] = _fieldValue;   
+    }
+
+    return obj;  
 }
 
 module.exports.getAll = getAll;

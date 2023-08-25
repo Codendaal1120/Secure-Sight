@@ -29,7 +29,7 @@ cache.config = {
     root : root,
     cameraBufferSeconds : 600,
     event : {
-        silenceSeconds : 30,
+        silenceSeconds : 180,
         limitSeconds : 120,
         idleEndSeconds : 7,
     },
@@ -58,8 +58,9 @@ app.use(cors({
     allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
 }));
 
-app.use(bodyParser.json());
+
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 const http = require('http').createServer(app);
 
