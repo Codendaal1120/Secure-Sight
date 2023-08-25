@@ -56,7 +56,7 @@ function startServer(){
     cache.services.ioSocket = require('socket.io')(http, {
         cors: {
             origin: '*',
-            methods: ['GET', 'POST']
+            methods: ['GET', 'POST', 'PUT', 'DELETE']
         }
     });
 

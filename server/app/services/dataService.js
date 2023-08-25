@@ -66,10 +66,18 @@ async function getManyAsync(_collectionName, _filter, _project, _sort, _page) {
         let usePagination = false;
         let count = 0;
         let recToSkip = 0;
+        let rStart = 0;
+        let rEnd = 0;
+        let hNext = false;
+        let hPrev = false;
         if (_page != null){
             recToSkip = cache.config.itemsPerPage * (_page - 1);
             count = await collection.payload.countDocuments(_filter);
             usePagination = true;
+            rStart = recToSkip == 0 ? 1 : recToSkip;
+            rEnd = Math.min((recToSkip + cache.config.itemsPerPage), count);
+            hNext = rEnd < count;
+            hPrev = recToSkip > 1;
         }
        
         let res = usePagination 
@@ -81,7 +89,7 @@ async function getManyAsync(_collectionName, _filter, _project, _sort, _page) {
         });
 
         return usePagination 
-        ? { success : true, payload : { collection:res, paging : { total: count, page: _page } }}
+        ? { success : true, payload : { collection:res, paging : { total: count, page: _page, rangeStart: rStart, rangeEnd: rEnd, hasNext: hNext, hasPrev: hPrev } }}
         : { success : true, payload : { collection:res }};
     } 
     catch (err) {

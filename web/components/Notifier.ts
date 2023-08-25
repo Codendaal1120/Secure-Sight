@@ -11,12 +11,12 @@ export namespace Notifier {
             pauseOnHover: true,
             draggable: true,
             progress: undefined,
-            theme: "dark",
+            theme: "light",
           });
     }
 
     export function notifyFail(text:string) { 
-        toast.success(text, {
+        toast.error(text, {
             position: "top-right",
             autoClose: 5000,
             hideProgressBar: false,
@@ -24,7 +24,7 @@ export namespace Notifier {
             pauseOnHover: true,
             draggable: true,
             progress: undefined,
-            theme: "dark",
+            theme: "light",
           });
     }
 }

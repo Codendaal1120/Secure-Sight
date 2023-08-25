@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import classNames from "classnames";
-
 import { Recording } from "services/api";
 import ReactPlayer from 'react-player';
 interface Props {
@@ -21,7 +20,6 @@ function RecordingPlayer ({ recording, signalClose, isOpen } : Props) {
     }, [isOpen]);
 
     const closeModal = () => {
-        console.log('close modal');
         signalClose(false);
         isOpen = false;
     }
@@ -37,13 +35,9 @@ function RecordingPlayer ({ recording, signalClose, isOpen } : Props) {
         width: '1280px',
         height: '720px',
         position: 'absolute' as const, 
-        left: '25%',
-        top: '15%',
-        //opacity: '100% !important',
-        visibility: isOpen ? 'visible' as const :'hidden'  as const,
-       // opacity: isOpen ?'100% !important' : '0',
-        //transition: isOpen ? 'visibility 1s, opacity 0.05s linear' : 'visibility 0s, opacity 0.05s linear'
-        
+        left: '37%',
+        top: '20%',
+        visibility: isOpen ? 'visible' as const :'hidden'  as const,        
       };
 
       return (

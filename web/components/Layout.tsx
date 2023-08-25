@@ -3,14 +3,14 @@ import React, { PropsWithChildren, useContext, useEffect, useState } from "react
 import Sidebar from "./Sidebar";
 import { SocketContext } from 'context/socket';
 import { Notifier } from "./Notifier";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Layout = (props: PropsWithChildren) => {
 
   const [collapsed, setSidebarCollapsed] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-  const socket = useContext(SocketContext);
-
- 
+  const socket = useContext(SocketContext); 
 
   useEffect(() => {  
     socket.on(`test-sock`, async (data) => {
@@ -35,8 +35,8 @@ const Layout = (props: PropsWithChildren) => {
     <div
       style={layoutStyle}
       className={classNames({
-        "b-white" : true,
-        "bg-gray-900 " : false,
+        "bg-gray-100" : true,
+        "dark:bg-gray-900 " : true,
         "grid ": true,
         "grid-cols-sidebar": !collapsed,
         "grid-cols-sidebar-collapsed": collapsed,
@@ -48,7 +48,9 @@ const Layout = (props: PropsWithChildren) => {
         setCollapsed={setSidebarCollapsed}
         shown={showSidebar}
       />
+      
       <div className={classNames({"collapsed": collapsed, "page-container" : true})}>
+        <ToastContainer />
         {props.children}
       </div>
     </div>

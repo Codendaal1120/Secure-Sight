@@ -47,7 +47,8 @@
   }
 
   .sidebar-item:hover {
-    background: #2D3142;
+    background: #BBD686;
+    color : #71717a
   }
 
   @-webkit-keyframes spin {

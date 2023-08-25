@@ -7,8 +7,9 @@ export interface Camera {
 
 export interface Recording {
   id: string;
-  fileName: string;
+  filePath: string;
   cameraName : string;
+  type : string;
   recordedOn: Date;
   length: number;
 }
@@ -17,6 +18,20 @@ interface TryResult<T> {
   success: boolean;
   payload: T | null;
   error: string | null
+}
+
+export interface PaginatedResults<T> {
+  collection: [T];
+  paging: Paging
+}
+
+export interface Paging {
+  total: number;
+  page: number;
+  rangeStart: number,
+  rangeEnd: number
+  hasNext: boolean,
+  hasPrev: boolean
 }
 
 export interface Config {
@@ -69,19 +84,35 @@ export class API {
       return { success: true, payload: cams, error: null }
   }
 
-  static async getRecordings(): Promise<TryResult<Recording[]>> {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings`, 
+  static async getRecordings(page: number): Promise<TryResult<PaginatedResults<Recording>>> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings?page=${page}`, 
       { method : 'GET' });
 
       if (!response.ok){
         return { success: false, payload: null, error: await response.text() }
       }
       
-      var recs: Recording[] = [];
       var json = await response.json();
-      json.map((rec: Recording) => recs.push(rec));
       
-      return { success: true, payload: recs, error: null }
+      return { success: true, payload: json, error: null }
+  }
+
+  static async delRecordings(rec: Recording): Promise<TryResult<PaginatedResults<Recording>>> {
+    try{
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/${rec.id}`, 
+      { method : 'DELETE' });
+
+      if (!response.ok){
+        return { success: false, payload: null, error: await response.text() }
+      }
+      
+      var json = await response.json();
+      
+      return { success: true, payload: json, error: null };
+    }catch(err:any){
+      return { success: true, payload: json, error: err.message };
+    }
+    
   }
 
   static async streamRecording(_recId: string): Promise<TryResult<string>> {
@@ -122,6 +153,20 @@ export class API {
       
       return { success: true, payload: resText, error: null }
   }
+
+  static async getConfig():Promise<TryResult<Config>> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config`, 
+      { method : 'GET' });
+
+      var responseText = await response.text();
+
+      if (response.ok){
+        return { success: true, payload: JSON.parse(responseText), error: null }
+      }
+      
+      return { success: false, payload: null, error: responseText }
+  }
+
 
   static toTime(seconds: number): string {
     const date = new Date(0);

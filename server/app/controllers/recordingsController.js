@@ -142,7 +142,7 @@ router.delete("/:recId", async function (req, res) {
 
   const result = await recService.tryDeleteRecording(req.params.recId); 
   if (result.success){
-      res.download(result.payload);
+    res.status(200).json(result.payload);
   }
   else{
       res.status(400).json(result.error);

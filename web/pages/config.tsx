@@ -26,12 +26,6 @@ const containerStyle = {
 
 export default function ConfigPage() {
 
-  const config2:Config = {
-    cameraBufferSeconds : 600,
-    eventIdleEndSeconds : 7,
-    eventSilenceSeconds : 180,
-    eventLimitSeconds : 120
-  }
 
   const {
     register,
@@ -49,13 +43,12 @@ export default function ConfigPage() {
     
   })
 
-  const [eventIdleEndSeconds, setEventIdleEndSeconds] = useState<Number>(0);
-  const [config, setConfig] = useState<Config>({
-    cameraBufferSeconds : 600,
-    eventIdleEndSeconds : 7,
-    eventSilenceSeconds : 180,
-    eventLimitSeconds : 120
-  }); 
+  // const [config, setConfig] = useState<Config>({
+  //   cameraBufferSeconds : 600,
+  //   eventIdleEndSeconds : 7,
+  //   eventSilenceSeconds : 180,
+  //   eventLimitSeconds : 120
+  // }); 
 
   // useForm({
   //   defaultValues: {
@@ -65,67 +58,10 @@ export default function ConfigPage() {
   //   mode : 'all'
   // })
 
-  useEffect(() => {
-    const config:Config = {
-      cameraBufferSeconds : 600,
-      eventIdleEndSeconds : 7,
-      eventSilenceSeconds : 180,
-      eventLimitSeconds : 120
-    };
-    
-    setConfig(config);
-      // API.getRecordings().then((tryGet) => {
-      //     if (tryGet.success){
-      //         setRecordings(tryGet.payload!);
-      //     }
-      //     else{
-      //         Notifier.notifyFail(`Unable to get recordings: ${tryGet.error}`);
-      //     }
-      // })
-  }, []);
+
 
   // https://tailwindcomponents.com/component/input-with-icon-and-validation-error
-  function onEventSilenceSecondsChange(e:any) {
-    if (!e.target.value){
-      return;
-    }
-    setConfig({
-      ...config!,
-      eventSilenceSeconds : parseInt(e.target.value)
-    });
-  }
 
-  //https://www.react-hook-form.com/api/useform/#mode
-
-  function onEventIdleEndSecondsChange(e:any) {
-    if (!e.target.value){
-      return;
-    }
-    setConfig({
-      ...config!,
-      eventIdleEndSeconds : parseInt(e.target.value)
-    });
-  }
-
-  function onEventLimitSecondsChange(e:any) {
-    if (!e.target.value){
-      return;
-    }
-    setConfig({
-      ...config!,
-      eventLimitSeconds : parseInt(e.target.value)
-    });
-  }
-
-  function onCamBufferSecondsChange(e:any) {
-    if (!e.target.value){
-      return;
-    }
-    setConfig({
-      ...config!,
-      cameraBufferSeconds : parseInt(e.target.value)
-    });
-  }
 
   const onSubmit = (data) => {
     console.log('sibmit');
@@ -144,6 +80,7 @@ export default function ConfigPage() {
             The following section contains config related to the events resulting from the video analysis.
             An event is a aggregation of detections during a time span.
           </p>
+
 
           <div className="input-wrapper flex flex-col">
           <label htmlFor="username">Username</label>
@@ -207,8 +144,6 @@ export default function ConfigPage() {
                     name="last-name"
                     id="last-name"
                     autoComplete="family-name"
-                    value={config?.eventSilenceSeconds}
-                    onChange={onEventSilenceSecondsChange}
                     min="5"
                     max="300"
                     required 
@@ -237,8 +172,6 @@ export default function ConfigPage() {
                     name="last-name"
                     id="last-name"
                     autoComplete="family-name"
-                    value={config?.eventLimitSeconds}
-                    onChange={onEventLimitSecondsChange}
                     min="5"
                     max="300"
                     required 
@@ -275,8 +208,6 @@ export default function ConfigPage() {
                   name="last-name"
                   id="last-name"
                   autoComplete="family-name"
-                  value={config?.cameraBufferSeconds}
-                  onChange={onCamBufferSecondsChange}
                   required 
                   className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />

@@ -29,7 +29,7 @@ async function getConfig() {
         var cfg = tryGet.payload;
         cfg['env'] = process.env.NODE_ENV;
         cfg['root'] = root;
-        cfg['itemsPerPage'] = 25;
+        cfg['itemsPerPage'] = 20;
     
         return createReturnObject(tryGet.payload);
     }
