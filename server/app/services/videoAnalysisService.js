@@ -24,6 +24,7 @@ async function startVideoAnalysis() {
   for (const [k, v] of Object.entries(cache.cameras)) {
     await StartVideoProcessing(v);  
   }
+  svm.startSvmTraining();
 }
 
 /** Creates the feed stream. This stream will be used to parse the Mpeg stream and feeds the chunks to the event emitter **/

@@ -310,6 +310,27 @@ async function loadMlData(_imageDirectory, _trainDataSize){
     return mlData;
 }
 
+/** Starts the SVM retraining job */
+async function startSvmTraining(){
+    setInterval(async function(){
+      var now = new Date();   
+
+      if (now.getHours() < 20){
+        return;
+      }
+
+      now.setHours(0);
+      now.setMinutes(0);
+      var lastResults = await getLastResults();
+      if (lastResults != null && lastResults.executedOn > now){
+       return; 
+      }
+
+      await trainSVM('persons');
+
+    }, 60 * 60 * 1000);
+  }
+
 function shuffle(a) {
     var j, x, i;
     for (i = a.length - 1; i > 0; i--) {
@@ -351,9 +372,16 @@ function loadModelFromFile() {
     return svm;
 }
 
+async function getLastResults(){
+    let document = await dataService.getOneAsync(collectionName, null, null, { executedOn : 1 });    
+    if (document.success){
+        return document.payload;
+    }
+}
+
 async function saveTrainingResults(_results, _mlData){
 
-    _results.date = new Date();
+    _results.executedOn = new Date();
     _results.trainingFiles = _mlData.train.data.length;
     _results.testFiles = _mlData.test.data.length;
 
@@ -370,3 +398,4 @@ module.exports.parseTrainingFiles = parseTrainingFiles;
 module.exports.predict = predict;
 module.exports.testModel = testModel;
 module.exports.processImage = processImage;
+module.exports.startSvmTraining = startSvmTraining;

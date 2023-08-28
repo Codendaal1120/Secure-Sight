@@ -8,22 +8,31 @@ const cache = require('../modules/cache');
  * @param {string} _collectionName - Target collection name
  * @param {Object} _filter - Optional filter definition
  * @param {Object} _project - Projection definition
+ * @param {Object} _sort - Sort definition
  * @return {Object} TryResult with the single record
  */
-async function getOneAsync(_collectionName, _filter, _project) {
+async function getOneAsync(_collectionName, _filter, _project, _sort) {
 
     var collection = await tryGetCollection(_collectionName);
     if (!collection.success){
         return { success : false, error : collection.error };
     }
 
-    try {              
+    try {             
+        if (!_filter){
+            _filter = {};
+        }
+
         // cast object
         if (!_project){
             project = {};
         }  
 
-        let res = await collection.payload.findOne(_filter, _project);
+        if (!_sort){
+            _sort = {};
+        }
+
+        let res = await collection.payload.findOne(_filter, _project, _sort);
         if (!res){
             return { success : false, error : "Not found", code : "NOT_FOUND" };    
         }
@@ -35,7 +44,6 @@ async function getOneAsync(_collectionName, _filter, _project) {
         return { success : false, error : err.message };
     }
 }
-
 
 /**
  * Read collection from db
