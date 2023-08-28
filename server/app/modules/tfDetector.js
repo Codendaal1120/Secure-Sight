@@ -7,6 +7,8 @@ let model = undefined;
 
 (async () => {
   logger.log('info', 'Loading model');
+  //https://github.com/tensorflow/tfjs/issues/4166
+  tf.env().set("WEBGL_DELETE_TEXTURE_THRESHOLD", 256000000);
   model = await coco_ssd.load({
     base: "mobilenet_v1",
   });
@@ -42,14 +44,10 @@ async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {
       }
     });
 
+    tf.dispose(image);
+
     return detections;
 }
-
-/*
-TP - 2304x1296
-eufy - 1920x1088
-revo - 2880x1616
-*/
 
 /**
  * Instantiate the return object

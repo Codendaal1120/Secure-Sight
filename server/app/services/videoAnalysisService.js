@@ -414,6 +414,7 @@ async function mergeGifAndRecording(_gifFile, _cameraEntry, _callbackAsync, _onF
 async function processFrame(_cameraEntry, data, _detectedOn){
 
   let predictions = [];
+  let tmpMissCount = 0;
 
   try{
 
@@ -423,7 +424,6 @@ async function processFrame(_cameraEntry, data, _detectedOn){
     storeFrame(_cameraEntry, data.pixels);
 
     let motion = detector.getMotionRegion(_cameraEntry.frameBuffer);
-  
     if (motion != null){
 
       if (_cameraEntry.camera.detectionMethod == "svm"){
@@ -451,6 +451,15 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);
 
         storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data);        
+      }
+
+      if (predictions == 0){
+        tmpMissCount ++;
+
+        if (tmpMissCount == 1000){
+          tmpMissCount = 0;
+          logger.error('1000 false movements');
+        }
       }
     }
   }
