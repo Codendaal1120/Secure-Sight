@@ -6,6 +6,7 @@ const Kernel = require('ml-kernel');
 const range = require('lodash.range');
 const {default: Image} = require('image-js');
 const logger = require('../modules/loggingModule').getLogger('svmDetector');
+const math = require('mathjs');
 
 //const IMG_SCALE_WIDTH = 100;
 //const IMG_SCALE_HEIGHT = 100;
@@ -39,7 +40,30 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
  * Training data from https://www.kaggle.com/datasets/constantinwerner/human-detection-dataset
  * The training directory of training images, each class should be stored in a sub folder with the class name, for example ./input/cat, ./input/dog
  */
-async function trainSVM(prefix) {   
+async function trainSVM(prefix, method) {   
+
+    if (method == 'old'){
+        return trainSVM_old(prefix);
+    }    
+
+    if (!prefix){
+        prefix = `${ML_PREFIX}`;
+    }
+
+    var imageDir = path.join(__dirname, '../ml', `${prefix}`);
+    var mlData = await loadMlData(imageDir, 0.8);
+
+    if (kernel == null){
+        kernel = new Kernel('polynomial', {degree: 3, scale: 1 / mlData.train.data.length});
+    }
+    var kData = kernel.compute(mlData.train.data).addColumn(0, range(1, mlData.train.data.length + 1));    
+
+    var testResults = await trainModel(kData, mlData);
+    return testResults;
+}
+
+async function trainSVM_old(prefix) {   
+
     if (!prefix){
         prefix = `${ML_PREFIX}`;
     }
@@ -52,7 +76,7 @@ async function trainSVM(prefix) {
     }
     var kData = kernel.compute(mlData.data).addColumn(0, range(1, mlData.data.length + 1));    
 
-    var testResults = await trainModel(kData, mlData.labels, prefix, mlData.data);
+    var testResults = await trainModel_old(kData, mlData.labels, prefix, mlData.data);
     return testResults;
 }
 
@@ -160,7 +184,45 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
  * @param {string} _prefix - Prefix for test/training data
  * @return {Object} Test results
  */
-async function testModel(_model, _prefix, _original) {      
+/**
+ * Test the saved svm model
+ * @param {object} _model - Model to test load
+ * @param {object} _mlData - The training/test data object from the load function
+ * @return {Object} Test results
+ */
+async function testModel(_model, _mlData) {      
+
+    var svm = null;
+    // load the saved model
+    if (!_model){
+        svm = loadModelFromFile();
+    }
+    else{
+        svm = SVM.load(_model);
+    }
+
+    // load test files
+    // var imageDir = path.join(__dirname, '../ml', `${_prefix}_test_images`);
+    // var mlTestData = await getMlData(imageDir);
+
+    var kData = kernel.compute(_mlData.test.data, _mlData.train.data).addColumn(0, range(1, _mlData.test.data.length + 1));  
+
+    var predictions = [];
+    let results = svm.predict(kData);
+    var correct = 0;
+
+    for (let i = 0; i < results.length; i++) {
+        predictions.push({ file: _mlData.test.fileNames[i], preidcted: results[i], actual: _mlData.test.labels[i] }); 
+        logger.log('info', _mlData.test.fileNames[i], 'actual =', _mlData.test.labels[i], 'predicted =', results[i]);
+        correct += _mlData.test.labels[i] == results[i] ? 1 : 0;
+    }
+
+    var acc = (correct / predictions.length) * 100;
+
+    return { accuracy: acc, predictions: predictions };
+}
+
+async function testModel_old(_model, _prefix, _original) {      
 
     var svm = null;
     // load the saved model
@@ -194,15 +256,38 @@ async function testModel(_model, _prefix, _original) {
 
 /**
  * Trains the svm model
+ * @param {Array} _kernelData - Training data
+ * @param {object} _mlData - The training/test data object from the load function
+ * @see https://github.com/mljs/libsvm
+ */
+async function trainModel(_kernelData, _mlData) { 
+   
+    let variance = math.variance(_kernelData);
+    let gamma = 1 / (_kernelData[0].length * variance);
+
+    const svm = createModel(gamma);
+
+    logger.log('info', "Training model");
+
+    svm.train(_kernelData, _mlData.train.labels);  // train the model
+
+    var model = svm.serializeModel();
+    var outPath = path.join(__dirname, '../ml', 'svm.model');
+    fs.writeFileSync(outPath, model, { encoding: 'utf8'});
+
+    return await testModel(model, _mlData);
+}
+
+/**
+ * Trains the svm model
  * @param {Array} _features - Training data
  * @param {Array} _labels - Training data labels
  * @param {string} _prefix - The train/test data prefix
  * @param {Array} _originalFeatures - Original training features 
  * @see https://github.com/mljs/libsvm
  */
-async function trainModel(_features, _labels, _prefix, _originalFeatures) { 
+async function trainModel_old(_features, _labels, _prefix, _originalFeatures) { 
 
-    const math = require('mathjs');
     let variance = math.variance(_features);
     let gamma = 1 / (_features[0].length * variance);
 
@@ -216,7 +301,7 @@ async function trainModel(_features, _labels, _prefix, _originalFeatures) {
     var outPath = path.join(__dirname, '../ml', 'svm.model');
     fs.writeFileSync(outPath, model, { encoding: 'utf8'});
 
-    return await testModel(model, _prefix, _original);
+    return await testModel_old(model, _prefix, _originalFeatures);
 }
 
 /**
@@ -241,6 +326,75 @@ function createModel(gamma){
 
     const svm = new SVM(options);
     return svm;
+}
+
+/**
+ * Loops the input directory, loads the images and extracts the features of each
+ * This also randomly splits the data into training and validation
+ * @param {Array} _features - Training data
+ * @param {Array} _features - Training data
+ * @return {Object} Data and labels
+ */
+async function loadMlData(_imageDirectory, _trainDataSize){
+
+    if (_trainDataSize > 1){
+        _trainDataSize = 1;
+    }
+   
+    var labels = fs.readdirSync(_imageDirectory);   
+    var mlData = {
+        train: {
+            fileNames: [],
+            data: [],
+            labels: [],
+        },
+        test: {
+            fileNames: [],
+            data: [],
+            labels: [],
+        }
+    }
+
+    for (let i = 0; i < labels.length; i++) {
+
+        var labelDirectory = _imageDirectory + '/' + labels[i];
+        var files = fs.readdirSync(labelDirectory);
+        files = shuffle(files);
+        var trainSize = Math.floor(files.length * _trainDataSize);
+
+        for (let j = 0; j < files.length; j++) {
+            logger.log('info', 'Loading ' + files[j]);        
+            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
+            if (loadHog.success){
+
+                if (j <= trainSize){
+                    //var ker = new Kernel('polynomial', {degree: 3, scale: 1 / loadHog.payload.length});
+                    //var kTrain = ker.compute(loadHog.payload).addColumn(0, range(1, loadHog.payload.length + 1));
+                    mlData.train.fileNames.push(files[j]);
+                    mlData.train.data.push(loadHog.payload);
+                    mlData.train.labels.push(labels[i]);
+                }
+                else{
+                    mlData.test.fileNames.push(files[j]);
+                    mlData.test.data.push(loadHog.payload);
+                    mlData.test.labels.push(labels[i]);
+                }
+            }            
+        }        
+    }   
+
+    return mlData;
+}
+
+function shuffle(a) {
+    var j, x, i;
+    for (i = a.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        x = a[i];
+        a[i] = a[j];
+        a[j] = x;
+    }
+    return a;
 }
 
 /**
@@ -315,5 +469,5 @@ function loadModelFromFile() {
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;
 module.exports.predict = predict;
-module.exports.testModel = testModel;
+module.exports.testModel_old = testModel_old;
 module.exports.processImage = processImage;
