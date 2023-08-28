@@ -7,6 +7,8 @@ const range = require('lodash.range');
 const {default: Image} = require('image-js');
 const logger = require('../modules/loggingModule').getLogger('svmDetector');
 const math = require('mathjs');
+const dataService = require('../services/dataService');
+const collectionName = 'svm';
 
 //const IMG_SCALE_WIDTH = 100;
 //const IMG_SCALE_HEIGHT = 100;
@@ -221,7 +223,9 @@ async function trainModel(_kernelData, _mlData) {
     var outPath = path.join(__dirname, '../ml', 'svm.model');
     fs.writeFileSync(outPath, model, { encoding: 'utf8'});
 
-    return await testModel(model, _mlData);
+    var results = await testModel(model, _mlData);
+    await saveTrainingResults(results, _mlData);
+    return results;
 }
 
 /**
@@ -347,11 +351,22 @@ function loadModelFromFile() {
     return svm;
 }
 
-//TODO:: Training the model on startup as I need access to the 'landmark', not sure if this is correct tho.
-//await trainSVM();
+async function saveTrainingResults(_results, _mlData){
+
+    _results.date = new Date();
+    _results.trainingFiles = _mlData.train.data.length;
+    _results.testFiles = _mlData.test.data.length;
+
+    let document = await dataService.insertOneAsync(collectionName, _results);    
+    if (!document.success){
+        return { success : false, error : `Could not create a training results entry : ${document.error}` };
+    }
+
+    return { success : true, payload : document.payload };
+}
 
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;
 module.exports.predict = predict;
-module.exports.testModel_old = testModel_old;
+module.exports.testModel = testModel;
 module.exports.processImage = processImage;
