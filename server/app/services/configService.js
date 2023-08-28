@@ -27,9 +27,10 @@ async function getConfig() {
         }
 
         var cfg = tryGet.payload;
-        cfg['env'] = process.env.NODE_ENV;
-        cfg['root'] = root;
-        cfg['itemsPerPage'] = 20;
+        cfg.env = process.env.NODE_ENV;
+        cfg.uiAddress = process.env.UI_ADDRESS;
+        cfg.root = root;
+        cfg.itemsPerPage = 20;
     
         return createReturnObject(tryGet.payload);
     }

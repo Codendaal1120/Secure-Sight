@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { API, CameraEvent, PaginatedResults, Recording } from "services/api";
+import { useLocation, useSearchParams, useParams  } from "react-router-dom";
+import { API, CameraEvent, PaginatedResults } from "services/api";
 import moment from 'moment';
 import dynamic from 'next/dynamic'
 import { AiOutlineDownload, AiFillPlayCircle } from "react-icons/ai";
 import { FaTrash } from "react-icons/fa";
 import { Notifier } from "../components/Notifier";
-import 'reactjs-popup/dist/index.css';
 import QuestionModal from "components/QuestionModal";
 import classNames from "classnames";
 
@@ -48,16 +48,27 @@ export default function EventsPage() {
 	const [toBeDeleted, setToBeDeleted] = useState<CameraEvent>();
 	const [isOpen, setIsOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [eventFilter, setEventFilter] = useState<string|null>(null);
 	const [prevHover, setPrevHover] = useState(false);
 	const [nextHover, setNextHover] = useState(false);
 	const [openModal, setOpenModal] = useState(false);
+	
+	useEffect(() => {
+		if (document != null){	
+			const searchParams = new URLSearchParams(document.location.search);
+			const ev = searchParams.get('event');
+			if (ev != eventFilter){
+				setEventFilter(ev);
+			}			
+		}
+	})
 
 	useEffect(() => {
 		fetcRecordings(currentPage);
-	}, [currentPage]);
+	}, [currentPage, eventFilter]);
 
-	const fetcRecordings = (page:number) =>{
-		API.getEvents(page).then((tryGet) => {
+	const fetcRecordings = (page:number) =>{	
+		API.getEvents(page, eventFilter).then((tryGet) => {
 			if (tryGet.success){
 				setRecordings(tryGet.payload!);
 			}

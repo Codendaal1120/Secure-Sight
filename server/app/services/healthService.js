@@ -22,18 +22,4 @@ async function checkDbHealth() {
     }
 };
 
-/**
- * Send test message
- * @return {Object} TryResult  
- */
-async function testMessage(topic, msg) {    
-    try{        
-        cache.services.ioSocket.sockets.emit(topic, msg);
-    }
-    catch (err) {
-        return { success : false, error : err.message };
-    }
-};
-
 module.exports.checkDbHealth = checkDbHealth;
-module.exports.testMessage = testMessage;

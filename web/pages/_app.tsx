@@ -5,6 +5,7 @@ import Layout from "components/Layout";
 // import { BsRecordCircleFill } from "react-icons/bs";
 // import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { BrowserRouter } from "react-router-dom"
 
 
 function MyApp({ Component, pageProps }: AppProps) {

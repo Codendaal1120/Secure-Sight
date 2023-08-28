@@ -40,9 +40,9 @@ function startServer(){
         videoAnalysisService = require("./app/services/videoAnalysisService");
     }
 
-    logger.log('info', `CORS origin :${process.env.CORS_ORIGIN}`);
+    logger.log('info', `CORS origin : ${process.env.UI_ADDRESS}`);
     app.use(cors({
-        origin : process.env.CORS_ORIGIN, 
+        origin : process.env.UI_ADDRESS, 
         credentials: true, 
         allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
     }));
@@ -83,6 +83,8 @@ function startServer(){
     app.use("/api/recordings", require("./app/controllers/recordingsController"));
     app.use("/api/config", require("./app/controllers/configController"));
     app.use("/api/events", require("./app/controllers/eventsController"));
+    app.use("/api/notifications", require("./app/controllers/notificationController"));
+    
 
     /** Stream setup */
     if (streamService != null && streamService != null){

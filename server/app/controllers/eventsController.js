@@ -7,11 +7,13 @@ const eventsService = require("../services/eventsService");
  * @route GET /api/events
  * @produces application/json 
  * @group Events api
+ * @param {number} req.query.page - Page to fetch
+ * @param {string} req.query.event - Optional eventId filter
  * @returns {Array.<object>} 200 - Array of events
  * @returns {Error}  500 - Unexpected error
 */
 router.get("/", async function (req, res) {  
-  const result = await eventsService.getAll(req.query.page); 
+  const result = await eventsService.getAll(req.query.page, req.query.event); 
   if (result.success){
       res.send(result.payload);
   }
@@ -25,7 +27,7 @@ router.get("/", async function (req, res) {
  * @route DEL /api/events/:id
  * @group Events api
  * @produces application/json
- * @param {string} req.params.recId - Recording ID
+ * @param {string} req.params.evtId - Event ID
  * @returns {object} 200 - Status message
  * @returns {Error}  400 - Bad request
  */

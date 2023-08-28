@@ -8,15 +8,17 @@ const path = require('path');
 /**
  * Get all events
  * @param {number} _page - Optional page number ot fetch, default 1
+ * @param {string} _eventId - Optional eventId filter
  * @returns {Array} Collection of events
  */
-async function getAll(_page){ 
+async function getAll(_page, _eventId){ 
   if (!_page){
     _page = 1;
   }
   try{
 		var fullPath = path.join(cache.config.root, 'server');
-		let tryGetAll = await dataService.getManyAsync(collectionName, {}, null, { startedOn: -1 }, _page);
+    var filter = _eventId == null ? {} : { _id : dataService.toDbiD(_eventId) };
+		let tryGetAll = await dataService.getManyAsync(collectionName, filter, null, { startedOn: -1 }, _page);
 
 		if (!tryGetAll.success){
 				logger.log('error', `ERROR : cannot get events : ${tryGetAll.error}`);
@@ -29,6 +31,31 @@ async function getAll(_page){
 
 		// return the events
 		return { success : true, payload : tryGetAll.payload };        
+  }
+  catch (err) {
+      logger.log('error', err);
+      return { success : false, error : err.message };
+  }
+};
+
+/**
+ * Get all events
+ * @param {number} _page - Optional page number ot fetch, default 1
+ * @returns {Array} Collection of events
+ */
+async function tryGetEvent(_eventId){ 
+
+  try{
+		var fullPath = path.join(cache.config.root, 'server');
+		let tryGet = await dataService.getOneAsync(collectionName, { _id : dataService.toDbiD(_eventId) }, null, {});
+
+		if (!tryGet.success){
+				logger.log('error', `ERROR : cannot get event : ${tryGet.error}`);
+				return { success : false, error : tryGet.message };
+		}
+
+		// return the event
+		return { success : true, payload : createReturnObject(tryGet.payload, fullPath)};        
   }
   catch (err) {
       logger.log('error', err);
@@ -174,5 +201,6 @@ function genrateEventId(){
 
 module.exports.genrateEventId = genrateEventId;
 module.exports.getAll = getAll;
+module.exports.tryGetEvent = tryGetEvent;
 module.exports.tryCreateNew = tryCreateNew;
 module.exports.tryDeleteEvent = tryDeleteEvent;

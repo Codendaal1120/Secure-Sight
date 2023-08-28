@@ -122,8 +122,11 @@ export class API {
 		
 	}
 
-static async getEvents(page: number): Promise<TryResult<PaginatedResults<CameraEvent>>> {
-	const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/events?page=${page}`, 
+static async getEvents(page: number, filter:string | null): Promise<TryResult<PaginatedResults<CameraEvent>>> {
+
+	const evetFilter = filter == null ? '' : `&event=${filter}`;
+
+	const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/events?page=${page}${evetFilter}`, 
 		{ method : 'GET' });
 
 		if (!response.ok){

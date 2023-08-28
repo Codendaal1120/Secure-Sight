@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { AiOutlineDownload, AiFillPlayCircle } from "react-icons/ai";
 import { FaTrash } from "react-icons/fa";
 import { Notifier } from "../components/Notifier";
-import 'reactjs-popup/dist/index.css';
 import QuestionModal from "components/QuestionModal";
 import classNames from "classnames";
 
