@@ -40,11 +40,7 @@ async function processImage(_imgData, _imgWidth, _imgHeight) {
  * Training data from https://www.kaggle.com/datasets/constantinwerner/human-detection-dataset
  * The training directory of training images, each class should be stored in a sub folder with the class name, for example ./input/cat, ./input/dog
  */
-async function trainSVM(prefix, method) {   
-
-    if (method == 'old'){
-        return trainSVM_old(prefix);
-    }    
+async function trainSVM(prefix) {   
 
     if (!prefix){
         prefix = `${ML_PREFIX}`;
@@ -59,24 +55,6 @@ async function trainSVM(prefix, method) {
     var kData = kernel.compute(mlData.train.data).addColumn(0, range(1, mlData.train.data.length + 1));    
 
     var testResults = await trainModel(kData, mlData);
-    return testResults;
-}
-
-async function trainSVM_old(prefix) {   
-
-    if (!prefix){
-        prefix = `${ML_PREFIX}`;
-    }
-
-    var imageDir = path.join(__dirname, '../ml', `${prefix}_input`);
-    var mlData = await getMlData(imageDir);
-
-    if (kernel == null){
-        kernel = new Kernel('polynomial', {degree: 3, scale: 1 / mlData.data.length});
-    }
-    var kData = kernel.compute(mlData.data).addColumn(0, range(1, mlData.data.length + 1));    
-
-    var testResults = await trainModel_old(kData, mlData.labels, prefix, mlData.data);
     return testResults;
 }
 
@@ -222,38 +200,6 @@ async function testModel(_model, _mlData) {
     return { accuracy: acc, predictions: predictions };
 }
 
-async function testModel_old(_model, _prefix, _original) {      
-
-    var svm = null;
-    // load the saved model
-    if (!_model){
-        svm = loadModelFromFile();
-    }
-    else{
-        svm = SVM.load(_model);
-    }
-
-    // load test files
-    var imageDir = path.join(__dirname, '../ml', `${_prefix}_test_images`);
-    var mlTestData = await getMlData(imageDir);
-
-    var kData = kernel.compute(mlTestData.data, _original).addColumn(0, range(1, mlTestData.data.length + 1));  
-
-    var predictions = [];
-    let results = svm.predict(kData);
-    var correct = 0;
-
-    for (let i = 0; i < results.length; i++) {
-        predictions.push({ file: mlTestData.files[i], preidcted: results[i], actual: mlTestData.labels[i] }); 
-        logger.log('info', mlTestData.files[i], 'actual =', mlTestData.labels[i], 'predicted =', results[i]);
-        correct += mlTestData.labels[i] == results[i] ? 1 : 0;
-    }
-
-    var acc = (correct / predictions.length) * 100;
-
-    return { accuracy: acc, predictions: predictions };
-}
-
 /**
  * Trains the svm model
  * @param {Array} _kernelData - Training data
@@ -276,32 +222,6 @@ async function trainModel(_kernelData, _mlData) {
     fs.writeFileSync(outPath, model, { encoding: 'utf8'});
 
     return await testModel(model, _mlData);
-}
-
-/**
- * Trains the svm model
- * @param {Array} _features - Training data
- * @param {Array} _labels - Training data labels
- * @param {string} _prefix - The train/test data prefix
- * @param {Array} _originalFeatures - Original training features 
- * @see https://github.com/mljs/libsvm
- */
-async function trainModel_old(_features, _labels, _prefix, _originalFeatures) { 
-
-    let variance = math.variance(_features);
-    let gamma = 1 / (_features[0].length * variance);
-
-    const svm = createModel(gamma);
-
-    logger.log('info', "Training model");
-
-    svm.train(_features, _labels);  // train the model
-
-    var model = svm.serializeModel();
-    var outPath = path.join(__dirname, '../ml', 'svm.model');
-    fs.writeFileSync(outPath, model, { encoding: 'utf8'});
-
-    return await testModel_old(model, _prefix, _originalFeatures);
 }
 
 /**
@@ -395,42 +315,6 @@ function shuffle(a) {
         a[j] = x;
     }
     return a;
-}
-
-/**
- * Loops the given directory, loads the images and extracts the features of each
- * @param {Array} _features - Training data
- * @return {Object} Data and labels
- */
-async function getMlData(_imageDirectory){
-   
-    var labels = fs.readdirSync(_imageDirectory);   
-    var fileNames = []; 
-    var xData = [];
-    var yData = [];
-
-    for (let i = 0; i < labels.length; i++) {
-
-        var labelDirectory = _imageDirectory + '/' + labels[i];
-        var files = fs.readdirSync(labelDirectory);
-
-        for (let j = 0; j < files.length; j++) {
-            logger.log('info', 'Loading ' + files[j]);        
-            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
-            if (loadHog.success){
-                fileNames.push(files[j]);
-
-                //var ker = new Kernel('polynomial', {degree: 3, scale: 1 / loadHog.payload.length});
-                //var kTrain = ker.compute(loadHog.payload).addColumn(0, range(1, loadHog.payload.length + 1));
-
-                xData.push(loadHog.payload);
-                yData.push(labels[i]);
-            }
-            
-        }        
-    }   
-
-    return { data: xData, labels: yData, files: fileNames };
 }
 
 /**

@@ -15,7 +15,7 @@ const multer = require('multer');
 router.post("/train-model", async function (req, res) {  
 
   try{
-    var testResults = await svmModule.trainSVM(req.query.prefix, req.query.method);
+    var testResults = await svmModule.trainSVM(req.query.prefix);
     res.status(200).json(testResults);
   }
   catch(err){
