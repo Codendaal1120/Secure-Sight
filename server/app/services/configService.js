@@ -41,6 +41,27 @@ async function getConfig() {
 };
 
 /**
+ * Get API config (structure for UI)
+ * @return {object} API Config 
+ */
+async function getApiConfig() {   
+
+    let cfg = await getConfig();
+
+    return {
+        cameraBufferSeconds : cfg.cameraBufferSeconds,
+        removeTempFiles: cfg.removeTempFiles,
+        // event
+        eventIdleEndSeconds : cfg.event.idleEndSeconds,
+        eventSilenceSeconds : cfg.event.silenceSeconds,      
+        eventLimitSeconds : cfg.event.limitSeconds,
+        // notficitations
+        notificationsEmailProviderApiKey : cfg.notifications.email.providerApiKey,
+        notificationsEmailSender : cfg.notifications.email.sender
+    }   
+};
+
+/**
  * Update config
  * @param {Object} _config - Config to update
  * @return {Object} TryResult of saved config
@@ -142,4 +163,6 @@ function createDBObject(_obj){
 }
 
 module.exports.getConfig = getConfig;
+module.exports.getApiConfig = getApiConfig;
 module.exports.tryUpdateConfig = tryUpdateConfig;
+

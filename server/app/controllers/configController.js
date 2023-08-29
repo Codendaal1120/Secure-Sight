@@ -7,11 +7,20 @@ const configService = require("../services/configService");
  * @route GET /api/config
  * @produces application/json 
  * @group Config api
+ * @param {object} req.query.flat - Optional to flatten return type
  * @returns {object} 200 - Config object
  * @returns {Error}  500 - Unexpected error
 */
 router.get("/", async function (req, res) {  
-  const result = await configService.getConfig(); 
+
+  let result = {};
+  if (req.query.flat == null || req.query.flat == 'true'){
+    result = await configService.getApiConfig(); 
+  }
+  else{
+    result = await configService.getConfig(); 
+  }
+  
   if (result != null){
       res.send(result);
   }

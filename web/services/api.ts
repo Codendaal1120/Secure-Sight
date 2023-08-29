@@ -47,7 +47,10 @@ export interface Config {
 	eventSilenceSeconds : number;
 	eventLimitSeconds: number;
 	eventIdleEndSeconds: number;
+	notificationsEmailProviderApiKey: string,
+  notificationsEmailSender: string
 }
+
 export class API {
 
 	static async stopCameraRecording(_camId: string):Promise<TryResult<string>> {
@@ -122,7 +125,7 @@ export class API {
 		
 	}
 
-static async getEvents(page: number, filter:string | null): Promise<TryResult<PaginatedResults<CameraEvent>>> {
+	static async getEvents(page: number, filter:string | null): Promise<TryResult<PaginatedResults<CameraEvent>>> {
 
 	const evetFilter = filter == null ? '' : `&event=${filter}`;
 
@@ -138,23 +141,23 @@ static async getEvents(page: number, filter:string | null): Promise<TryResult<Pa
 		return { success: true, payload: json, error: null }
 	}
 
-static async delEvent(evt: CameraEvent): Promise<TryResult<PaginatedResults<CameraEvent>>> {
-	try{
-		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/events/${evt.id}`, 
-		{ method : 'DELETE' });
+	static async delEvent(evt: CameraEvent): Promise<TryResult<PaginatedResults<CameraEvent>>> {
+		try{
+			const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/events/${evt.id}`, 
+			{ method : 'DELETE' });
 
-		if (!response.ok){
-			return { success: false, payload: null, error: await response.text() }
+			if (!response.ok){
+				return { success: false, payload: null, error: await response.text() }
+			}
+			
+			var json = await response.json();
+			
+			return { success: true, payload: json, error: null };
+		}catch(err:any){
+			return { success: true, payload: json, error: err.message };
 		}
-		
-		var json = await response.json();
-		
-		return { success: true, payload: json, error: null };
-	}catch(err:any){
-		return { success: true, payload: json, error: err.message };
+
 	}
-	
-}
 
 	static async streamRecording(_recId: string): Promise<TryResult<string>> {
 		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings/${_recId}/stream`, 
@@ -195,17 +198,18 @@ static async delEvent(evt: CameraEvent): Promise<TryResult<PaginatedResults<Came
 			return { success: true, payload: resText, error: null }
 	}
 
-	static async getConfig():Promise<TryResult<Config>> {
+	static async getConfig():Promise<Config | null> {
+		console.log('getting config');
 		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config`, 
 			{ method : 'GET' });
 
 			var responseText = await response.text();
 
-			if (response.ok){
-				return { success: true, payload: JSON.parse(responseText), error: null }
+			if (!response.ok){
+				return null;
 			}
-			
-			return { success: false, payload: null, error: responseText }
+
+			return JSON.parse(responseText);
 	}
 
 	static toTime(seconds: number): string {
@@ -214,4 +218,5 @@ static async delEvent(evt: CameraEvent): Promise<TryResult<PaginatedResults<Came
 		const timeString = date.toISOString().substr(11, 8);
 		return timeString;
 	}
+
 }
