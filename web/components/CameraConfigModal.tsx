@@ -69,7 +69,7 @@ export default function CameraConfigModal({ confirmModal, cancelModal, isOpen, c
 	const onSubmit = (data:Camera) => {
     // cons(JSON.stringify(data, null));
 		console.log('data', data);
-  };
+  	};
 
 	const onMouseOver = (item:string) =>{
 		setHover(item);

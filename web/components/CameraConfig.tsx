@@ -12,6 +12,13 @@ interface Props {
     cancelEdit: Function,
 }
 
+interface Schedule {
+  index: number,
+  name: string,
+  start: string,
+  end: string,
+}
+
 const protocols = [
   'http',
   'rtsp',
@@ -23,25 +30,52 @@ const detectionMethods = [
 ]
 
 export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props) {
-  const [open, setOpen] = useState(true);
   const cancelButtonRef = useRef(null);
 	const [selectedProtocols, setSelectedProtocols] = useState(protocols[0]);
 	const [selectedDetectionMethod, setSelectedDetectionMethod] = useState(detectionMethods[0]);
 	const [hover, setHover] = useState('none');
+  const [schedules, setSchedules] = useState<Schedule[]>();
+  // React does not seem to track the array of schedules well, 
+  // so we will updatet the count each time to force a render when we remove
+  const [scCount, setScCount] = useState<number>(0);
+  const [vpEnabled, setVpEnabled] = useState(true);
+  
+  useEffect(() => {
+    console.log('scCount');
+  }, [scCount]);	
 
 	useEffect(() => {
-		console.log('here')
     setSettings();
+    setVpEnabled(camera.videoProcessingEnabled);
   }, [camera]);	
 
-  const warnStyle = {        
-    fill : '#b91c1c',
-    size: 40
-	}
-
 	const setSettings = () =>{
+    createSchedules();  
 		reset(camera);
 	}
+
+  const createSchedules = () =>{
+
+    if (camera.eventConfig.schedule == null){
+      return;
+    }
+
+    let c:Schedule[] = [];
+    for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
+      if (camera.eventConfig.schedule[i].ranges && camera.eventConfig.schedule[i].ranges!.length > 0){
+        for (let j = 0; j < camera.eventConfig.schedule[i].ranges!.length; j++) {
+          c.push({
+            index : j,
+            name : camera.eventConfig.schedule[i].name,            
+            start : moment.utc(camera.eventConfig.schedule[i].ranges![j].start,'h:mm a').local().format('h:mm a'),
+            end : moment.utc(camera.eventConfig.schedule[i].ranges![j].end,'h:mm a').local().format('h:mm a'),
+          });
+        }        
+      }      
+    }
+    setScCount(c.length);
+    setSchedules(c);
+  }
 
 	const {
     register,
@@ -60,11 +94,38 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 	// 	// Do something with the form data
 	// }
 
-	const onSubmit = (data:Camera) => {
-    // cons(JSON.stringify(data, null));
-		console.log('data', data);
-    saveCamera(data);
+  const removeSchedule = (data: Schedule) => {
+    console.log('removing', data);
+    // for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
+    //   if (camera.eventConfig.schedule[i].name == data.name){
+    //     camera.eventConfig.schedule[i].ranges?.splice(data.index, 1);
+    //     break;
+    //   }      
+    // }
+    let removeIndex = -1;
+    for (let i = 0; i < schedules!.length; i++) {
+      if (schedules![i].index == data.index){
+        removeIndex = i;
+        break;
+      }
+    }
+    if (removeIndex > -1){
+      schedules?.splice(removeIndex, 1);
+      setScCount(schedules!.length);
+      setSchedules(schedules);
+    }    
   };
+
+	const onSubmit = (data:Camera) => {
+		console.log('data', data);
+    console.log('Camera', camera);
+    //saveCamera(data);
+  };
+
+  const onCancel = async () => {
+    setSettings();
+    cancelEdit();
+  }
 
 	const onMouseOver = (item:string) =>{
 		setHover(item);
@@ -78,11 +139,17 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 		fill : '#dc2626'
 	}
 
-	const buttonStyle = {
+  const saveStyle = {
+    background: hover == 'Save' ? '#BBD686' : '#3DA5D9'  
+  }
+
+  const addScheduleStyle = {
     background: hover == 'newSchedule' ? '#BBD686' : '#3DA5D9'  
   }
 
-	//const onSubmit = (data: FormValues) => alert(JSON.stringify(data));
+  const delButtonStyle = {
+    //background: hover == 'editCam' ? '#BBD686' : '#3DA5D9'  
+  }
 
   return (
     <div className="container mx-auto max-w-7xl " >
@@ -305,6 +372,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                 <input  
                   id="videoProcessingEnabled" 
                   {...register('videoProcessingEnabled')}
+                  onClick={() => setVpEnabled(!vpEnabled)}
                   type="checkbox" 
                   value="" 
                   className="cursor-pointer w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"></input>
@@ -314,38 +382,42 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
         </div>
 
         {/* Schedules */}
-        {/* <div className="border-b border-gray-900/10 pb-12">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 content-start">
+        <div className="" hidden={!vpEnabled} >
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 content-start ">
             <div className="sm:col-span-1 ">
-              <h2 className={"text-xl font-semibold leading-7 text-gray-900 dark:text-gray-500"}>Schedules</h2>		
+              <h2 className={"text-xl font-semibold leading-7 text-gray-800 dark:text-gray-500"}>Schedules</h2>		
+              <p className={"mt-1 text-sm leading-6 text-gray-400 dark:text-gray-400"}>
+                Define schedules when video analysis will be active.
+              </p>
             </div>
+            
             <div className="sm:col-span-1 ">
-              <div className="flex items-center justify-end gap-x-6">
+              <div className="flex items-center justify-end gap-x-6 mt-3">
                 <button
-                  type="button"
+                  type="button"                  
                   onMouseOver={() => onMouseOver('newSchedule')}
-                  onMouseLeave={okOnMouseLeave}
-                  style={addButtonStyle}
+                  onMouseLeave={onMouseLeave}
+                  style={addScheduleStyle}
                   className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">            
-                  New
+                  New schedule
                 </button>
               </div>
           
             </div>
           </div> 												
           <ul role="list" className="divide-y divide-gray-100">
-            {camera?.eventConfig?.schedule?.map((s, i) => {      
+            {schedules?.map((s, i) => {      
               return (																			
                 <li >
-                  <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 content-start">
+                  <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 content-start">
                     <div className="flex min-w-0 gap-x-4 sm:col-span-1">
                       <div className="min-w-0 flex-auto">
-                        <p className="text-sm font-semibold leading-6 text-gray-900">Leslie Alexander</p>
-                        <p className="mt-1 truncate text-xs leading-5 text-gray-500">leslie.alexander@example.com</p>
+                        <p className="text-sm font-semibold leading-6 text-gray-900">{s.name}</p>
+                        <p className="mt-1 truncate text-xs leading-5 text-gray-500">{s.start} to {s.end}</p>
                       </div>
                     </div>
-                    <div className="shrink-0 sm:flex sm:flex-col sm:items-end mr-3 mt-3">
-                      <FaTrash style={delIconStyle} size={20}></FaTrash>
+                    <div onMouseOver={() => onMouseOver(`delete-${i}`)} onMouseLeave={onMouseLeave} className={`shrink-0 sm:flex sm:flex-col sm:items-end mr-3 mt-3 cursor-pointer`}>
+                      <FaTrash className={`${hover == `delete-${i}` ? 'text-red-400' : 'text-red-600'}`} size={20} onClick={() => removeSchedule(s)}></FaTrash>
                     </div>
                     
                   </div>
@@ -354,13 +426,13 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
               ) 
             })} 
           </ul>
-        </div> */}
+        </div>
 
       </div>
-      <div className="px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+      <div className="px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 mt-3">
         <button
             type="submit"
-            style={buttonStyle}
+            style={saveStyle}
             onMouseOver={() => onMouseOver('Save')}
             onMouseLeave={onMouseLeave}
             className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto">Save
@@ -368,7 +440,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
         <button
             type="button"
             className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 sm:mt-0 sm:w-auto"
-            onClick={() => cancelEdit()}
+            onClick={() => onCancel()}
             ref={cancelButtonRef}>Cancel
         </button>
       </div>
