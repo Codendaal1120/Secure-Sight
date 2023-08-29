@@ -41,6 +41,17 @@ function secondsToTime(sec:number): string{
 	return time.trim();
 }
 
+function formatDateTime(date:Date): string {
+
+	// var dt = Date.parse(date);
+	// var now = Date.now();
+	// if (now.valueOf() - dt.valueOf() > 60 * 60 )
+
+	
+	return moment(date).local().fromNow();
+
+}
+
 export default function EventsPage() {
 
 	const [recordings, setRecordings] = useState<PaginatedResults<CameraEvent>>();
@@ -208,6 +219,9 @@ export default function EventsPage() {
 								FileName
 							</th>
 							<th scope="col" className="px-6 py-3">
+								Occured on
+							</th>
+							<th scope="col" className="px-6 py-3">
 								Date
 							</th>
 							<th scope="col" className="px-6 py-3">
@@ -237,7 +251,10 @@ export default function EventsPage() {
 									{evt.filePath}
 								</td>
 								<td className="px-6 py-4">
-									{ moment(evt.startedOn).local().format('LLL') }
+									{ formatDateTime(evt.startedOn) }
+								</td>
+								<td className="px-6 py-4">
+										{ moment(evt.startedOn).local().format('LLL') }
 								</td>
 								<td className="px-6 py-4">
 									{ secondsToTime(evt.duration) }

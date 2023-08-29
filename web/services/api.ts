@@ -1,9 +1,39 @@
 import { error } from "console";
 
-export interface Camera {
+export interface Camera {  
 	id: string;
 	name: string;
+	url: string;
+	snapshotUrl: string;
+	snapshotType: string;
+	transport: string;
+	detectionMethod: string;
+	videoProcessingEnabled: boolean;
+	streamResolution: CamStreamConfig;
+	eventConfig: CamEventConfig;
+	
 }
+
+export interface CamStreamConfig {
+	width: number;
+	height: number;
+}
+
+export interface CamEventConfig {
+	recordEvents: boolean;
+	schedule: CamEventSchedule[];
+}
+
+export interface CamEventSchedule {
+	name: string;
+	ranges : CamEventScheduleRange[] | undefined;
+}
+
+export interface CamEventScheduleRange {
+	start: string;
+	end: string;
+}
+
 export interface Recording {
 	id: string;
 	filePath: string;
