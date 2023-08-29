@@ -15,44 +15,10 @@ import {
   AccordionBody,
 } from "@material-tailwind/react";
 
-
-const formStyle = {
-  padding : '30px'
-};
-
-const click = () => {
-  //console.log('parent click');
-}
-
-
-
-
-const containerStyle = {
-  padding : '10px'
-};
-
 export default function ConfigPage() {
 
   const [hover, setHover] = useState('none');
   const [config, setConfig] = useState<Config>();
-  const [cameras, setCameras] = useState<Camera[]>([]);
-  const [selectedCam, setSelectedCam] = useState<Camera>();
-  //const [accOpen, setAccOpen] = useState<string>('none');
-  const [openModal, setOpenModal] = useState(false);
-  //const handleAccOpen = (value: React.SetStateAction<string>) => setAccOpen(accOpen === value ? 'none' : value);
-
-  useEffect(() => {
-    API.getCameras().then((tryCams) => {
-      if (tryCams.success){
-        console.log('cams', tryCams.payload);
-        setCameras(tryCams.payload!);
-      }
-      else{
-        console.error(`Unable to get cameras: ${tryCams.error}`);
-      }
-      
-    })
-  }, []); 
 
   useEffect(() => {    
     getConfig();
@@ -67,7 +33,7 @@ export default function ConfigPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<Config>({
     mode: 'all',  
   });
 
@@ -93,83 +59,20 @@ export default function ConfigPage() {
     // Do something with the form data
   }
 
-  const onSubmit = (data:any) => {
-    console.log('sibmit');
-    // Do something with the form data
-  }
-
-  const cancelPromptModal = () =>{
-    //setToBeDeleted(undefined);
-    setOpenModal(false);
-  }
-
-  const confirmPromptModal = () =>{
-    setOpenModal(false);
-    // if (toBeDeleted){
-    //   API.delEvent(toBeDeleted).then((tryGet) => {
-    //     if (tryGet.success){
-    //       Notifier.notifySuccess(`Event deleted`);
-    //       fetcRecordings(currentPage);      
-    //       setToBeDeleted(undefined);         
-    //     }
-    //     else{
-    //       Notifier.notifyFail(`Unable to delete: ${tryGet.error}`);
-    //     }
-    //   })
-    // } 
-  }
-
-  const openModalPrompt = (item: Camera) => {
-    if (item != null){
-      setOpenModal(true);
+  const onSubmit = async(data: Config) => {
+    console.log('sibmit', data);
+    let c = await API.saveConfig(data);
+    if (c){
+      setConfig(c);
     }
   }
-  
+
   const okButtonStyle = {
     background: hover == 'submit' ? '#BBD686' : '#3DA5D9'  
   }
 
-  const addButtonStyle = {
-    background: hover == 'newCam' ? '#BBD686' : '#3DA5D9'  
-  }
-
-  const editCamButtonStyle = {
-    //background: hover == 'editCam' ? '#BBD686' : '#3DA5D9'  
-  }
-
-
-
-
-// const isOpen = (item:string) => {
-//   //selectedCam
-//   if (item == "1"){
-//     return true;
-//   }
-//   return false;
-// }
-
-// const getAccState = (item:string) => {
-//   //selectedCam
-//   if (item == "1"){
-//     return "open";
-//   }
-//   return "collapse";
-// }
-
-/*
-accOpen, setAccOpen] = useState<string>('none');
-  const handleAccOpen
-*/
-
-  const accAnimation = {
-    mount: { scale: 1 },
-    unmount: { scale: 0.9 },
-  };
-
-
   return (
     <div className="container mx-auto max-w-7xl py-12 sm:px-6 lg:px-8" >
-      <CameraConfigModal confirmModal={confirmPromptModal} cancelModal={cancelPromptModal} isOpen={openModal} camera={selectedCam!}/>
       <form onSubmit={handleSubmit(onSubmit)} >
         <div className="space-y-12">
 
@@ -238,20 +141,20 @@ accOpen, setAccOpen] = useState<string>('none');
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="removeTempFiles" className="block text-sm font-medium leading-6 text-gray-900">
+                <label htmlFor="notifications.email.providerApiKey" className="block text-sm font-medium leading-6 text-gray-900">
                   API key
                 </label>
                 <div className="mt-2">
                   <input
                     type="text"
-                    id="notificationsEmailProviderApiKey"
-                    {...register('notificationsEmailProviderApiKey', { required: true, minLength: 30 })}
+                    id="notifications.email.providerApiKey"
+                    {...register('notifications.email.providerApiKey', { required: true, minLength: 30 })}
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
                   />
-                  {errors.notificationsEmailProviderApiKey && errors.notificationsEmailProviderApiKey.type === "required" && (
+                  {errors.notifications?.email?.providerApiKey && errors.notifications?.email?.providerApiKey.type === "required" && (
                     <p className="text-xs italic text-red-500">API key is required</p>
                   )}
-                  {errors.notificationsEmailProviderApiKey && errors.notificationsEmailProviderApiKey.type === "minLength" && (
+                  {errors.notifications?.email?.providerApiKey && errors.notifications?.email?.providerApiKey.type === "minLength" && (
                     <p className="text-xs italic text-red-500">Invalid API key</p>
                   )}
                 </div>
@@ -265,20 +168,20 @@ accOpen, setAccOpen] = useState<string>('none');
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="removeTempFiles" className="block text-sm font-medium leading-6 text-gray-900">
+                <label htmlFor="notifications.email.sender" className="block text-sm font-medium leading-6 text-gray-900">
                   Sender
                 </label>
                 <div className="mt-2">
                   <input
                     type="text"
-                    id="notificationsEmailSender"
-                    {...register('notificationsEmailSender', {  required: true, pattern: {
+                    id="notifications.email.sender"
+                    {...register('notifications.email.sender', {  required: true, pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                       message: "invalid email addresszx"
                     } })}
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
                   />
-                  {errors.notificationsEmailSender && errors.notificationsEmailSender.type === "pattern" && (
+                  {errors.notifications?.email?.sender && errors.notifications?.email?.sender.type === "pattern" && (
                     <p className="text-xs italic text-red-500">invalid email address</p>
                   )}
                 </div>
@@ -301,17 +204,17 @@ accOpen, setAccOpen] = useState<string>('none');
                 </label>
               </div>
               <div className="sm:col-span-1">
-                <label htmlFor="eventIdleEndSeconds" className="block text-sm font-medium leading-6 text-gray-900">
+                <label htmlFor="event.idleEndSeconds" className="block text-sm font-medium leading-6 text-gray-900">
                   Event idle seconds
                 </label>
                 <div className="mt-2">
                   <input
                     type="number"
-                    id="eventIdleEndSeconds"
+                    id="event.idleEndSeconds"
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
-                    {...register('eventIdleEndSeconds', { min: 2, max: 20 })}
+                    {...register('event.idleEndSeconds', { min: 2, max: 20 })}
                   />
-                  {errors.eventIdleEndSeconds && (
+                  {errors.event?.idleEndSeconds && (
                     <p className="text-xs italic text-red-500">Event idle seconds needs to be between 2 and 10</p>
                   )}
                 </div>
@@ -325,17 +228,17 @@ accOpen, setAccOpen] = useState<string>('none');
                 </label>
               </div>
               <div className="sm:col-span-1">
-                <label htmlFor="eventSilenceSeconds" className="block text-sm font-medium leading-6 text-gray-900">
+                <label htmlFor="event.silenceSeconds" className="block text-sm font-medium leading-6 text-gray-900">
                   Event silence seconds
                 </label>
                 <div className="mt-2">
                   <input
                       type="number"
-                      id="eventSilenceSeconds"
+                      id="event.silenceSeconds"
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
-                      {...register('eventSilenceSeconds', { min: 1, max: 600 })}
+                      {...register('event.silenceSeconds', { min: 1, max: 600 })}
                     />
-                    {errors.eventSilenceSeconds && (
+                    {errors.event?.silenceSeconds && (
                       <p className="text-xs italic text-red-500">Event silence seconds needs to be between 1 and 600</p>
                     )}
                 </div>
@@ -349,17 +252,17 @@ accOpen, setAccOpen] = useState<string>('none');
                 </label>
               </div>
               <div className="sm:col-span-1">
-                <label htmlFor="eventLimitSeconds" className="block text-sm font-medium leading-6 text-gray-900">
+                <label htmlFor="event.limitSeconds" className="block text-sm font-medium leading-6 text-gray-900">
                   Event limit seconds
                 </label>
                 <div className="mt-2">
                   <input
                       type="number"                   
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
-                      id="eventLimitSeconds"
-                      {...register('eventLimitSeconds', { min: 1, max: 60 })}
+                      id="event.limitSeconds"
+                      {...register('event.limitSeconds', { min: 1, max: 600 })}
                     />
-                    {errors.eventSilenceSeconds && (
+                    {errors.event?.limitSeconds && (
                       <p className="text-xs italic text-red-500">Event limit seconds needs to be between 1 and 600</p>
                     )}
                 </div>
@@ -368,7 +271,7 @@ accOpen, setAccOpen] = useState<string>('none');
 
           </div>
 
-          <div className="mt-6 flex items-center justify-end gap-x-6 border-b border-gray-900/10 pb-12">
+          <div className="mt-6 flex items-center justify-end gap-x-6">
             <button 
               type="button" 
               onClick={onCancel}
@@ -383,154 +286,7 @@ accOpen, setAccOpen] = useState<string>('none');
               className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">            
               Save
             </button>
-          </div>
-
-          {/* Camera */}
-          <div>
-
-            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-              <div className="sm:col-span-5 ">
-                <h2 className={"text-base font-semibold leading-7 text-gray-900 dark:text-gray-500"}>Camera Config</h2>
-                <p className={"mt-2 text-sm leading-6 mb-8 text-gray-400 dark:text-gray-200"}>
-                  The following section contains config related to the cameras as well as the config for each camera.
-                </p>
-              </div>
-              <div className="sm:col-span-1 ">
-                <div className="mt-6 flex items-center justify-end gap-x-6">
-                <button
-                    type="button"
-                    onMouseOver={() => onMouseOver('newCam')}
-                    onMouseLeave={okOnMouseLeave}
-                    style={addButtonStyle}
-                    className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">            
-                    New
-                  </button>
-                </div>
-            
-              </div>
-            </div>     
-            {cameras.map((cam, i) => {      
-              return (
-                <Accordion open={selectedCam?.id === cam.id} animate={accAnimation} className={` ${selectedCam?.id === cam.id ? 'border-b border-gray-900/10' : ''}`}>
-                  <AccordionHeader onClick={() => setSelectedCam(cam)} className={`border-b-0 transition-colors ${selectedCam?.id === cam.id ? 'text-cyan-500 hover:!text-cyan-500 py-0 mb-2' : 'text-gray-900 py-2 mb-1'}`}>{cam.name} </AccordionHeader>
-                  <AccordionBody>
-                    <button 
-                      onClick={() => openModalPrompt(cam)}
-                      className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 sm:mt-0 sm:w-auto" style={editCamButtonStyle}  onMouseOver={() => onMouseOver('editCam')} onMouseLeave={okOnMouseLeave}><AiOutlineEdit size={20}></AiOutlineEdit></button>
-                    
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Name
-                        </label>
-                      </div>
-                      <div className="sm:col-span-1">                        
-                        <div className="mt-2">
-                          <label>{cam?.name}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            URL
-                        </label>
-                      </div>
-                      <div className="sm:col-span-3">                        
-                        <div className="mt-2">
-                          <label>{cam?.url}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Snapshot URL
-                        </label>
-                      </div>
-                      <div className="sm:col-span-3">                        
-                        <div className="mt-2">
-                          <label>{cam?.snapshotUrl}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Snapshot type
-                        </label>
-                      </div>
-                      <div className="sm:col-span-3">                        
-                        <div className="mt-2">
-                          <label>{cam?.snapshotType}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Transport type
-                        </label>
-                      </div>
-                      <div className="sm:col-span-1">                        
-                        <div className="mt-2">
-                          <label>{cam?.transport}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Detection method
-                        </label>
-                      </div>
-                      <div className="sm:col-span-1">                        
-                        <div className="mt-2">
-                          <label>{cam?.detectionMethod == 'tf' ? 'Tensor Flow' : 'SVM'}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Video processing enabled
-                        </label>
-                      </div>
-                      <div className="sm:col-span-1">                        
-                        <div className="mt-2">
-                          <label>{cam?.videoProcessingEnabled ? 'True' : 'False'}</label>
-                        </div>
-                      </div>                
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                      <div className="sm:col-span-2 ">
-                        <label className="block text-sm font-medium leading-6 text-gray-900">
-                            Schedules
-                        </label>
-                      </div>
-                      <div className="sm:col-span-3">                        
-                        <div className="mt-2">
-                          {
-                            cam?.eventConfig.schedule?.map((s, i) => { 
-                              return (s.ranges?.map((r, i) =>{
-                                return <div className="block text-sm">
-                                    <label className="font-medium ">{s.name} </label>
-                                    <label>{moment.utc(r.start,'h:mm a').local().format('h:mm a')} </label>
-                                    <label className="font-medium ">to </label>
-                                    <label>{moment.utc(r.end,'h:mm a').local().format('h:mm a')}</label>
-                                  </div>
-                              }));                              
-                            })
-                          }                           
-                        </div>
-                      </div>                
-                    </div>
-                  </AccordionBody>
-                </Accordion>
-              ) 
-            })}         
-
-          </div>
+          </div>  
         </div>
       </form>
     </div>

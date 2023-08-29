@@ -28,7 +28,7 @@ const detectionMethods = [
   'Support vector Machine',
 ]
 
-export default function CameraConfigModal({ confirmModal, cancelModal, isOpen, camera } : Props) {
+export default function NewCameraModal({ confirmModal, cancelModal, isOpen, camera } : Props) {
   const [open, setOpen] = useState(true);
   const cancelButtonRef = useRef(null);
 	const [selectedProtocols, setSelectedProtocols] = useState(protocols[0]);

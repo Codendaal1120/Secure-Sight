@@ -47,8 +47,8 @@ function startServer(){
         allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
     }));
 
-    app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));    
 
     const http = require('http').createServer(app);
 

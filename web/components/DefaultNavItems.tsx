@@ -1,5 +1,8 @@
 import React from "react";
-import { FiFilm, FiVideo, FiInfo, FiSettings } from "react-icons/fi";
+import { FiFilm, FiInfo, FiSettings } from "react-icons/fi";
+import { GiCctvCamera } from "react-icons/gi";
+import { LuLayoutDashboard } from "react-icons/lu";
+
 
 // define a NavItem prop
 export type NavItem = {
@@ -11,7 +14,7 @@ export const defaultNavItems: NavItem[] = [
   {
     label: "Dashboard",
     href: "/",
-    icon: <FiVideo className="w-6 h-6" />,
+    icon: <LuLayoutDashboard className="w-6 h-6" />,
   },
   {
     label: "Recordings",
@@ -22,6 +25,11 @@ export const defaultNavItems: NavItem[] = [
     label: "Events",
     href: "/events",
     icon: <FiInfo className="w-6 h-6" />,
+  },
+  {
+    label: "Cameras",
+    href: "/cameras",
+    icon: <GiCctvCamera className="w-6 h-6" />,
   },
   {
     label: "Config",

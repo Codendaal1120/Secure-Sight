@@ -76,7 +76,7 @@ async function tryUpdateConfig(_config){
 
     const update = { 
         $set : {             
-            cameraBufferSeconds: _config.cameraBufferSeconds, 
+            cameraBufferSeconds: parseInt(_config.cameraBufferSeconds), 
             removeTempFiles: _config.removeTempFiles, 
             event: _config.event,
             updatedOn: new Date() }

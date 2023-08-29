@@ -72,14 +72,38 @@ export interface Paging {
 	hasNext: boolean,
 	hasPrev: boolean
 }
+// export interface Config {
+// 	cameraBufferSeconds: number;
+// 	eventSilenceSeconds : number;
+// 	eventLimitSeconds: number;
+// 	eventIdleEndSeconds: number;
+// 	notificationsEmailProviderApiKey: string,
+//   notificationsEmailSender: string,
+//   removeTempFiles: boolean
+// }
+
 export interface Config {
 	cameraBufferSeconds: number;
-	eventSilenceSeconds : number;
-	eventLimitSeconds: number;
-	eventIdleEndSeconds: number;
-	notificationsEmailProviderApiKey: string,
-  notificationsEmailSender: string
+	event : EventConfig;
+  removeTempFiles: boolean;
+  notifications: NotificationsConfig;
 }
+
+export interface EventConfig {
+	silenceSeconds: number;
+	limitSeconds : number;
+	idleEndSeconds: number;  
+}
+
+export interface NotificationsConfig {
+	email: NotificationsEmailConfig;
+}
+
+export interface NotificationsEmailConfig {
+	providerApiKey: string;
+	sender : string;
+}
+
 
 export class API {
 
@@ -229,9 +253,22 @@ export class API {
 	}
 
 	static async getConfig():Promise<Config | null> {
-		console.log('getting config');
-		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config`, 
+		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config?flat=false`, 
 			{ method : 'GET' });
+
+			var responseText = await response.text();
+
+			if (!response.ok){
+				return null;
+			}
+
+			return JSON.parse(responseText);
+	}
+
+  static async saveConfig(cfg:Config):Promise<Config | null> {
+		console.log('saving config', cfg);
+		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config`, 
+			{ method : 'PUT', body: JSON.stringify(cfg), headers: { 'Content-Type': 'application/json' }, });
 
 			var responseText = await response.text();
 

@@ -55,6 +55,10 @@
     color : #71717a
   }
 
+  .sidebar-item.selected {
+    color : #71717a
+  }
+
   @-webkit-keyframes spin {
     from {-webkit-transform:rotate(0deg);}
     to {-webkit-transform:rotate(360deg);}

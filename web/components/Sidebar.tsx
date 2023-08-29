@@ -16,13 +16,14 @@ type Props = {
 };
 
 const Sidebar = ({
-  collapsed,
-  navItems = defaultNavItems,
-  shown,
-  setCollapsed,
-}: Props) => {
+    collapsed,
+    navItems = defaultNavItems,
+    shown,
+    setCollapsed,
+  }: Props) => {
 
   const Icon = collapsed ? HiChevronDoubleRight : HiChevronDoubleLeft;
+  const [selected, setSelected] = useState(navItems[0]);
 
   const sideBarStyle = {
     background: '#3DA5D9',
@@ -31,7 +32,7 @@ const Sidebar = ({
   const logoStyle = {
     height:  collapsed ? '30px' : '60px'
   }
- 
+
   return (
     <div
       style={sideBarStyle}
@@ -55,11 +56,7 @@ const Sidebar = ({
           })}
         >
           <Image style={logoStyle} className={'logo'} src={ collapsed ? logo_small : logo_big } alt="Secure Sight" />
-          <button
-           
-            className="sidebar-item grid place-content-center w-10 h-10 rounded-full opacity-0 md:opacity-100"
-            onClick={() => setCollapsed(!collapsed)}>
-            
+          <button className="sidebar-item grid place-content-center w-10 h-10 rounded-full opacity-0 md:opacity-100" onClick={() => setCollapsed(!collapsed)}>
               <Icon className="w-5 h-5" />
           </button>
         </div>
@@ -74,13 +71,14 @@ const Sidebar = ({
                 <li
                   key={index}
                   className={classNames({
+                    "text-slate-500 " : selected.label == item.label,
                     "sidebar-item": true,
                     "text-slate-100 flex": true, //colors
                     "transition-colors duration-300": true, //animation
                     "rounded-md p-2 mx-3 gap-4 ": !collapsed,
                     "rounded-full p-2 mx-3 w-10 h-10": collapsed,
                   })}>
-                  <Link href={item.href} className="flex gap-2">
+                  <Link href={item.href} className="flex gap-2" onClick={() => setSelected(item)}>
                     {item.icon} <span>{!collapsed && item.label}</span>
                   </Link>
                 </li>
@@ -94,4 +92,5 @@ const Sidebar = ({
     </div>
   );
 };
+
 export default Sidebar;
