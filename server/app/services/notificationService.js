@@ -6,7 +6,16 @@ const eService = require('./eventsService');
 const moment = require('moment');
 const imgModule = require('../modules/imageModule');
 
-sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
+let mailReady = false;
+
+
+/** Setup service */
+function setup(){	
+	if (cache.config.notifications?.email?.providerApiKey){
+		sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
+		mailReady = true;
+	}
+}
 
 /**
  * Get all configured cameras from DB
@@ -69,9 +78,13 @@ async function sendEmailAltert(_alert){
 			]
 		};
 
-		await sgMail.send(msg);
-
-		return { success : true };        
+		if (mailReady){
+			await sgMail.send(msg);
+			return { success : true }; 
+		}
+		
+		return { success : false, error : !mailReady ? 'Mail service was not initialized' : 'Unknown error occured' }; 
+		       
 	}
 	catch (error) {
 		logger.log('error', error);
@@ -108,3 +121,4 @@ function generateEmailHtml(_event, _uiUrl){
 
 module.exports.testUiMessage = testUiMessage;
 module.exports.trySendAlert = trySendAlert;
+module.exports.setup = setup;

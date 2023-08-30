@@ -13,6 +13,7 @@ const fs = require("fs");
 
 let streamService = null;
 let videoAnalysisService = null;
+let isReady = false;
 
 configService.getConfig().then((result) => {
     cache.config = result;
@@ -38,6 +39,9 @@ function startServer(){
     if (process.env.NODE_ENV != 'unit_test'){
         streamService = require("./app/services/streamService");
         videoAnalysisService = require("./app/services/videoAnalysisService");
+        /*
+      
+        */
     }
 
     logger.log('info', `CORS origin : ${process.env.UI_ADDRESS}`);
@@ -97,9 +101,12 @@ function startServer(){
 
     /** Start server */
     http.listen(port, () => {  
-        logger.log('info', `SecureSight WS listening at http://localhost:${port}`)
+        logger.log('info', `SecureSight WS listening at http://localhost:${port}`);
+        isReady = true;
     });
 
-    module.exports = app;
+    
 }
+
+module.exports = app;
 

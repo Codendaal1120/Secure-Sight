@@ -18,7 +18,7 @@ async function getConfig() {
         }
         
         dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
-
+        
         let tryGet = await dataService.getOneAsync(collectionName, { });
 
         if (!tryGet.success){
