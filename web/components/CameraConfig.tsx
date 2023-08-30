@@ -31,11 +31,9 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 	const [selectedDetectionMethod, setSelectedDetectionMethod] = useState('Tensor Flow');
 	const [hover, setHover] = useState('none');
   const [schedules, setSchedules] = useState<Schedule[]>();
-  // React does not seem to track the array of schedules well, 
   // so we will updatet the count each time to force a render when we remove
   const [scCount, setScCount] = useState<number>(0);
   const [vpEnabled, setVpEnabled] = useState(true);
-  const [selected, setSelected] = useState<Camera>();
 	const [openModal, setOpenModal] = useState(false);
   
   useEffect(() => {
@@ -141,13 +139,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
   });
 
   const removeSchedule = (data: Schedule) => {
-    console.log('removing', data);
-    // for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
-    //   if (camera.eventConfig.schedule[i].name == data.name){
-    //     camera.eventConfig.schedule[i].ranges?.splice(data.index, 1);
-    //     break;
-    //   }      
-    // }
+    //console.log('removing', data);
     let removeIndex = -1;
     for (let i = 0; i < schedules!.length; i++) {
       if (schedules![i].index == data.index && schedules![i].dayIndex == data.dayIndex){
@@ -193,33 +185,29 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 	}
   
 	const cancelPromptModal = () =>{
-		// setToBeDeleted(undefined);
 		setOpenModal(false);
 	}
 
-	const confirmPromptModal = () =>{
+	const confirmPromptModal = (data:any) =>{
 		setOpenModal(false);
-		// if (toBeDeleted){
-		// 	API.delEvent(toBeDeleted).then((tryGet) => {
-		// 		if (tryGet.success){
-		// 			Notifier.notifySuccess(`Event deleted`);
-		// 			fetcRecordings(currentPage);      
-		// 			setToBeDeleted(undefined);         
-		// 		}
-		// 		else{
-		// 			Notifier.notifyFail(`Unable to delete: ${tryGet.error}`);
-		// 		}
-		// 	})
-		// } 
+    //console.log('time-data', data);
+
+    let from  = moment(data.start,'HH:mm').utc().format('HH:mm');
+    let to  = moment(data.end,'HH:mm').utc().format('HH:mm');
+
+    schedules?.push({
+      dayIndex: data.dayIndex,
+      start: from,
+      end: to,
+      index: schedules.length,
+      name: data.name,
+      startText: moment.utc(from,'HH:mm').local().format('h:mm a'),
+      endText: moment.utc(to,'HH:mm').local().format('h:mm a')
+    });
 	}
 
 	const openModalPrompt = () => {
 		setOpenModal(true);
-		// setToBeDeleted(item);
-	}
-
-	const delIconStyle = {        
-		fill : '#dc2626'
 	}
 
   const saveStyle = {
@@ -228,10 +216,6 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 
   const addScheduleStyle = {
     background: hover == 'newSchedule' ? '#BBD686' : '#3DA5D9'  
-  }
-
-  const delButtonStyle = {
-    //background: hover == 'editCam' ? '#BBD686' : '#3DA5D9'  
   }
 
   return (

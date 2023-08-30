@@ -2,17 +2,9 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { Dialog, Transition, Combobox  } from '@headlessui/react'
 import { BsChevronBarContract } from "react-icons/bs";
 import { Camera } from 'services/api';
-import { SubmitHandler, useForm } from 'react-hook-form'
-import { FaTrash } from "react-icons/fa";
-import TimePicker from './TimePicker';
-import TimePicker2 from './TimePicker2';
-import moment from 'moment';
-import {
-  Accordion,
-  AccordionHeader,
-  AccordionBody,
-} from "@material-tailwind/react";
-
+import TimePicker, { TimeValue } from './TimePicker';
+import { time } from 'console';
+import { CycleItem } from './CyclePicker';
 interface Props {
     confirmModal: Function,
     cancelModal: Function,
@@ -33,59 +25,48 @@ const detectionMethods = [
 const days = [
   'Sunday',
   'Monday',
-  'Teusday',
+  'Tuesday',
   'Wednesday',
   'Thursday',
   'Friday',
   'Saturday',
 ]
 
-
 export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen, camera } : Props) {
   const [open, setOpen] = useState(true);
   const cancelButtonRef = useRef(null);
-	const [selectedProtocols, setSelectedProtocols] = useState(protocols[0]);
-	const [selectedDetectionMethod, setSelectedDetectionMethod] = useState(detectionMethods[0]);
   const [selectedDay, setSelectedDay] = useState(days[0]);
 	const [hover, setHover] = useState('none');
+  const [fromTimeValue, setFromTimeValue] = useState<TimeValue>({ id:"from", hours:"00", minutes:"00" });
+  const [toTimeValue, setToTimeValue] = useState<TimeValue>({ id:"to",hours:"00", minutes:"00" });
+  
 
 	useEffect(() => {
-		console.log('here')
     setSettings();
   }, [camera, isOpen]);	
 
-  const warnStyle = {        
-    fill : '#b91c1c',
-    size: 40
-	}
-
 	const setSettings = () =>{
-		reset(camera);
+    // reset values
+    setFromTimeValue({ id:"from", hours:"00", minutes:"00" });
+    setToTimeValue({ id:"to", hours:"00", minutes:"00" });
 	}
 
-	const {
-    register,
-    reset,
-		handleSubmit,
-    formState: { errors },
-  } = useForm<Camera>({
-    mode: 'all', 
-		//defaultValues: camera 
-  });
+	const onConfirm = () => {
+    console.log('time-data-from', fromTimeValue);
+    console.log('time-data-to', toTimeValue);
+    setOpen(false);
+    confirmModal({
+      dayIndex: days.indexOf(selectedDay),
+      name: selectedDay,
+      start: `${fromTimeValue.hours}:${fromTimeValue.minutes}`, 
+      end: `${toTimeValue.hours}:${toTimeValue.minutes}`
+    })
+  };
 
-
-
-	// const onSubmit = (data:Camera) => {
-	// 	console.log('sibmit', data);
-	// 	console.log(camera);
-	// 	confirmModal();
-	// 	// Do something with the form data
-	// }
-
-	const onSubmit = (data:Camera) => {
-    // cons(JSON.stringify(data, null));
-		console.log('data', data);
-  	};
+  const onCancel = () => {
+    setOpen(false);
+    cancelModal();
+  };
 
 	const onMouseOver = (item:string) =>{
 		setHover(item);
@@ -95,20 +76,10 @@ export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen,
     setHover('none');
 	}
 
-	const delIconStyle = {        
-		fill : '#dc2626'
-	}
-
   const saveStyle = {
     background: hover == 'save' ? '#BBD686' : '#3DA5D9'  
   }
-
-	const addButtonStyle = {
-    background: hover == 'newSchedule' ? '#BBD686' : '#3DA5D9'  
-  }
-
-	//const onSubmit = (data: FormValues) => alert(JSON.stringify(data));
-
+	
   return (
 	  <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setOpen}>
@@ -159,16 +130,8 @@ export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen,
                             <label htmlFor="streamResolution.width" className="block text-sm font-medium leading-6 text-gray-900">
                               From
                             </label>
-                            <div className="mt-3">
-                              <input
-                                type="number"
-                                id="streamResolution.width"
-                                {...register('streamResolution.width', { min: 480, max: 7680 })}
-                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
-                              />
-                              {errors.streamResolution?.width && (
-                                <p className="text-xs italic text-red-500">The stream resolition width needs to be between 360 and 7,680 (8K)</p>
-                              )}
+                            <div className="mt-1 flex">
+                              <TimePicker timeValue={fromTimeValue}></TimePicker>
                             </div>
                           </div>     
                           {/* <div className="sm:col-span-1"></div> */}
@@ -176,19 +139,8 @@ export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen,
                             <label htmlFor="streamResolution.width" className="block text-sm font-medium leading-6 text-gray-900">
                               To
                             </label>
-                            <div className="mt-3">
-                            <div className="flex justify-center">
-                              <TimePicker2 ></TimePicker2>
-                            </div>
-                              {/* <input
-                                type="text"
-                                id="streamResolution.height"
-                                {...register('streamResolution.height', { min: 360, max: 4320 })}
-                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
-                              />
-                              {errors.streamResolution?.height && (
-                                <p className="text-xs italic text-red-500">The stream resolition height needs to be between 360 and 4,320 (8K)</p>
-                              )} */}
+                            <div className="mt-1 flex">
+                              <TimePicker timeValue={toTimeValue}></TimePicker>
                             </div>
                           </div>           
                         </div>	
@@ -201,13 +153,13 @@ export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen,
                               onMouseOver={() => onMouseOver('save')}
                               onMouseLeave={onMouseLeave}
                               className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto px-5"
-                              onClick={() => confirmModal()}>
+                              onClick={() => onConfirm()}>
                                   Add
                           </button>
                           <button
                               type="button"
                               className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-200 sm:mt-0 sm:w-auto"
-                              onClick={() => cancelModal()}
+                              onClick={() => onCancel()}
                               ref={cancelButtonRef}>
                               Cancel
                           </button>
