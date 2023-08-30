@@ -8,7 +8,7 @@ import moment from 'moment';
 //import { TEInput, TERipple } from "tw-elements-react";
 import { API, CamEventConfig, CamEventSchedule, CamEventScheduleRange, Camera, Config } from "services/api";
 import { AiOutlineEdit } from "react-icons/ai";
-import CameraConfigModal from '../components/CameraConfigModal';
+import CameraConfigModal from '../components/CameraScheduleModal';
 import {
   Accordion,
   AccordionHeader,

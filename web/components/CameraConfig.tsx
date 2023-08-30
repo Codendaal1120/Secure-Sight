@@ -6,6 +6,7 @@ import { SubmitHandler, useForm } from 'react-hook-form'
 import { FaTrash } from "react-icons/fa";
 import moment from 'moment';
 import { Notifier } from "components/Notifier";
+import CameraScheduleModal from './CameraScheduleModal';
 
 interface Props {
     camera: Camera,
@@ -34,6 +35,8 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
   // so we will updatet the count each time to force a render when we remove
   const [scCount, setScCount] = useState<number>(0);
   const [vpEnabled, setVpEnabled] = useState(true);
+  const [selected, setSelected] = useState<Camera>();
+	const [openModal, setOpenModal] = useState(false);
   
   useEffect(() => {
     console.log('scCount');
@@ -188,6 +191,32 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 	const onMouseLeave = () =>{
     setHover('none');
 	}
+  
+	const cancelPromptModal = () =>{
+		// setToBeDeleted(undefined);
+		setOpenModal(false);
+	}
+
+	const confirmPromptModal = () =>{
+		setOpenModal(false);
+		// if (toBeDeleted){
+		// 	API.delEvent(toBeDeleted).then((tryGet) => {
+		// 		if (tryGet.success){
+		// 			Notifier.notifySuccess(`Event deleted`);
+		// 			fetcRecordings(currentPage);      
+		// 			setToBeDeleted(undefined);         
+		// 		}
+		// 		else{
+		// 			Notifier.notifyFail(`Unable to delete: ${tryGet.error}`);
+		// 		}
+		// 	})
+		// } 
+	}
+
+	const openModalPrompt = () => {
+		setOpenModal(true);
+		// setToBeDeleted(item);
+	}
 
 	const delIconStyle = {        
 		fill : '#dc2626'
@@ -207,6 +236,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 
   return (
     <div className="container mx-auto max-w-7xl " >
+    <CameraScheduleModal confirmModal={confirmPromptModal} cancelModal={cancelPromptModal} isOpen={openModal} camera={camera}></CameraScheduleModal>
     <form onSubmit={handleSubmit(onSubmit)}>														
       <div className="space-y-12">
 
@@ -477,7 +507,8 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
             <div className="sm:col-span-1 ">
               <div className="flex items-center justify-end gap-x-6 mt-3">
                 <button
-                  type="button"                  
+                  type="button"   
+                  onClick={() => openModalPrompt()}
                   onMouseOver={() => onMouseOver('newSchedule')}
                   onMouseLeave={onMouseLeave}
                   style={addScheduleStyle}
@@ -522,7 +553,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
         </button>
         <button
             type="button"
-            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 sm:mt-0 sm:w-auto"
+            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-200 sm:mt-0 sm:w-auto"
             onClick={() => onCancel()}
             ref={cancelButtonRef}>Cancel
         </button>
