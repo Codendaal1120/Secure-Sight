@@ -139,16 +139,11 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
     logger.log('info', 'Predicting');
 
     img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-    //var desc = hog.extractHogFeatures(img.data, img.width, img.height);
-    let options_hog = {
-        cellSize: 4,
-        blockSize: 2,
-        blockStride: 1,
-        bins: 6,
-        norm: "L2"
-    };
-    var desc = hog.extractHOG(img, options_hog);
-    kc = kernel.compute(descriptor).addColumn(0, range(1, descriptor.length + 1))
+    var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+    if (kernel == null){
+        kernel = new Kernel('polynomial', {degree: 3, scale: 1 / desc.length});
+    }
+    kc = kernel.compute(desc).addColumn(0, range(1, desc.length + 1))
     let p = svm.predictOne(desc);
 
     if (!_labels){
