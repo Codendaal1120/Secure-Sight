@@ -189,7 +189,7 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
     // start new event
     _cameraEntry.event = {
       id : evtService.genrateEventId(),
-      camId : _cameraEntry.camera.id,
+      cameraId : _cameraEntry.camera.id,
       startedOn : predictions[0].detectedOn,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],

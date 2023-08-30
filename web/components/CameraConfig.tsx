@@ -44,6 +44,9 @@ export default function CameraConfig({ camera, confirmModal, cancelModal } : Pro
 	useEffect(() => {
     setSettings();
     setVpEnabled(camera.videoProcessingEnabled);
+    setSelectedSnapshotType(camera.snapshotType);
+    setSelectedDetectionMethod(camera.detectionMethod);
+    setSelectedTransportType(camera.transport);
   }, [camera]);	
 
 	const setSettings = () =>{
@@ -397,8 +400,8 @@ export default function CameraConfig({ camera, confirmModal, cancelModal } : Pro
                     </div>
                     <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                       <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                        <Combobox.Option key={'tf'} value={'tf'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Tensor flow</Combobox.Option>
-                        <Combobox.Option key={'svm'} value={'svm'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Support Vector Machine</Combobox.Option>
+                        <Combobox.Option key={'tf'} value={'tf'} className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Tensor flow</Combobox.Option>
+                        <Combobox.Option key={'svm'} value={'svm'} className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Support Vector Machine</Combobox.Option>
                       </Combobox.Options>
                     </Transition>
                   </div>

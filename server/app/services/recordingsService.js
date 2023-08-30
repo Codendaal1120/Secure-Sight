@@ -331,10 +331,11 @@ function createDBObject(_obj){
 }
 
 function createReturnObject(doc, fullPath){
-
+  
   var ret = {
-    cameraName : cache.cameras[doc.cameraId].camera.name
+    cameraName : cache.cameras[doc.cameraId] != null ? cache.cameras[doc.cameraId].camera.name : 'unknown'
   };
+
   for (const [k, v] of Object.entries(doc)) {
     ret[k] = v;
   }  	

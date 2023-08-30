@@ -56,7 +56,7 @@ async function sendEmailAltert(_alert){
 			to: _alert.recipient,
 			from: cache.config.notifications.email.sender, 
 			subject: `${tryGet.payload.cameraName} alert`,
-			text: `Movement has was detected on ${moment(_event.startedOn).local().format('LLL')}. To view this event click the following ${cache.config.uiAddress}/events?event=${_event.id}`,
+			text: `Movement has was detected on ${moment(tryGet.payload.startedOn).local().format('LLL')}. To view this event click the following ${cache.config.uiAddress}/events?event=${tryGet.payload.id}`,
 			html: generateEmailHtml(tryGet.payload, cache.config.uiAddress),
 			attachments: [
 				{

@@ -123,7 +123,7 @@ function validate(evt){
         errors.push("Invalid event id");
     }
 
-    if (!evt.camId){
+    if (!evt.cameraId){
         errors.push("Invalid event camera id");
     }
 
