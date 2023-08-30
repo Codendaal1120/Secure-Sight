@@ -1,7 +1,12 @@
 const dataService = require("./dataService");
+const cache = require('../modules/cache');
 const collectionName = "cameras";
 
-var checkDbHealth = async function() {    
+/**
+ * Check application health
+ * @return {Object} TryResult  
+ */
+async function checkDbHealth() {    
     try{
         // DB health
         let cams = await dataService.getOneAsync(collectionName, { });

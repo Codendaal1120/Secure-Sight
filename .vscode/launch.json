@@ -15,7 +15,8 @@
             "skipFiles": [
               "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "pwa-node",
+            "outputCapture": "std"
           },
           {
             "name": "Debug server",
@@ -28,7 +29,69 @@
             "skipFiles": [
               "<node_internals>/**"
             ],
+            "type": "pwa-node",
+            "outputCapture": "std"
+          },
+          {
+            "name": "Debug web",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-web"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node",
+            "outputCapture": "std"
+          },
+          {
+            "name": "Debug test",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-server-test"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+          },
+          {
+            "name": "Debug test single",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-server-test-single"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+          },
+          {
+            "name": "Debug HOG",
+            "request": "launch",
+            "runtimeArgs": [
+              "run-script",
+              "debug-hog"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+              "<node_internals>/**"
+            ],
             "type": "pwa-node"
           }
-    ]
+
+          
+    ],
+    "compounds": [
+      {
+          "name": "Server/Client",
+          "configurations": ["Debug server", "Debug web"]
+      }
+  ]
 }
