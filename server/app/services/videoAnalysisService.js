@@ -102,6 +102,10 @@ function isInSchedule(_cameraEntry){
  
   const dateString = now.toISOString().split('T')[0]; 
   const day = now.getDay();
+
+  if (_cameraEntry.camera.eventConfig.schedule[day] == null){
+    return false;
+  }
   
   if (_cameraEntry.camera.eventConfig.schedule[day].ranges != null){
     for (let i = 0; i < _cameraEntry.camera.eventConfig.schedule[day].ranges.length; i++) {

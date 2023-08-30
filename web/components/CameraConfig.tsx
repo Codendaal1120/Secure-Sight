@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Dialog, Transition, Combobox  } from '@headlessui/react'
-import { BsChevronBarContract } from "react-icons/bs";
+import { BsChevronExpand } from "react-icons/bs";
 import { API, CamEventSchedule, Camera } from 'services/api';
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { FaTrash } from "react-icons/fa";
@@ -10,8 +10,8 @@ import CameraScheduleModal from './CameraScheduleModal';
 
 interface Props {
     camera: Camera,
-    saveCamera: Function,
-    cancelEdit: Function,
+    confirmModal: Function,
+    cancelModal: Function,
 }
 
 interface Schedule {
@@ -22,9 +22,10 @@ interface Schedule {
   end: string,
   startText: string,
   endText: string,
+  triggerAlert: boolean,
 }
 
-export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props) {
+export default function CameraConfig({ camera, confirmModal, cancelModal } : Props) {
   const cancelButtonRef = useRef(null);
 	const [selectedSnapshotType, setSelectedSnapshotType] = useState('rstp');
   const [selectedTransportType, setSelectedTransportType] = useState('tcp');
@@ -34,10 +35,10 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
   // so we will updatet the count each time to force a render when we remove
   const [scCount, setScCount] = useState<number>(0);
   const [vpEnabled, setVpEnabled] = useState(true);
-	const [openModal, setOpenModal] = useState(false);
+	const [openScheduleModal, setOpenScheduleModal] = useState(false);  
   
   useEffect(() => {
-    console.log('scCount');
+    //console.log('scCount');
   }, [scCount]);	
 
 	useEffect(() => {
@@ -63,6 +64,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
           c.push({
             index: j,
             dayIndex: i,
+            triggerAlert: camera.eventConfig.schedule[i].ranges![j].triggerAlert,
             name: camera.eventConfig.schedule[i].name,   
             start: camera.eventConfig.schedule[i].ranges![j].start,
             end: camera.eventConfig.schedule[i].ranges![j].end,
@@ -80,15 +82,14 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
     var apiSchedules: CamEventSchedule[] = [];
 
     if (!schedules){
-      console.log('here1');
       return apiSchedules;
     }
 
     for (let i = 0; i < schedules.length; i++) {
-      console.log('here2');
       let range = {
         start: schedules[i].start,
         end: schedules[i].end,
+        triggerAlert: schedules[i].triggerAlert
       };
 
       if (apiSchedules[schedules[i].dayIndex]) {
@@ -99,17 +100,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
           name : schedules[i].name,
           ranges: [ range ]
         }
-      }
-      // if (apiSchedulesDic[schedules[i].name]){
-      //   console.log('here3');
-      //   apiSchedulesDic[schedules[i].name].ranges.push(range);
-      // }
-      // else{
-      //   apiSchedulesDic[schedules[i].name] = {
-      //     name : schedules[i].name,
-      //     ranges: [ range ]
-      //   }
-      // }    
+      } 
     }
 
     for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
@@ -121,10 +112,6 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
       }
     }
 
-    // for (const [k, v] of Object.entries(apiSchedulesDic)) {
-    //   apiSchedules.push(v);
-    // }
-
     return apiSchedules;
   }
 
@@ -135,7 +122,6 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
     formState: { errors },
   } = useForm<Camera>({
     mode: 'all', 
-		//defaultValues: camera 
   });
 
   const removeSchedule = (data: Schedule) => {
@@ -161,19 +147,23 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
     data.transport = selectedTransportType;
 
 		console.log('data', data);
-    console.log('Camera', camera);
+    // console.log('Camera', camera);
     
     let c = await API.saveCamera(data);
     if (c.success){
+      camera = c.payload!;
       Notifier.notifySuccess(`${data.name} saved`);
     }
     else{
       Notifier.notifyFail(c.error!);
     }    
+
+    confirmModal();
   };
 
   const onCancel = async () => {
     setSettings();
+    cancelModal();
   }
 
 	const onMouseOver = (item:string) =>{
@@ -185,12 +175,12 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 	}
   
 	const cancelPromptModal = () =>{
-		setOpenModal(false);
+		setOpenScheduleModal(false);
 	}
 
 	const confirmPromptModal = (data:any) =>{
-		setOpenModal(false);
-    //console.log('time-data', data);
+		setOpenScheduleModal(false);
+    console.log('time-data', data);
 
     let from  = moment(data.start,'HH:mm').utc().format('HH:mm');
     let to  = moment(data.end,'HH:mm').utc().format('HH:mm');
@@ -199,15 +189,19 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
       dayIndex: data.dayIndex,
       start: from,
       end: to,
+      triggerAlert: data.triggerAlert,
       index: schedules.length,
-      name: data.name,
+      name: data.name,      
       startText: moment.utc(from,'HH:mm').local().format('h:mm a'),
       endText: moment.utc(to,'HH:mm').local().format('h:mm a')
     });
+
+    setScCount(schedules!.length);
+    setSchedules(schedules);
 	}
 
-	const openModalPrompt = () => {
-		setOpenModal(true);
+  const openModalPrompt = () => {
+		setOpenScheduleModal(true);
 	}
 
   const saveStyle = {
@@ -220,7 +214,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 
   return (
     <div className="container mx-auto max-w-7xl " >
-    <CameraScheduleModal confirmModal={confirmPromptModal} cancelModal={cancelPromptModal} isOpen={openModal} camera={camera}></CameraScheduleModal>
+    <CameraScheduleModal confirmModal={confirmPromptModal} cancelModal={cancelPromptModal} isOpen={openScheduleModal} camera={camera}></CameraScheduleModal>
     <form onSubmit={handleSubmit(onSubmit)}>														
       <div className="space-y-12">
 
@@ -273,9 +267,9 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                   } })}
                   className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
                 />
-                {errors.url && errors.url.type === "pattern" && (
+                {errors.url && (
                   <p className="text-xs italic text-red-500">Invalid url</p>
-                )}
+                )}                
               </div>
             </div>              
           </div>
@@ -301,7 +295,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                   } })}
                   className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
                 />
-                {errors.snapshotUrl && errors.snapshotUrl.type === "pattern" && (
+                {errors.snapshotUrl && (
                   <p className="text-xs italic text-red-500">Invalid url</p>
                 )}
               </div>
@@ -325,7 +319,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                     <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm">
                       <Combobox.Input  className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
                       <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        {<BsChevronBarContract
+                        {<BsChevronExpand
                           className="h-5 w-5 text-gray-400"
                           aria-hidden="true"
                         />}
@@ -360,7 +354,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                     <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm">
                       <Combobox.Input  className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
                       <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        {<BsChevronBarContract
+                        {<BsChevronExpand
                           className="h-5 w-5 text-gray-400"
                           aria-hidden="true"
                         />}
@@ -395,7 +389,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                     <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm">
                       <Combobox.Input className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
                       <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        {<BsChevronBarContract
+                        {<BsChevronExpand
                           className="h-5 w-5 text-gray-400"
                           aria-hidden="true"
                         />}
@@ -512,12 +506,12 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                       <div className="min-w-0 flex-auto">
                         <p className="text-sm font-semibold leading-6 text-gray-900">{s.name}</p>
                         <p className="mt-1 truncate text-xs leading-5 text-gray-500">{s.startText} to {s.endText}</p>
+                        <p className="mt-1 truncate text-xs leading-5 text-gray-500">{s.triggerAlert ? 'Alerting enabled' : 'Alerting disabled'}</p>
                       </div>
                     </div>
                     <div onMouseOver={() => onMouseOver(`delete-${i}`)} onMouseLeave={onMouseLeave} className={`shrink-0 sm:flex sm:flex-col sm:items-end mr-3 mt-3 cursor-pointer`}>
                       <FaTrash className={`${hover == `delete-${i}` ? 'text-red-400' : 'text-red-600'}`} size={20} onClick={() => removeSchedule(s)}></FaTrash>
-                    </div>
-                    
+                    </div>                    
                   </div>
                   
                 </li>																			

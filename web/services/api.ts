@@ -24,11 +24,12 @@ export interface CamEventConfig {
 }
 
 export interface CamEventSchedule {
-	name: string;
+	name: string; 
 	ranges : CamEventScheduleRange[] | undefined;
 }
 
 export interface CamEventScheduleRange {
+  triggerAlert: boolean,
 	start: string;
 	end: string;
 }
@@ -148,6 +149,27 @@ export class API {
 	}
 
   static async saveCamera(cam: Camera):Promise<TryResult<Camera>> {
+		return cam.id != null && cam.id.length > 0
+      ? await API.updateCamera(cam)
+      : await API.saveNewCamera(cam);
+	}
+
+  static async saveNewCamera(cam: Camera):Promise<TryResult<Camera>> {
+    console.log('saving new camera');
+		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras`, 
+			{ method : 'POST', body: JSON.stringify(cam), headers: { 'Content-Type': 'application/json' }, });
+
+			var responseText = await response.text();
+
+			if (!response.ok){
+        return { success: false, payload: null, error: responseText}
+			}
+
+      return { success: true, payload: JSON.parse(responseText), error: null }
+	}
+
+  static async updateCamera(cam: Camera):Promise<TryResult<Camera>> {
+    console.log('updating camera');
 		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras/${cam.id}`, 
 			{ method : 'PUT', body: JSON.stringify(cam), headers: { 'Content-Type': 'application/json' }, });
 

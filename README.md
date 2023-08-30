@@ -9,6 +9,9 @@ Security system for managing surveillance cameras. This is a hobby project and n
  - eurfy - 200mb
  - tp - 10mb
 
+# event ranges
+- There is a problem with the timezone, I first check by day, but if the range is converted to utc and occurs on the previous day, the schedule will miss
+
 # Event Config
 The event config has some hidden config in the database which is not exposed on the UI as it relates to the imprinting of the detections as an overlay on the recording. This feature does not work. I found that I could not accurately determine the timestamp of the stream when the data is received, this fluctuates, often with 2-4 seconds. Since I use different streams for the detections and the recording, this makes it hard to sync between the two.
 "printPredictions"

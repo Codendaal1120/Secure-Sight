@@ -83,12 +83,22 @@ async function tryCreateNewCam(_camera){
         return { success : false, error : errors };
     }
 
+    if (Object.hasOwn(_camera, 'id') && _camera['id'].length == 0){
+        delete _camera['id'];
+    }
+
     let document = await dataService.insertOneAsync(collectionName, _camera);    
     if (!document.success){
         return { success : false, error : `Could not create a new camera : ${document.error}` };
     }
 
-    return { success : true, payload : createReturnObject(document.payload) };
+    let converted = createReturnObject(document.payload);
+    // update cache
+    cache.cameras[converted.id] = {
+        camera: converted
+    };
+
+    return { success : true, payload :converted };
 }
 
 /**

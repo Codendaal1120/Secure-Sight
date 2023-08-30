@@ -56,13 +56,13 @@ export default function EventsPage() {
 
 	const [recordings, setRecordings] = useState<PaginatedResults<CameraEvent>>();
 	const [selected, setSelected] = useState<CameraEvent>();
+	const [openModal, setOpenModal] = useState(false);
 	const [toBeDeleted, setToBeDeleted] = useState<CameraEvent>();
 	const [isOpen, setIsOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [eventFilter, setEventFilter] = useState<string|null>(null);
 	const [prevHover, setPrevHover] = useState(false);
 	const [nextHover, setNextHover] = useState(false);
-	const [openModal, setOpenModal] = useState(false);
 	
 	useEffect(() => {
 		if (document != null){	
