@@ -102,8 +102,8 @@ export interface NotificationsConfig {
 export interface NotificationsEmailConfig {
 	providerApiKey: string;
 	sender : string;
+  recipient : string;
 }
-
 
 export class API {
 

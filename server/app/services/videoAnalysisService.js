@@ -4,6 +4,7 @@ const svm = require("../modules/svmDetector");
 const detector = require("../modules/motionDetector");
 const evtService = require("../services/eventsService");
 const recService = require("../services/recordingsService");
+const noticeService = require("../services/notificationService");
 const Pipe2Pam = require('pipe2pam');
 const cache = require("../modules/cache");
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -114,6 +115,7 @@ function isInSchedule(_cameraEntry){
 
       // chache the config for a while (2.5 minutes)
       _cameraEntry.cacheEventScheduleTill = new Date(now.getTime() + 150000);
+      _cameraEntry.EventTriggerAlert = _cameraEntry.camera.eventConfig.schedule[day].ranges[i].triggerAlert;
       var inSched = scheduleStart < now && scheduleEnd > now;
       return inSched;      
     }
@@ -260,11 +262,21 @@ async function finishEvent(_cameraEntry, _now){
   await updateRecordingAndClearEvent(_cameraEntry, true);
 }
 
+/** Final event step */
 async function updateRecordingAndClearEvent(_cameraEntry, saveToDb){
   if (saveToDb){
     var trySave = await evtService.tryCreateNew(_cameraEntry.event);
     if (!trySave.success){
       logger.error(trySave.error);
+    }
+    if (_cameraEntry.EventTriggerAlert){
+
+      await noticeService.trySendAlert({
+        recipient: cache.config.notifications.email.recipient,
+        type: "email",
+        eventId: _cameraEntry.event.id
+      });
+      
     }
   }  
   _cameraEntry.event = null; 

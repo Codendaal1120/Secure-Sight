@@ -116,8 +116,13 @@ export default function CameraScheduleModal({ confirmModal, cancelModal, isOpen,
                         </div>   
 
                         {/* Trigger alert */}
-                        <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
-                          <div className="sm:col-span-2">
+                        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-2 content-start">
+                          <div className="sm:col-span-1 ">
+                            <label className="block text-sm leading-6 text-gray-400">
+                              Specify weather this schedule will activate an alert if a human is detected. If not the event will still record the activity.
+                            </label>
+                          </div>
+                          <div className="sm:col-span-1">
                             <label htmlFor="videoProcessingEnabled" className="block text-sm font-medium leading-6 text-gray-900">
                              Trigger alert
                             </label>

@@ -79,6 +79,7 @@ async function tryUpdateConfig(_config){
             cameraBufferSeconds: parseInt(_config.cameraBufferSeconds), 
             removeTempFiles: _config.removeTempFiles, 
             event: _config.event,
+            notifications: _config.notifications,
             updatedOn: new Date() }
     }
 
