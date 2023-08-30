@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import moment from 'moment';
 //import { TEInput, TERipple } from "tw-elements-react";
 import { API, CamEventConfig, CamEventSchedule, CamEventScheduleRange, Camera, Config } from "services/api";
+import { Notifier } from "components/Notifier";
 import { AiOutlineEdit } from "react-icons/ai";
 import CameraConfigModal from '../components/CameraConfigModal';
 import {
@@ -39,7 +40,6 @@ export default function ConfigPage() {
 
   const getConfig = async()=> {
     let c = await API.getConfig();
-    //console.log(c);
     if (c){
       setConfig(c);
     }
@@ -54,17 +54,18 @@ export default function ConfigPage() {
 	}
 
   const onCancel = async () => {
-    console.log('cancel');
     await getConfig();
-    // Do something with the form data
   }
 
   const onSubmit = async(data: Config) => {
-    console.log('sibmit', data);
     let c = await API.saveConfig(data);
-    if (c){
-      setConfig(c);
+    if (c.success){
+      setConfig(c.payload!);
+      Notifier.notifySuccess('Config saved');
     }
+    else{
+      Notifier.notifyFail(c.error!);
+    }    
   }
 
   const okButtonStyle = {

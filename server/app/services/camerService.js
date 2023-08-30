@@ -115,8 +115,16 @@ async function tryUpdateCam(_camId, _camera){
     const update = { 
         $set : {             
             name: _camera.name, 
-            url: _camera.url,            
-            updatedOn: new Date() }
+            url: _camera.url,
+            snapshotUrl: _camera.snapshotUrl,
+            snapshotType: _camera.snapshotType,
+            transport: _camera.transport,
+            detectionMethod: _camera.detectionMethod,
+            videoProcessingEnabled: _camera.videoProcessingEnabled,
+            'eventConfig.recordEvents': _camera.eventConfig.recordEvents,
+            'eventConfig.schedule': _camera.eventConfig.schedule,
+            updatedOn: new Date() 
+        }
     }
 
     let doc = await dataService.updateOneAsync(collectionName, filter, update);     
@@ -124,7 +132,11 @@ async function tryUpdateCam(_camId, _camera){
         return { success : false, error : `Could not update camera with id '${_camId}'` };
     }
 
-    return { success : true, payload : createReturnObject(doc.payload) };
+    let returnCam = createReturnObject(doc.payload);
+    // update cache
+    cache.cameras[returnCam.id].camera = returnCam;
+
+    return { success : true, payload : returnCam };
 }
 
 /**

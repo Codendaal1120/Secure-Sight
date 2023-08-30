@@ -10,8 +10,7 @@ export interface Camera {
 	detectionMethod: string;
 	videoProcessingEnabled: boolean;
 	streamResolution: CamStreamConfig;
-	eventConfig: CamEventConfig;
-	
+	eventConfig: CamEventConfig;	
 }
 
 export interface CamStreamConfig {
@@ -148,6 +147,19 @@ export class API {
 			return { success: true, payload: cams, error: null }
 	}
 
+  static async saveCamera(cam: Camera):Promise<TryResult<Camera>> {
+		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/cameras/${cam.id}`, 
+			{ method : 'PUT', body: JSON.stringify(cam), headers: { 'Content-Type': 'application/json' }, });
+
+			var responseText = await response.text();
+
+			if (!response.ok){
+        return { success: false, payload: null, error: responseText}
+			}
+
+      return { success: true, payload: JSON.parse(responseText), error: null }
+	}
+
 	static async getRecordings(page: number): Promise<TryResult<PaginatedResults<Recording>>> {
 		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/recordings?page=${page}`, 
 			{ method : 'GET' });
@@ -265,7 +277,7 @@ export class API {
 			return JSON.parse(responseText);
 	}
 
-  static async saveConfig(cfg:Config):Promise<Config | null> {
+  static async saveConfig(cfg:Config):Promise<TryResult<Config>> {
 		console.log('saving config', cfg);
 		const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/config`, 
 			{ method : 'PUT', body: JSON.stringify(cfg), headers: { 'Content-Type': 'application/json' }, });
@@ -273,10 +285,10 @@ export class API {
 			var responseText = await response.text();
 
 			if (!response.ok){
-				return null;
+        return { success: false, payload: null, error: responseText}
 			}
 
-			return JSON.parse(responseText);
+      return { success: true, payload: JSON.parse(responseText), error: null }
 	}
 
 	static toTime(seconds: number): string {

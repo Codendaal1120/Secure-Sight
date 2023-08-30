@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Dialog, Transition, Combobox  } from '@headlessui/react'
 import { BsChevronBarContract } from "react-icons/bs";
-import { Camera } from 'services/api';
+import { API, CamEventSchedule, Camera } from 'services/api';
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { FaTrash } from "react-icons/fa";
 import moment from 'moment';
+import { Notifier } from "components/Notifier";
 
 interface Props {
     camera: Camera,
@@ -14,25 +15,19 @@ interface Props {
 
 interface Schedule {
   index: number,
+  dayIndex: number,
   name: string,
   start: string,
   end: string,
+  startText: string,
+  endText: string,
 }
-
-const protocols = [
-  'http',
-  'rtsp',
-]
-
-const detectionMethods = [
-  'Tensor Flow',
-  'Support vector Machine',
-]
 
 export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props) {
   const cancelButtonRef = useRef(null);
-	const [selectedProtocols, setSelectedProtocols] = useState(protocols[0]);
-	const [selectedDetectionMethod, setSelectedDetectionMethod] = useState(detectionMethods[0]);
+	const [selectedSnapshotType, setSelectedSnapshotType] = useState('rstp');
+  const [selectedTransportType, setSelectedTransportType] = useState('tcp');
+	const [selectedDetectionMethod, setSelectedDetectionMethod] = useState('Tensor Flow');
 	const [hover, setHover] = useState('none');
   const [schedules, setSchedules] = useState<Schedule[]>();
   // React does not seem to track the array of schedules well, 
@@ -65,16 +60,71 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
       if (camera.eventConfig.schedule[i].ranges && camera.eventConfig.schedule[i].ranges!.length > 0){
         for (let j = 0; j < camera.eventConfig.schedule[i].ranges!.length; j++) {
           c.push({
-            index : j,
-            name : camera.eventConfig.schedule[i].name,            
-            start : moment.utc(camera.eventConfig.schedule[i].ranges![j].start,'h:mm a').local().format('h:mm a'),
-            end : moment.utc(camera.eventConfig.schedule[i].ranges![j].end,'h:mm a').local().format('h:mm a'),
+            index: j,
+            dayIndex: i,
+            name: camera.eventConfig.schedule[i].name,   
+            start: camera.eventConfig.schedule[i].ranges![j].start,
+            end: camera.eventConfig.schedule[i].ranges![j].end,
+            startText : moment.utc(camera.eventConfig.schedule[i].ranges![j].start,'h:mm a').local().format('h:mm a'),
+            endText : moment.utc(camera.eventConfig.schedule[i].ranges![j].end,'h:mm a').local().format('h:mm a'),
           });
         }        
       }      
     }
     setScCount(c.length);
     setSchedules(c);
+  }
+
+  const getApiSchedules = () =>{
+    var apiSchedules: CamEventSchedule[] = [];
+
+    if (!schedules){
+      console.log('here1');
+      return apiSchedules;
+    }
+
+    for (let i = 0; i < schedules.length; i++) {
+      console.log('here2');
+      let range = {
+        start: schedules[i].start,
+        end: schedules[i].end,
+      };
+
+      if (apiSchedules[schedules[i].dayIndex]) {
+        apiSchedules[schedules[i].dayIndex].ranges!.push(range);
+      }
+      else {
+        apiSchedules[schedules[i].dayIndex] = {
+          name : schedules[i].name,
+          ranges: [ range ]
+        }
+      }
+      // if (apiSchedulesDic[schedules[i].name]){
+      //   console.log('here3');
+      //   apiSchedulesDic[schedules[i].name].ranges.push(range);
+      // }
+      // else{
+      //   apiSchedulesDic[schedules[i].name] = {
+      //     name : schedules[i].name,
+      //     ranges: [ range ]
+      //   }
+      // }    
+    }
+
+    for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
+      if (apiSchedules[i] == null){
+        apiSchedules[i] = {
+          name: camera.eventConfig.schedule[i].name,
+          ranges: []
+        }
+      }
+    }
+
+    // for (const [k, v] of Object.entries(apiSchedulesDic)) {
+    //   apiSchedules.push(v);
+    // }
+
+    return apiSchedules;
   }
 
 	const {
@@ -87,13 +137,6 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
 		//defaultValues: camera 
   });
 
-	// const onSubmit = (data:Camera) => {
-	// 	console.log('sibmit', data);
-	// 	console.log(camera);
-	// 	confirmModal();
-	// 	// Do something with the form data
-	// }
-
   const removeSchedule = (data: Schedule) => {
     console.log('removing', data);
     // for (let i = 0; i < camera.eventConfig.schedule.length; i++) {
@@ -104,7 +147,7 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
     // }
     let removeIndex = -1;
     for (let i = 0; i < schedules!.length; i++) {
-      if (schedules![i].index == data.index){
+      if (schedules![i].index == data.index && schedules![i].dayIndex == data.dayIndex){
         removeIndex = i;
         break;
       }
@@ -116,15 +159,26 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
     }    
   };
 
-	const onSubmit = (data:Camera) => {
+	const onSubmit = async(data:Camera) => {
+    data.eventConfig.schedule = getApiSchedules();
+    data.snapshotType = selectedSnapshotType;
+    data.detectionMethod = selectedDetectionMethod;
+    data.transport = selectedTransportType;
+
 		console.log('data', data);
     console.log('Camera', camera);
-    //saveCamera(data);
+    
+    let c = await API.saveCamera(data);
+    if (c.success){
+      Notifier.notifySuccess(`${data.name} saved`);
+    }
+    else{
+      Notifier.notifyFail(c.error!);
+    }    
   };
 
   const onCancel = async () => {
     setSettings();
-    cancelEdit();
   }
 
 	const onMouseOver = (item:string) =>{
@@ -252,10 +306,10 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                 Snapshot type
               </label>
               <div className="mt-2">
-                <Combobox value={selectedProtocols} onChange={setSelectedProtocols}>
+                <Combobox value={selectedSnapshotType} onChange={setSelectedSnapshotType}>
                   <div className="relative mt-1">
                     <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm">
-                      <Combobox.Input className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
+                      <Combobox.Input  className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
                       <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
                         {<BsChevronBarContract
                           className="h-5 w-5 text-gray-400"
@@ -265,11 +319,43 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                     </div>
                     <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                       <Combobox.Options className="z-20 absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                        {protocols.map((p) => (
-                          <Combobox.Option key={p} value={p}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>
-                            {p}
-                          </Combobox.Option>
-                        ))}
+                        <Combobox.Option key={'httpx'} value={'http'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>HTTP</Combobox.Option>
+                        <Combobox.Option key={'rstp'} value={'rstp'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>RSTP</Combobox.Option>
+                      </Combobox.Options>
+                    </Transition>
+                  </div>
+                </Combobox>
+              </div>
+            </div>              
+          </div> 
+
+          {/* Transport type */}					
+          <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
+            <div className="sm:col-span-2 ">
+              <label className="block text-sm leading-6 text-gray-400">
+                The transport protocol of the stream.
+              </label>
+            </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="removeTempFiles" className="block text-sm font-medium leading-6 text-gray-900">
+                Transport protocol
+              </label>
+              <div className="mt-2">
+                <Combobox value={selectedTransportType} onChange={setSelectedTransportType}>
+                  <div className="relative mt-1">
+                    <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-teal-300 sm:text-sm">
+                      <Combobox.Input  className="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"/>
+                      <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        {<BsChevronBarContract
+                          className="h-5 w-5 text-gray-400"
+                          aria-hidden="true"
+                        />}
+                      </Combobox.Button> 
+                    </div>
+                    <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
+                      <Combobox.Options className="z-20 absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                        <Combobox.Option key={'tcp'} value={'tcp'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>TCP</Combobox.Option>
+                        <Combobox.Option key={'udp'} value={'udp'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>UDP</Combobox.Option>
                       </Combobox.Options>
                     </Transition>
                   </div>
@@ -303,11 +389,8 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
                     </div>
                     <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                       <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                        {detectionMethods.map((d) => (
-                          <Combobox.Option key={d} value={d}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>
-                            {d}
-                          </Combobox.Option>
-                        ))}
+                        <Combobox.Option key={'tf'} value={'tf'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Tensor flow</Combobox.Option>
+                        <Combobox.Option key={'svm'} value={'svm'}   className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-cyan-500 text-white' : 'text-gray-900'}`}>Support Vector Machine</Combobox.Option>
                       </Combobox.Options>
                     </Transition>
                   </div>
@@ -408,12 +491,12 @@ export default function CameraConfig({ camera, saveCamera, cancelEdit } : Props)
           <ul role="list" className="divide-y divide-gray-100">
             {schedules?.map((s, i) => {      
               return (																			
-                <li >
+                <li key={i}>
                   <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 content-start">
                     <div className="flex min-w-0 gap-x-4 sm:col-span-1">
                       <div className="min-w-0 flex-auto">
                         <p className="text-sm font-semibold leading-6 text-gray-900">{s.name}</p>
-                        <p className="mt-1 truncate text-xs leading-5 text-gray-500">{s.start} to {s.end}</p>
+                        <p className="mt-1 truncate text-xs leading-5 text-gray-500">{s.startText} to {s.endText}</p>
                       </div>
                     </div>
                     <div onMouseOver={() => onMouseOver(`delete-${i}`)} onMouseLeave={onMouseLeave} className={`shrink-0 sm:flex sm:flex-col sm:items-end mr-3 mt-3 cursor-pointer`}>

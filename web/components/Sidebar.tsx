@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import classNames from "classnames";
 import Link from "next/link";
 import Image from "next/image";
@@ -23,7 +23,14 @@ const Sidebar = ({
   }: Props) => {
 
   const Icon = collapsed ? HiChevronDoubleRight : HiChevronDoubleLeft;
-  const [selected, setSelected] = useState(navItems[0]);
+  const [selected, setSelected] = useState('none');
+
+  useEffect(function mount() {
+    setSelected(window.location.pathname);
+  });
+
+  useEffect(() => {  
+	}, [selected]); 
 
   const sideBarStyle = {
     background: '#3DA5D9',
@@ -71,14 +78,15 @@ const Sidebar = ({
                 <li
                   key={index}
                   className={classNames({
-                    "text-slate-500 " : selected.label == item.label,
+                    "text-slate-500 " : selected == item.href,
+                    "text-slate-100 " : selected != item.href,
                     "sidebar-item": true,
-                    "text-slate-100 flex": true, //colors
+                    "flex": true, //colors
                     "transition-colors duration-300": true, //animation
                     "rounded-md p-2 mx-3 gap-4 ": !collapsed,
                     "rounded-full p-2 mx-3 w-10 h-10": collapsed,
                   })}>
-                  <Link href={item.href} className="flex gap-2" onClick={() => setSelected(item)}>
+                  <Link href={item.href} className="flex gap-2">
                     {item.icon} <span>{!collapsed && item.label}</span>
                   </Link>
                 </li>
