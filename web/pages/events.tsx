@@ -248,7 +248,7 @@ export default function EventsPage() {
 									{evt.detectionMethod}
 								</td>
 								<td className="px-6 py-4">
-									{evt.filePath}
+									{evt.recording}
 								</td>
 								<td className="px-6 py-4">
 									{ formatDateTime(evt.startedOn) }

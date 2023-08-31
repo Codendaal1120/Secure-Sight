@@ -18,6 +18,7 @@ function getMotionRegion(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _di
     }
 
     // divide frames into blocks, which we will check the difference
+    var now = new Date();
     var blocks = [];
     var blocksWithDiff = [];
     var blockIndex = 0;
@@ -69,7 +70,16 @@ function getMotionRegion(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _di
         totalAveDiff += blocksWithDiff[i].aveDiff;
     }
 
-    return { x : diffX, y: dffY, width : diffW - diffX, height : diffH - dffY, aveDiff : totalAveDiff / blocksWithDiff.length };
+    return { 
+        detectedOn: now, 
+        x : diffX, 
+        y: dffY, 
+        width : diffW - diffX, 
+        height : diffH - dffY, 
+        aveDiff : totalAveDiff / blocksWithDiff.length, 
+        blockCount: blocksWithDiff.length, 
+        totalBlocks: blocks.length 
+    };
 }
 
 /**

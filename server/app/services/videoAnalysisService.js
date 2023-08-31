@@ -134,6 +134,7 @@ async function checkEventFinished(_cameraEntry){
   }
 
   var eventIdleMs = cache.config.event.idleEndSeconds * 1000;
+  var eventLimitMs = cache.config.event.limitSeconds * 1000;
 
   // if there is no detection yet, wait a while
   if (_cameraEntry.event?.lastDetection == null){
@@ -142,6 +143,7 @@ async function checkEventFinished(_cameraEntry){
 
   var now = new Date();
   var idleTimeOut = new Date(_cameraEntry.event.lastDetection.getTime() + eventIdleMs);
+  var eventLimit = new Date(_cameraEntry.event.startedOn.getTime() + eventLimitMs);
 
   if (now > idleTimeOut){
     // no detections for the last x seconds, we can finish the event
@@ -151,7 +153,14 @@ async function checkEventFinished(_cameraEntry){
     return;
   }
 
-  logger.log('debug', `Last detection at [${_cameraEntry.event.lastDetection.toTimeString()}], checking later`);
+  if (now > eventLimit){
+    logger.log('debug', `Event limit reached at [${_cameraEntry.event.startedOn.toTimeString()}], limit at [${eventLimit.toTimeString()}], finishing`);
+    await recService.stopRecordingCamera(_cameraEntry);
+    await finishEvent(_cameraEntry, now);
+    return;
+  }
+
+  logger.log('debug', `Last detection at [${_cameraEntry.event.lastDetection.toTimeString()}], event limit at [${eventLimit.toTimeString()}], checking later`);
   await timeout(eventIdleMs / 2);
   await checkEventFinished(_cameraEntry);
 }
@@ -159,15 +168,15 @@ async function checkEventFinished(_cameraEntry){
 /** Handler for the framedata (detections) */
 async function handleFrame(_cameraEntry, _frameData, _detectedOn){
   
-  var predictions = await processFrame(_cameraEntry, _frameData, _detectedOn);    
+  var frameDetections = await processFrame(_cameraEntry, _frameData, _detectedOn);    
   
-  if (predictions.length == 0){
+  if (frameDetections.predictions.length == 0){
     cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect-clear`, _cameraEntry.lastDetection?.toISOString());  
     return;
   }
 
   var now = new Date();
-  cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect`, predictions);  
+  cache.services.ioSocket.sockets.emit(`${_cameraEntry.camera.id}-detect`, frameDetections.predictions);  
 
   if (!_cameraEntry.camera.eventConfig.recordEvents){    
     return;  
@@ -190,11 +199,11 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
     _cameraEntry.event = {
       id : evtService.genrateEventId(),
       cameraId : _cameraEntry.camera.id,
-      startedOn : predictions[0].detectedOn,    
+      startedOn : frameDetections.predictions[0].detectedOn,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],
       lock: 'handleFrame',
-      detectionMethod : _cameraEntry.camera.detectionMethod 
+      detectionMethod : _cameraEntry.camera.detectionMethod
     }
 
     // start recording, after the recording, we will finish the event.
@@ -216,7 +225,7 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
 
   _cameraEntry.event.lastDetection = new Date();
   _cameraEntry.lastDetection = _cameraEntry.event.lastDetection;
-  _cameraEntry.event.buffer.push(predictions[0]);   
+  _cameraEntry.event.buffer.push({ prediction: frameDetections.predictions[0], motion: frameDetections.motion });   
   _cameraEntry.event.lock = null;
 }
 
@@ -432,6 +441,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
 
   let predictions = [];
   let tmpMissCount = 0;
+  let motion = null;
 
   try{
 
@@ -440,20 +450,20 @@ async function processFrame(_cameraEntry, data, _detectedOn){
 
     storeFrame(_cameraEntry, data.pixels);
 
-    let motion = detector.getMotionRegion(_cameraEntry.frameBuffer);
+    motion = detector.getMotionRegion(_cameraEntry.frameBuffer);
     if (motion != null){
 
       if (_cameraEntry.camera.detectionMethod == "svm"){
         var detection = await svm.processImage(data.pixels, width, height); //is data width & height same as image?
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
-          return [{ 
+          predictions.push({ 
             startedOn: _detectedOn, 
             x: utility.mapRange(motion.x, 0, width, 0, 1280), 
             y: utility.mapRange(motion.y, 0, height, 0, 720),
             width: utility.mapRange(motion.width, 0, width, 0, 1280), 
             height: utility.mapRange(motion.height, 0, height, 0, 720)
-          }];
+          });          
         }
       }
 
@@ -484,7 +494,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
     logger.log('error', `[${_cameraEntry.camera.id}] Video processing error : ${error.message}`);
   }  
 
-  return predictions;
+  return { predictions: predictions, motion: motion };
 }
 
 function storeImage(label, imgData){

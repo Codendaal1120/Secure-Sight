@@ -48,7 +48,7 @@ export interface CameraEvent {
 	recordingId: string;
 	cameraId: string;
 	cameraName : string;  
-	filePath: string;
+	recording: string;
 	startedOn: Date;
 	endedOn: Date;  
 	detectionMethod : string;

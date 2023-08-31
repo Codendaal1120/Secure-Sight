@@ -136,7 +136,7 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
         svm = loadModelFromFile();
     }    
 
-    logger.log('info', 'Predicting');
+    //logger.log('debug', 'Predicting');
 
     img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
     var desc = hog.extractHogFeatures(img.data, img.width, img.height);

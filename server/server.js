@@ -39,14 +39,13 @@ function startServer(){
     if (process.env.NODE_ENV != 'unit_test'){
         streamService = require("./app/services/streamService");
         videoAnalysisService = require("./app/services/videoAnalysisService");
-        /*
-      
-        */
     }
 
-    logger.log('info', `CORS origin : ${process.env.UI_ADDRESS}`);
+    const whitelist = process.env.CORS.split(",");
+
+    logger.log('info', `CORS origin : ${process.env.CORS}`);
     app.use(cors({
-        origin : process.env.UI_ADDRESS, 
+        origin: whitelist,
         credentials: true, 
         allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
     }));
