@@ -477,7 +477,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         //fs.writeFileSync('image.jpg', jpegImageData.data);
         predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);       
           
-        storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data, predictions);  
+        storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data);  
       }
 
       if (predictions == 0){
