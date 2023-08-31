@@ -30,14 +30,14 @@ async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {
 
     predictions.forEach(element => {     
       //console.log(element.class, 'detected') ;
-      if (element.class === "person"){
+      if (element.class === "person" && element.score > 0.65){
         detections.push(createObject(element, _imgWidth, _imgHeight, _detectedOn));
       }
       else if (element.class === "couch"){
-        detections.push(createObject(element, _imgWidth, _imgHeight, _detectedOn));
+        //detections.push(createObject(element, _imgWidth, _imgHeight, _detectedOn));
       }
       else if (element.class === "cup"){
-        detections.push(createObject(element, _imgWidth, _imgHeight, _detectedOn));
+        //detections.push(createObject(element, _imgWidth, _imgHeight, _detectedOn));
       }
       else{
         //logger.log('info', element.class);
@@ -57,13 +57,14 @@ async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {
  * @param {Date} _detectedOn - Datetime when the frame was captured
  * @return {Object} Return object
  */
-function createObject(_element, _imgWidth, _imgHeight, _detectedOn){
+function createObject(_element, _imgWidth, _imgHeight, _detectedOn, _conf){
   return { 
     detectedOn: _detectedOn, 
     x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1),
     y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 1), 
     width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1), 
     height: utility.mapRange(_element.bbox[3], 0, _imgHeight, 0, 1),
+    score: _element.score
   }
 }
 

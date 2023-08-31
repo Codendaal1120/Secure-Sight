@@ -475,9 +475,9 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         };
         var jpegImageData = jpeg.encode(rawImageData, 50);
         //fs.writeFileSync('image.jpg', jpegImageData.data);
-        predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);
-
-        storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data);        
+        predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);       
+          
+        storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data, predictions);  
       }
 
       if (predictions == 0){
@@ -498,6 +498,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
 }
 
 function storeImage(label, imgData){
+
   var rnd = Math.random();
   var shouldStore = label == 1 ? rnd < cache.config.ml.chanceToStore1 : rnd < cache.config.ml.chanceToStore0;
   if (!shouldStore){
