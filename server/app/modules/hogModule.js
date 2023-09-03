@@ -69,7 +69,7 @@ function extractHogFeatures(_imgData, _imgWidth, _imgHeight, _grayScale) {
     }
   }
 
-  return Array.prototype.concat.apply([], blocks);;
+  return Array.prototype.concat.apply([], blocks);
 }
 
 /**
@@ -139,12 +139,20 @@ function getBinIndex(_rad) {
 function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
   
   const gradVec = new Array(_imgHeight);
+  var writeTofile = "";
   
   for (var y = 0; y < _imgHeight; y++) {
 
     gradVec[y] = new Array(_imgWidth);
 
     for (var x = 0; x < _imgWidth; x++) {
+
+      // let i = imgModule.getPixelIndex(x, y, _imgWidth);
+      // var r = _imgData[i];
+      // var g = _imgData[i+1];
+      // var b = _imgData[i+2];
+      // var gValue =  imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);
+      // writeTofile += `r=${r}, g=${g}, b=${b} => ${gValue} \r\n`;
 
       var prevX = x === 0 
         ? 0 // first pixel?
@@ -173,6 +181,8 @@ function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
     }
   }
 
+  //fs.writeFileSync('gray2.txt', writeTofile);
+
   //fs.writeFileSync('c:\\temp\\grad-vec.json', JSON.stringify(gradVec));
   
   return gradVec;
@@ -189,6 +199,11 @@ function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
  */
 function getPixelValue(_x, _y, _imageWidth, _imgData, _grayScale){
   let i = imgModule.getPixelIndex(_x, _y, _imageWidth);
+  
+  
+  //console.log("gray2=" + _imgData[i] + " to " + xTest);
+  return _imgData[i];
+
   return _grayScale 
     ? imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2])
     : _imgData[i];    

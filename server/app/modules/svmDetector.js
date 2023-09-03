@@ -1,5 +1,6 @@
 const SVM = require('libsvm-js/asm');
 const hog = require("./hogModule");
+const imgModule  = require("./imageModule");
 const fs = require("fs");
 const path = require('path');
 const Kernel = require('ml-kernel');
@@ -13,8 +14,11 @@ const collectionName = 'svm';
 //const IMG_SCALE_WIDTH = 100;
 //const IMG_SCALE_HEIGHT = 100;
 
-const IMG_SCALE_WIDTH = 64;
-const IMG_SCALE_HEIGHT = 128;
+// const IMG_SCALE_WIDTH = 64;
+// const IMG_SCALE_HEIGHT = 128;
+
+const IMG_SCALE_WIDTH = 320;
+const IMG_SCALE_HEIGHT = 640;
 
 const ML_PREFIX = "persons";
 
@@ -278,7 +282,7 @@ async function loadMlData(_imageDirectory, _trainDataSize){
 
         var labelDirectory = _imageDirectory + '/' + labels[i];
         var files = fs.readdirSync(labelDirectory);
-        files = shuffle(files);
+        //files = shuffle(files);
         var trainSize = Math.floor(files.length * _trainDataSize);
 
         for (let j = 0; j < files.length; j++) {
@@ -327,7 +331,7 @@ async function startSvmTraining(){
       await trainSVM('persons');
 
     }, 60 * 60 * 1000);
-  }
+}
 
 function shuffle(a) {
     var j, x, i;
@@ -348,13 +352,56 @@ function shuffle(a) {
  */
 async function loadImageAndGetHog(_imagePath, _grayScale){
     try{
-        var img = await Image.load(_imagePath);
-        img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-        var desc = hog.extractHogFeatures(img.data, img.width, img.height, _grayScale);
+
+        var decodedImage = imgModule.decodeImage(_imagePath);
+
+        var imgWrapper = imgModule.resizeImage(decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
+        imgWrapper = imgModule.applyGrayScale(imgWrapper);
+        imgWrapper = imgModule.applyCannyEdge(imgWrapper);
+        if (_imagePath.endsWith('1/18.png')){
+            imgModule.saveImageDataToFile(decodedImage, 'original.png');
+            imgModule.saveImageDataToFile(imgWrapper, 'canny.png');
+        }
+        
+        //var img = await Image.load(_imagePath);
+        //img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
+        //var jpegImageData = jpeg.encode(_imgData, 50);
+
+        //imgModule.runTest(_imagePath);
+
+        /*
+         let decodedImage = decodeImage(_imagePath);
+    saveImageDataToFile(decodedImage, 'original.png');
+    //fs.writeFileSync('original.png', Buffer.from(encode(imd, null, 'png')));
+
+    var resized1 = resizeImage(decodedImage, 1280, 640);
+    saveImageDataToFile(resized1, 'original.png');
+    //fs.writeFileSync('resized.png', Buffer.from(encode(resized1, null, 'png')));
+
+    var gs = applyGrayScale(resized1);;
+    saveImageDataToFile(gs, 'grey.png');
+    //fs.writeFileSync('grey.png', Buffer.from(encode(gs, null, 'png')));
+
+    var canny = applyCannyEdge2(gs);
+    fs.writeFileSync('canny.png', Buffer.from(encode(canny, null, 'png')));
+        */
+
+      
+
+
+        //var img = await imgModule.getImageDataFromFile(_imagePath);
+        
+        // var imgData = applyProcessing(img, _grayScale);
+        // if (_grayScale){
+        //     //fs.writeFileSync("test.jpg", imgData);
+        // }
+        _grayScale = false;
+        var desc = hog.extractHogFeatures(imgWrapper.imageData.data, imgWrapper.imageData.width, imgWrapper.imageData.height, _grayScale);
 
         return { success : true, payload : desc };
     }
     catch(err){
+        console.error(err.stack);
         logger.log('error', `ERROR loading ${_imagePath} : ${err}`)
         return { success : false, error : err };
     }    
@@ -391,6 +438,45 @@ async function saveTrainingResults(_results, _mlData){
 
     return { success : true, payload : document.payload };
 }
+
+function applyProcessing(_img, _applyGrayscale){
+    if (_applyGrayscale){
+
+        // var processedImg = imgModule.convertImageToGrayScale(_img);
+        // return processedImg.data;
+
+        // var processedImg = imgModule.convertImageDataToGrayScale(_img);
+        // return processedImg.data;
+
+        //_imageData = applyGrayscale(_img.data, _img.width, _img.height);
+        //_img = imgModule.convertImageToGrayScale(_img);
+
+        //_img = imgModule.applyCannyEdge(_img);
+    }
+
+    imgModule.saveImageDataToFile(_img, 'original.jpg');
+
+    var resized = imgModule.resizeImage(_img, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
+    return resized.data;
+    imgModule.saveImageDataToFile(resized, 'resized.jpg');
+
+    var processedImg = imgModule.convertImageDataToGrayScale(_img);
+    imgModule.saveImageDataToFile(processedImg, 'grey.jpg');
+    // var  i = new Image(processedImg.width, processedImg.height, processedImg.data);
+    // i.save('test-image.jpg');
+
+    processedImg = imgModule.applyCannyEdge(processedImg);
+
+    imgModule.saveImageDataToFile(processedImg, 'canny.jpg');
+
+    return processedImg.data;
+
+    //_img = imgModule.applyCannyEdge(_img);
+
+    return _img.data;
+}
+
+
 
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;
