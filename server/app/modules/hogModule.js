@@ -24,11 +24,12 @@ const PI_RAD = 180 / Math.PI;
  * @param {Buffer} _imgData - image data to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
+ * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} Array of gradient vectors
  */
-function extractHogFeatures(_imgData, _imgWidth, _imgHeight) {    
+function extractHogFeatures(_imgData, _imgWidth, _imgHeight, _grayScale) {    
   
-  var gradients = getGradients(_imgData, _imgWidth, _imgHeight);
+  var gradients = getGradients(_imgData, _imgWidth, _imgHeight, _grayScale);
   var cWidth = Math.floor(gradients[0].length / CELL_SIZE);
   var cHeight = Math.floor(gradients.length / CELL_SIZE);
   var histograms = new Array(cHeight);
@@ -132,9 +133,10 @@ function getBinIndex(_rad) {
  * @param {Buffer} _imgData - image data to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
+ * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} Array of gradient vectors
  */
-function getGradients(_imgData, _imgWidth, _imgHeight){
+function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
   
   const gradVec = new Array(_imgHeight);
   
@@ -146,19 +148,19 @@ function getGradients(_imgData, _imgWidth, _imgHeight){
 
       var prevX = x === 0 
         ? 0 // first pixel?
-        : getPixelValue(x - 1, y, _imgWidth, _imgData) / 255;
+        : getPixelValue(x - 1, y, _imgWidth, _imgData, _grayScale) / 255;
 
       var nextX = x === _imgWidth - 1 
         ? 0 // last pixel
-        : getPixelValue(x + 1, y, _imgWidth, _imgData) / 255;
+        : getPixelValue(x + 1, y, _imgWidth, _imgData, _grayScale) / 255;
 
       var prevY = y === 0 
         ? 0 
-        : getPixelValue(x, y - 1, _imgWidth, _imgData) / 255;
+        : getPixelValue(x, y - 1, _imgWidth, _imgData, _grayScale) / 255;
 
       var nextY = y === _imgHeight - 1 
         ? 0 
-        : getPixelValue(x, y + 1, _imgWidth, _imgData) / 255;
+        : getPixelValue(x, y + 1, _imgWidth, _imgData, _grayScale) / 255;
 
       // kernel [-1, 0, 1]
       var gradX = -prevX + nextX;
@@ -182,11 +184,14 @@ function getGradients(_imgData, _imgWidth, _imgHeight){
  * @param {Number} _x - the X coordinate
  * @param {Number} _y - the Y coordinate
  * @param {Number} _imageWidth - width of the image
+ * @param {boolean} _grayScale - Indicate if grayscale should be returned
  * @return {Array} Array of gradient vectors
  */
-function getPixelValue(_x, _y, _imageWidth, _imgData){
+function getPixelValue(_x, _y, _imageWidth, _imgData, _grayScale){
   let i = imgModule.getPixelIndex(_x, _y, _imageWidth);
-  return imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);    
+  return _grayScale 
+    ? imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2])
+    : _imgData[i];    
 }
 
 /** DEBUG method to save the block */

@@ -39,6 +39,9 @@ async function StartVideoProcessing(_cameraEntry){
          
   });
 
+  /* for some reason, which I cannot figure out, my images comes out has 90% grayscale, and the final 10% in color.
+   * this is not actually a problem, since I convert the image to gray anyway.
+   */
   const args = [
     '-hide_banner',
     '-loglevel',
@@ -53,11 +56,11 @@ async function StartVideoProcessing(_cameraEntry){
     '-vcodec', 
     'pam', 
     '-pix_fmt', 
-    'rgba', 
+    'argb', 
     '-f', 
     'image2pipe', 
     '-vf', 
-    'fps=2,scale=640:360', 
+    'fps=1,scale=640:360', 
     '-']
 
   const cpx = ffmpegModule.runFFmpeg(
@@ -453,7 +456,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
     motion = detector.getMotionRegion(_cameraEntry.frameBuffer);
     if (motion != null){
 
-      if (_cameraEntry.camera.detectionMethod == "svm"){
+      if (_cameraEntry. camera.detectionMethod == "svm"){
         var detection = await svm.processImage(data.pixels, width, height); //is data width & height same as image?
         // since SVM does not specify the region, we need to pass the motion region as the dected region
         if (detection && detection.label == 'human'){
@@ -474,7 +477,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
           height: height,
         };
         var jpegImageData = jpeg.encode(rawImageData, 50);
-        //fs.writeFileSync('image.jpg', jpegImageData.data);
+        fs.writeFileSync('image.jpg', jpegImageData.data);
         predictions = await tf.processImage(jpegImageData.data, width, height, _detectedOn);       
           
         storeImage(predictions.length > 0 ? 1 : 0, jpegImageData.data);  
@@ -491,6 +494,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
     }
   }
   catch(error){
+    console.error(error.stack);
     logger.log('error', `[${_cameraEntry.camera.id}] Video processing error : ${error.message}`);
   }  
 
@@ -501,6 +505,7 @@ function storeImage(label, imgData){
 
   var rnd = Math.random();
   var shouldStore = label == 1 ? rnd < cache.config.ml.chanceToStore1 : rnd < cache.config.ml.chanceToStore0;
+  shouldStore = true;
   if (!shouldStore){
     return;
   }

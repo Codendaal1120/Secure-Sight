@@ -18,3 +18,6 @@ The event config has some hidden config in the database which is not exposed on 
 "frameTimeOffset" - the amount of time in ms to add/remove from the timestamp of the stream chunk
 "gifDelayOffset" - the amount of time in ms to add/remove to the start of the gif
 "detectionOffset" - the amount of time in ms to add/remove to the detection 
+
+
+-- grayscale from 66 - 70

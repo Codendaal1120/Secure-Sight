@@ -24,9 +24,16 @@ let model = undefined;
  */
 async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {    
 
+    let detections = [];
+
+    if (!model){
+      logger.debug('TF model not ready');
+      return detections;
+    }
+
     const image = tf.node.decodeImage(_imgData);
     const predictions = await model.detect(image, 3, 0.25);
-    let detections = [];
+  
 
     predictions.forEach(element => {     
       //console.log(element.class, 'detected') ;

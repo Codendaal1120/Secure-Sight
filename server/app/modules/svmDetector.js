@@ -282,8 +282,11 @@ async function loadMlData(_imageDirectory, _trainDataSize){
         var trainSize = Math.floor(files.length * _trainDataSize);
 
         for (let j = 0; j < files.length; j++) {
-            logger.log('info', 'Loading ' + files[j]);        
-            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
+            logger.log('info', 'Loading ' + files[j]);   
+            
+            // apply grayscale to the original dataset images, named 0.jpg, but not to the ones from tf
+            var applyGray = files[j].length <= 6;
+            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j], applyGray);
             if (loadHog.success){
 
                 if (j <= trainSize){
@@ -340,13 +343,14 @@ function shuffle(a) {
 /**
  * Loads the image and gets the hog features
  * @param {string} _imagePath - Path to file
+ * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} HOG features
  */
-async function loadImageAndGetHog(_imagePath){
+async function loadImageAndGetHog(_imagePath, _grayScale){
     try{
         var img = await Image.load(_imagePath);
         img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-        var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+        var desc = hog.extractHogFeatures(img.data, img.width, img.height, _grayScale);
 
         return { success : true, payload : desc };
     }
