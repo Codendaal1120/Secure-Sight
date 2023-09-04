@@ -19,7 +19,7 @@ describe('Test HOG feature extractor', () => {
 
         var filePath = path.join(__dirname, 'files', "circle.jpg");
         var image = img.getImageObjectFromFile(filePath);
-        var features = hog.extractHogFeatures(image.data, image.width, image.height);
+        var features = hog.extractHogFeatures(image);
         chai.expect(features).to.not.equal(null);
         chai.expect(features.length).to.equal(133956);        
     });

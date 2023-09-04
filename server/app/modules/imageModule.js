@@ -12,7 +12,7 @@ const encode = require('image-encode');
  */
 function decodeImage(_filePath){
     let imd = decode(fs.readFileSync(_filePath));
-    return { imageObject: imd, type: _filePath.substr(_filePath.length - 3) }
+    return { imageObject: imd, type: _filePath.substr(_filePath.length - 3), filePath: _filePath }
 }
 
 /**
@@ -46,7 +46,7 @@ function resizeImage(_imgWrapper, _width, _height){
     src.delete();
     dst.delete();
 
-    return { imageObject: rawData, type: _imgWrapper.type }
+    return { imageObject: rawData, type: _imgWrapper.type, filePath: _imgWrapper.filePath }
 }
 
 /**
@@ -67,37 +67,7 @@ function applyGrayScale(_imgWrapper){
     
     src.delete();
 
-    return { imageObject: rawData, type: _imgWrapper.type }
-}
-
-function runTest(_imagePath){
-   
-
-    //let {data, width, height} = decode(fs.readFileSync(_imagePath));
-    //let decodedImage = decode(fs.readFileSync(_imagePath));
-    let decodedImage = decodeImage(_imagePath);
-    saveImageDataToFile(decodedImage, 'original.png');
-    //fs.writeFileSync('original.png', Buffer.from(encode(imd, null, 'png')));
-
-    var resized1 = resizeImage(decodedImage, 1280, 640);
-    saveImageDataToFile(resized1, 'original.png');
-    //fs.writeFileSync('resized.png', Buffer.from(encode(resized1, null, 'png')));
-
-    var gs = applyGrayScale(resized1);;
-    saveImageDataToFile(gs, 'grey.png');
-    //fs.writeFileSync('grey.png', Buffer.from(encode(gs, null, 'png')));
-
-    var canny = applyCannyEdge2(gs);
-    fs.writeFileSync('canny.png', Buffer.from(encode(canny, null, 'png')));
-    // var resized2 = resizeImage(gs, 1280, 640);
-    // fs.writeFileSync('greyResized.png', Buffer.from(encode(resized2, null, 'png')));
-
-    //fs.writeFileSync('test-11.png', img.data);
-    fs.writeFileSync(
-        'out.png',
-        Buffer.from(encode(resized, null, 'png'))
-    )
-
+    return { imageObject: rawData, type: _imgWrapper.type, filePath: _imgWrapper.filePath }
 }
 
 /**
@@ -109,7 +79,7 @@ function runTest(_imagePath){
 function applyCannyEdge(_imgWrapper){
     var src = cv.matFromImageData(_imgWrapper.imageObject);    
     var dst = new cv.Mat();
-    cv.Canny(src, dst, 50, 150);
+    cv.Canny(src, dst, 75, 200);
 
     var rawData = {
         data: dst.data,
@@ -120,9 +90,31 @@ function applyCannyEdge(_imgWrapper){
     src.delete();
     dst.delete();
 
-    return { imageObject: rawData, type: _imgWrapper.type }
+    return { imageObject: rawData, type: _imgWrapper.type, filePath: _imgWrapper.filePath }
 }
 
+/**
+ * Applies adaptive threshold
+* @param {object} _imgWrapper - Image wrapper object with decoded image data
+ * @return {Buffer} processed image data
+ * @see https://docs.opencv.org/3.4/d7/dd0/tutorial_js_thresholding.html
+ */
+function applyAdaptiveThreshold(_imgWrapper){
+    var src = cv.matFromImageData(_imgWrapper.imageObject);    
+    var dst = new cv.Mat();
+    cv.adaptiveThreshold(src, dst, 200, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 3, 2);
+
+    var rawData = {
+        data: dst.data,
+        width: dst.size().width,
+        height: dst.size().height
+    };
+
+    src.delete();
+    dst.delete();
+
+    return { imageObject: rawData, type: _imgWrapper.type, filePath: _imgWrapper.filePath }
+}
 
 /**
  * Loads a file from the path and returns the image object
@@ -167,17 +159,13 @@ function getBase64Image(_filePath){
     return img;
 }
 
-
-
-
-
-
 module.exports.decodeImage = decodeImage;
 module.exports.getImageObjectFromFile = getImageObjectFromFile;
 module.exports.getPixelIndex = getPixelIndex;
 module.exports.getBase64Image = getBase64Image;
 module.exports.getGrayScale = getGrayScale;
 module.exports.applyCannyEdge = applyCannyEdge;
+module.exports.applyAdaptiveThreshold = applyAdaptiveThreshold;
 module.exports.applyGrayScale = applyGrayScale;
 module.exports.saveImageDataToFile = saveImageDataToFile;
 module.exports.resizeImage = resizeImage;

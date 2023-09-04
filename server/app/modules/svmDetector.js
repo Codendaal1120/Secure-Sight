@@ -11,14 +11,8 @@ const math = require('mathjs');
 const dataService = require('../services/dataService');
 const collectionName = 'svm';
 
-//const IMG_SCALE_WIDTH = 100;
-//const IMG_SCALE_HEIGHT = 100;
-
-// const IMG_SCALE_WIDTH = 64;
-// const IMG_SCALE_HEIGHT = 128;
-
-const IMG_SCALE_WIDTH = 320;
-const IMG_SCALE_HEIGHT = 640;
+const IMG_SCALE_WIDTH = 64;
+const IMG_SCALE_HEIGHT = 128;
 
 const ML_PREFIX = "persons";
 
@@ -282,7 +276,7 @@ async function loadMlData(_imageDirectory, _trainDataSize){
 
         var labelDirectory = _imageDirectory + '/' + labels[i];
         var files = fs.readdirSync(labelDirectory);
-        //files = shuffle(files);
+        files = shuffle(files);
         var trainSize = Math.floor(files.length * _trainDataSize);
 
         for (let j = 0; j < files.length; j++) {
@@ -356,7 +350,7 @@ async function loadImageAndGetHog(_imagePath, _grayScale){
         var decodedImage = imgModule.decodeImage(_imagePath);
         decodedImage = applyProcessing(decodedImage);
         _grayScale = false;
-        var desc = hog.extractHogFeatures(imgWrapper.imageObject.data, imgWrapper.imageObject.width, imgWrapper.imageObject.height);
+        var desc = hog.extractHogFeatures(decodedImage.imageObject);
 
         return { success : true, payload : desc };
     }
@@ -401,19 +395,19 @@ async function saveTrainingResults(_results, _mlData){
 
 //https://huningxin.github.io/opencv.js/samples/video-processing/index.html
 function applyProcessing(_decodedImage){
-    var imgWrapper = imgModule.resizeImage(decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
 
+    var imgWrapper = imgModule.resizeImage(_decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
     imgWrapper = imgModule.applyGrayScale(imgWrapper);
-    imgWrapper = imgModule.applyCannyEdge(imgWrapper);
-    if (_imagePath.endsWith('1/18.png')){
-        imgModule.saveImageDataToFile(decodedImage, 'original.png');
-        imgModule.saveImageDataToFile(imgWrapper, 'canny.png');
-    }
+    //imgWrapper = imgModule.applyCannyEdge(imgWrapper);
+    //imgWrapper = imgModule.applyAdaptiveThreshold(imgWrapper);
+
+    // if (imgWrapper.filePath.endsWith('1/18.png')){
+    //     imgModule.saveImageDataToFile(_decodedImage, 'temp/original.png');
+    //     imgModule.saveImageDataToFile(imgWrapper, 'temp/processed.png');        
+    // } 
 
     return imgWrapper;
 }
-
-
 
 module.exports.trainSVM = trainSVM;
 module.exports.parseTrainingFiles = parseTrainingFiles;

@@ -21,14 +21,14 @@ const PI_RAD = 180 / Math.PI;
 
 /**
  * Creates HOG from image data, splitting into blocks
- * @param {Buffer} _imgData - image data buffer to transform into a HOG descriptor
+ * @param {Object} _imgObject - image data object to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
-function extractHogFeatures(_imgData, _imgWidth, _imgHeight) {    
+function extractHogFeatures(_imgObject) {    
   
-  var gradients = getGradients(_imgData, _imgWidth, _imgHeight);
+  var gradients = getGradients(_imgObject);
   var cWidth = Math.floor(gradients[0].length / CELL_SIZE);
   var cHeight = Math.floor(gradients.length / CELL_SIZE);
   var histograms = new Array(cHeight);
@@ -130,36 +130,37 @@ function getBinIndex(_rad) {
 /**
  * Extract the gradients of each pixel
  * @param {Buffer} _imgData - image data buffer to transform into a HOG descriptor
+ * @param {Object} _imgObject - image data object to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
  * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} Array of gradient vectors
  */
-function getGradients(_imgData, _imgWidth, _imgHeight){
+function getGradients(_imgObject){
   
-  const gradVec = new Array(_imgHeight);
+  const gradVec = new Array(_imgObject.height);
   
-  for (var y = 0; y < _imgHeight; y++) {
+  for (var y = 0; y < _imgObject.height; y++) {
 
-    gradVec[y] = new Array(_imgWidth);
+    gradVec[y] = new Array(_imgObject.width);
 
-    for (var x = 0; x < _imgWidth; x++) {
+    for (var x = 0; x < _imgObject.width; x++) {
 
       var prevX = x === 0 
         ? 0 // first pixel?
-        : getPixelValue(x - 1, y, _imgWidth, _imgData) / 255;
+        : getPixelValue(x - 1, y, _imgObject.width, _imgObject.data) / 255;
 
-      var nextX = x === _imgWidth - 1 
+      var nextX = x === _imgObject.width - 1 
         ? 0 // last pixel
-        : getPixelValue(x + 1, y, _imgWidth, _imgData) / 255;
+        : getPixelValue(x + 1, y, _imgObject.width, _imgObject.data) / 255;
 
       var prevY = y === 0 
         ? 0 
-        : getPixelValue(x, y - 1, _imgWidth, _imgData) / 255;
+        : getPixelValue(x, y - 1, _imgObject.width, _imgObject.data) / 255;
 
-      var nextY = y === _imgHeight - 1 
+      var nextY = y === _imgObject.height - 1 
         ? 0 
-        : getPixelValue(x, y + 1, _imgWidth, _imgData) / 255;
+        : getPixelValue(x, y + 1, _imgObject.width, _imgObject.data) / 255;
 
       // kernel [-1, 0, 1]
       var gradX = -prevX + nextX;
