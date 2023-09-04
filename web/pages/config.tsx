@@ -239,7 +239,7 @@ export default function ConfigPage() {
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
               <div className="sm:col-span-2 ">
                 <label className="block text-sm leading-6 text-gray-400">
-                  The number of seconds an event can last, after this time has passed the event will automatically be finished and saved.
+                After an event has been finished new detections will be silenced for period of time.
                 </label>
               </div>
               <div className="sm:col-span-1">
@@ -263,7 +263,7 @@ export default function ConfigPage() {
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
               <div className="sm:col-span-2 ">
                 <label className="block text-sm leading-6 text-gray-400">
-                  After an event has been finished new detections will be silenced for period of time.
+                  The number of seconds an event can last, after this time has passed the event will automatically be finished and saved.
                 </label>
               </div>
               <div className="sm:col-span-1">

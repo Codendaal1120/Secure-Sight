@@ -120,8 +120,8 @@ function CameraViewer ({ cameraId, cameraName } : Props) {
       
       requestAnimationFrame(function () {
         for (let i = 0; i < data.length; i++) {
-          ctx.font = "10px Arial";
-          ctx.fillText(data[i].aveDiff, 5, 15);
+          // ctx.font = "10px Arial";
+          // ctx.fillText(data[i].aveDiff, 5, 15);
 
           const x = mapRange(data[i].x, 0, 1, 0, canvasWidth);
           const y = mapRange(data[i].y, 0, 1, 0, canvasHeight);
