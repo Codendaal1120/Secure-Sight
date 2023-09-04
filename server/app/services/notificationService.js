@@ -8,14 +8,10 @@ const imgModule = require('../modules/imageModule');
 
 let mailReady = false;
 
-
-/** Setup service */
-function setup(){	
-	if (cache.config.notifications?.email?.providerApiKey){
-		sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
-		mailReady = true;
-	}
-}
+if (cache.config.notifications?.email?.providerApiKey){
+	sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
+	mailReady = true;
+}	
 
 /**
  * Get all configured cameras from DB
@@ -47,6 +43,7 @@ async function testUiMessage(topic, msg) {
         return { success : true };
     }
     catch (err) {
+		console.error(err.stack);
         return { success : false, error : err.message };
     }
 };
@@ -59,7 +56,7 @@ async function sendEmailAltert(_alert){
 			return tryGet;
 		}
 
-		var img = await imgModule.getImageDataFromFile('app/resources/logo.png');
+		var img = imgModule.getBase64Image('app/resources/logo.png');
 
 		const msg = {
 			to: _alert.recipient,
@@ -72,7 +69,7 @@ async function sendEmailAltert(_alert){
 					filename: 'Secure-Sight.png',
 					contentType: 'image/png',
 					content_id: '1557',
-					content: img.toBase64(),
+					content: img,
 					disposition: 'inline'
 				}
 			]
@@ -87,6 +84,7 @@ async function sendEmailAltert(_alert){
 		       
 	}
 	catch (error) {
+		console.error(error.stack);
 		logger.log('error', error);
 		return { success : false, error : error.message };
 	}
@@ -121,4 +119,3 @@ function generateEmailHtml(_event, _uiUrl){
 
 module.exports.testUiMessage = testUiMessage;
 module.exports.trySendAlert = trySendAlert;
-module.exports.setup = setup;

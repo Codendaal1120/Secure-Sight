@@ -70,7 +70,6 @@ function applyGrayScale(_imgWrapper){
     return { imageObject: rawData, type: _imgWrapper.type }
 }
 
-
 function runTest(_imagePath){
    
 
@@ -158,6 +157,15 @@ function getGrayScale(_r, _g, _b){
     return 0.2126 * _r + 0.7152 * _g + 0.0722 * _b; 
 }
 
+/**
+ * Gets the base64 value of the image
+ * @param {String} _filePath - Path to the file
+ * @return {String} The image base64 representation
+ */
+function getBase64Image(_filePath){
+    var img = fs.readFileSync(_filePath, 'base64');
+    return img;
+}
 
 
 
@@ -167,6 +175,7 @@ function getGrayScale(_r, _g, _b){
 module.exports.decodeImage = decodeImage;
 module.exports.getImageObjectFromFile = getImageObjectFromFile;
 module.exports.getPixelIndex = getPixelIndex;
+module.exports.getBase64Image = getBase64Image;
 module.exports.getGrayScale = getGrayScale;
 module.exports.applyCannyEdge = applyCannyEdge;
 module.exports.applyGrayScale = applyGrayScale;

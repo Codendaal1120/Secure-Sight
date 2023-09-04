@@ -58,6 +58,7 @@ async function tryGetEvent(_eventId){
 		return { success : true, payload : createReturnObject(tryGet.payload, fullPath)};        
   }
   catch (err) {
+      console.error(err.stack);
       logger.log('error', err);
       return { success : false, error : err.message };
   }
