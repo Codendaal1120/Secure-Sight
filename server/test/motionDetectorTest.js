@@ -18,9 +18,9 @@ describe('Test Motion detector', () => {
     it('no changes in duplicate frames', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
-        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
-        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
+        frameBuffer[0] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img1.jpg'))?.data;
+        frameBuffer[1] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img1.jpg'))?.data;
+        frameBuffer[2] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img1.jpg'))?.data;
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
@@ -30,9 +30,9 @@ describe('Test Motion detector', () => {
     it('detect tiny change in frames', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
-        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img2.jpg'));
-        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img2.jpg'));
+        frameBuffer[0] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img1.jpg'))?.data;
+        frameBuffer[1] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img2.jpg'))?.data;
+        frameBuffer[2] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img2.jpg'))?.data;
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 
@@ -47,9 +47,9 @@ describe('Test Motion detector', () => {
     it('detect change in four blocks', async () => {
 
         let frameBuffer = [3];
-        frameBuffer[0] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img1.jpg'));
-        frameBuffer[1] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img3.jpg'));
-        frameBuffer[2] = await imgModule.getRawImageDataFromFile(path.join(fileDir, 'img3.jpg'));
+        frameBuffer[0] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img1.jpg'))?.data;
+        frameBuffer[1] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img3.jpg'))?.data;
+        frameBuffer[2] = await imgModule.getImageObjectFromFile(path.join(fileDir, 'img3.jpg'))?.data;
 
         var diff = detector.getMotionRegion(frameBuffer, 128, 64, 0);
 

@@ -1,23 +1,10 @@
 /** Image utility class */
-const {Image } = require('image-js');
-const jpeg = require('jpeg-js');
+// const {Image } = require('image-js');
+// const jpeg = require('jpeg-js');
 const cv = require('opencv.js');
 const fs = require("fs");
 const decode = require('image-decode');
 const encode = require('image-encode');
-
-// /**
-//  * Loads a file from the path and returns the pixel data
-//  * @param {String} _filePath - Path to the file
-//  * @return {Array} Decoded pixel data
-//  */
-// async function getRawImageDataFromFile(_filePath){
-//     // var image = await Image.load(_filePath);
-//     // return image.data;
-
-//     return await getImageDataFromFile(_filePath).data;
-// }
-
 /**
  * Loads a file from the path and returns the pixel data
  * @param {String} _filePath - Path to the file
@@ -25,7 +12,7 @@ const encode = require('image-encode');
  */
 function decodeImage(_filePath){
     let imd = decode(fs.readFileSync(_filePath));
-    return { imageData: imd, type: _filePath.substr(_filePath.length - 3) }
+    return { imageObject: imd, type: _filePath.substr(_filePath.length - 3) }
 }
 
 /**
@@ -59,7 +46,7 @@ function resizeImage(_imgWrapper, _width, _height){
     src.delete();
     dst.delete();
 
-    return { imageData: rawData, type: _imgWrapper.type }
+    return { imageObject: rawData, type: _imgWrapper.type }
 }
 
 /**
@@ -80,7 +67,7 @@ function applyGrayScale(_imgWrapper){
     
     src.delete();
 
-    return { imageData: rawData, type: _imgWrapper.type }
+    return { imageObject: rawData, type: _imgWrapper.type }
 }
 
 
@@ -134,16 +121,16 @@ function applyCannyEdge(_imgWrapper){
     src.delete();
     dst.delete();
 
-    return { imageData: rawData, type: _imgWrapper.type }
+    return { imageObject: rawData, type: _imgWrapper.type }
 }
 
 
 /**
  * Loads a file from the path and returns the image object
  * @param {String} _filePath - Path to the file
- * @return {Object} Image
+ * @return {Object} Image object
  */
-function getImageDataFromFile(_filePath){
+function getImageObjectFromFile(_filePath){
 
     var decodedImage = decodeImage(_filePath);
     return decodedImage.imageObject;   
@@ -178,7 +165,7 @@ function getGrayScale(_r, _g, _b){
 
 
 module.exports.decodeImage = decodeImage;
-module.exports.getImageDataFromFile = getImageDataFromFile;
+module.exports.getImageObjectFromFile = getImageObjectFromFile;
 module.exports.getPixelIndex = getPixelIndex;
 module.exports.getGrayScale = getGrayScale;
 module.exports.applyCannyEdge = applyCannyEdge;

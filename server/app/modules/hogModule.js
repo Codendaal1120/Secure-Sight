@@ -21,7 +21,7 @@ const PI_RAD = 180 / Math.PI;
 
 /**
  * Creates HOG from image data, splitting into blocks
- * @param {Buffer} _imgData - image data to transform into a HOG descriptor
+ * @param {Buffer} _imgData - image data buffer to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
@@ -129,7 +129,7 @@ function getBinIndex(_rad) {
 
 /**
  * Extract the gradients of each pixel
- * @param {Buffer} _imgData - image data to transform into a HOG descriptor
+ * @param {Buffer} _imgData - image data buffer to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
  * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
@@ -138,7 +138,6 @@ function getBinIndex(_rad) {
 function getGradients(_imgData, _imgWidth, _imgHeight){
   
   const gradVec = new Array(_imgHeight);
-  var writeTofile = "";
   
   for (var y = 0; y < _imgHeight; y++) {
 
@@ -178,7 +177,7 @@ function getGradients(_imgData, _imgWidth, _imgHeight){
 
 /**
  * Translate the x,y coordinate to a pixel index and get the channel value in gray scale
- * @param {Buffer} _imgData - image data to transform into a HOG descriptor
+ * @param {Buffer} _imgData - image data buffer to transform into a HOG descriptor
  * @param {Number} _x - the X coordinate
  * @param {Number} _y - the Y coordinate
  * @param {Number} _imageWidth - width of the image

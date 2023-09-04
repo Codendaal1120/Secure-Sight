@@ -23,6 +23,7 @@ describe('Test /api/cameras', function () {
     before(async () => {
         mongoServer = await createMongoServer();
         process.env.NODE_ENV = 'unit_test'
+        process.env.CORS = 'localhost'
         await createOptions();
         app = require('../server');
         await sleep(500);
@@ -32,7 +33,7 @@ describe('Test /api/cameras', function () {
         await mongoServer.stop();
     });
 
-    it('Target-Test can create camera', async () => {
+    it('can create camera', async () => {
 
         const cam = {
             "name" : "test-camera",
@@ -71,7 +72,8 @@ describe('Test /api/cameras', function () {
         const cam = {
             name : randomName,
             url : randomUrl,
-            eventConfig : {}
+            eventConfig : {},
+            streamResolution: { width: 10, height: 10 }
         }
 
         const res = await chai.request(app).put(`/api/cameras/${testCamId}`).send(cam);
@@ -87,8 +89,10 @@ describe('Test /api/cameras', function () {
         let randomUrl = makeid(5)
 
         const cam = {
-            "name" : randomName,
-            "url" : randomUrl            
+            name : randomName,
+            url : randomUrl,
+            eventConfig : {},
+            streamResolution: { width: 10, height: 10 }
         }
 
         const res = await chai.request(app).put(`/api/cameras`).send(cam);
@@ -101,8 +105,10 @@ describe('Test /api/cameras', function () {
         let randomUrl = makeid(5)
 
         const cam = {
-            "name" : randomName,
-            "url" : randomUrl            
+            name : randomName,
+            url : randomUrl,
+            eventConfig : {},
+            streamResolution: { width: 10, height: 10 }         
         }
 
         const res = await chai.request(app).put(`/api/cameras/SHOULD-NOT-WORK`).send(cam);
@@ -128,22 +134,22 @@ async function createMongoServer(){
 async function createOptions(){
     // create options
     const cfg = {
-        "cameraBufferSeconds" : 600,
-        "event" : {
-            "silenceSeconds" : 180,
-            "limitSeconds" : 120,
-            "idleEndSeconds" : 9
+        cameraBufferSeconds : 600,
+        event : {
+            silenceSeconds : 180,
+            limitSeconds : 120,
+            idleEndSeconds : 9
         },
-        "removeTempFiles" : true,
-        "ml" : {
-            "chanceToStore0" : 0.05,
-            "chanceToStore1" : 0.15
+        removeTempFiles : true,
+        ml : {
+            chanceToStore0 : 0.05,
+            chanceToStore1 : 0.15
         },
-        "notifications" : {
-            "email" : {
-                "providerApiKey" : "xxx",
-                "sender" : "test@test.local",
-                "recipient" : "test@test.local"
+        notifications : {
+            email : {
+                providerApiKey : "xxx",
+                sender : "test@test.local",
+                recipient : "test@test.local"
             }
         }
     }

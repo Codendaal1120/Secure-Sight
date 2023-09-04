@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "mocha --recursive --exit",
-    "test-single": "cross-env MODE=single mocha --grep \"Target-Test\""
+    "test-single": "cross-env MODE=single mocha --grep \"DEBUG-Test\""
   },
   "repository": {
     "type": "git",
