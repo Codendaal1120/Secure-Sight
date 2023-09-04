@@ -34,7 +34,7 @@ function decodeImage(_filePath){
  * @param {string} _filePath - image file path
  */
 function saveImageDataToFile(_imgWrapper, _filePath){
-    fs.writeFileSync(_filePath, Buffer.from(encode(_imgWrapper.imageData, null, _imgWrapper.type)));
+    fs.writeFileSync(_filePath, Buffer.from(encode(_imgWrapper.imageObject, null, _imgWrapper.type)));
 }
 
 /**
@@ -45,7 +45,7 @@ function saveImageDataToFile(_imgWrapper, _filePath){
  * @return {object} resized image wrapper object with decoded image data
  */
 function resizeImage(_imgWrapper, _width, _height){
-    let src = cv.matFromImageData(_imgWrapper.imageData);
+    let src = cv.matFromImageData(_imgWrapper.imageObject);
     let dst = new cv.Mat();
     let dsize = new cv.Size(_width, _height);
     cv.resize(src, dst, dsize, 0, 0, cv.INTER_AREA);
@@ -68,7 +68,7 @@ function resizeImage(_imgWrapper, _width, _height){
  * @return {Buffer} Grayscale image data
  */
 function applyGrayScale(_imgWrapper){
-    var src = cv.matFromImageData(_imgWrapper.imageData);
+    var src = cv.matFromImageData(_imgWrapper.imageObject);
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY); 
 
     var rawData = {
@@ -121,13 +121,7 @@ function runTest(_imagePath){
  * @see https://docs.opencv.org/3.4/dd/d1a/group__imgproc__feature.html#ga04723e007ed888ddf11d9ba04e2232de
  */
 function applyCannyEdge(_imgWrapper){
-    // var dst = new cv.Mat();
-    // cv.Canny(_imgData, dst, 50, 150);
-    // return dst;
-
-    var src = cv.matFromImageData(_imgWrapper.imageData);
-    //cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY); // Convert to grayscale
-    
+    var src = cv.matFromImageData(_imgWrapper.imageObject);    
     var dst = new cv.Mat();
     cv.Canny(src, dst, 50, 150);
 
@@ -149,18 +143,10 @@ function applyCannyEdge(_imgWrapper){
  * @param {String} _filePath - Path to the file
  * @return {Object} Image
  */
-async function getImageDataFromFile(_filePath){
-    // var image = await Image.load(_filePath);
-    // return image;    
+function getImageDataFromFile(_filePath){
 
-    if (_filePath.toLowerCase().endsWith('.jpg')){
-        var fileData = fs.readFileSync(_filePath);
-        var rawData = jpeg.decode(fileData);
-        return rawData;
-    }
-
-    var image = await Image.load(_filePath);
-    return image;   
+    var decodedImage = decodeImage(_filePath);
+    return decodedImage.imageObject;   
 }
 
 /**
@@ -185,69 +171,6 @@ function getGrayScale(_r, _g, _b){
     return 0.2126 * _r + 0.7152 * _g + 0.0722 * _b; 
 }
 
-// /**
-//  * Converts the raw input image data to grayscale using openCV module
-//  * @param {Buffer} _imgData - Raw image data
-//  * @return {Buffer} Grayscale image data
-//  */
-// function convertImageToGrayScale(_imgData){
-//     var src = cv.matFromImageData(_imgData);
-//     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY); 
-
-//     var rawData = {
-//         data: src.data,
-//         width: src.size().width,
-//         height: src.size().height
-//     };
-
-//     return rawData;
-// }
-
-
-// /**
-//  * Applies canny edge on the image data
-//  * @param {Buffer} _imgData - image data
-//  * @return {Buffer} processed image data
-//  * @see https://docs.opencv.org/3.4/dd/d1a/group__imgproc__feature.html#ga04723e007ed888ddf11d9ba04e2232de
-//  */
-// function applyCannyEdge(_imgData){
-//     // var dst = new cv.Mat();
-//     // cv.Canny(_imgData, dst, 50, 150);
-//     // return dst;
-
-//     var src = cv.matFromImageData(_imgData);
-//     //cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY); // Convert to grayscale
-    
-//     var dst = new cv.Mat();
-//     cv.Canny(src, dst, 150, 300);
-
-//     var rawData = {
-//         data: dst.data,
-//         width: dst.size().width,
-//         height: dst.size().height
-//     };
-
-//     return rawData;
-// }
-
-// /**
-//  * Converts the raw input image data to grayscale using a custom function
-//  * @param {Buffer} _imgData - Raw image data
-//  * @return {Buffer} Grayscale image data
-//  */
-// function convertImageDataToGrayScale(_imgData){
-//     for (var y = 0; y < _imgData.height; y++) {
-//         for (var x = 0; x < _imgData.width; x++) {
-//             let i = getPixelIndex(x, y, _imgData.width);
-//             var gValue =  getGrayScale(_imgData.data[i], _imgData.data[i+1], _imgData.data[i+2]);
-//             _imgData.data[i] = gValue;
-//         }
-//     }
-//     return _imgData;
-// }
-
-
-
 
 
 
@@ -255,14 +178,10 @@ function getGrayScale(_r, _g, _b){
 
 
 module.exports.decodeImage = decodeImage;
-//module.exports.getImageDataFromFile = getImageDataFromFile;
+module.exports.getImageDataFromFile = getImageDataFromFile;
 module.exports.getPixelIndex = getPixelIndex;
 module.exports.getGrayScale = getGrayScale;
-// module.exports.convertImageToGrayScale = convertImageToGrayScale;
-// module.exports.convertImageDataToGrayScale = convertImageDataToGrayScale;
 module.exports.applyCannyEdge = applyCannyEdge;
 module.exports.applyGrayScale = applyGrayScale;
 module.exports.saveImageDataToFile = saveImageDataToFile;
 module.exports.resizeImage = resizeImage;
-module.exports.runTest = runTest;
-module.exports.decodeImage = decodeImage;

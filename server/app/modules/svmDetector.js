@@ -354,49 +354,9 @@ async function loadImageAndGetHog(_imagePath, _grayScale){
     try{
 
         var decodedImage = imgModule.decodeImage(_imagePath);
-
-        var imgWrapper = imgModule.resizeImage(decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
-        imgWrapper = imgModule.applyGrayScale(imgWrapper);
-        imgWrapper = imgModule.applyCannyEdge(imgWrapper);
-        if (_imagePath.endsWith('1/18.png')){
-            imgModule.saveImageDataToFile(decodedImage, 'original.png');
-            imgModule.saveImageDataToFile(imgWrapper, 'canny.png');
-        }
-        
-        //var img = await Image.load(_imagePath);
-        //img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-        //var jpegImageData = jpeg.encode(_imgData, 50);
-
-        //imgModule.runTest(_imagePath);
-
-        /*
-         let decodedImage = decodeImage(_imagePath);
-    saveImageDataToFile(decodedImage, 'original.png');
-    //fs.writeFileSync('original.png', Buffer.from(encode(imd, null, 'png')));
-
-    var resized1 = resizeImage(decodedImage, 1280, 640);
-    saveImageDataToFile(resized1, 'original.png');
-    //fs.writeFileSync('resized.png', Buffer.from(encode(resized1, null, 'png')));
-
-    var gs = applyGrayScale(resized1);;
-    saveImageDataToFile(gs, 'grey.png');
-    //fs.writeFileSync('grey.png', Buffer.from(encode(gs, null, 'png')));
-
-    var canny = applyCannyEdge2(gs);
-    fs.writeFileSync('canny.png', Buffer.from(encode(canny, null, 'png')));
-        */
-
-      
-
-
-        //var img = await imgModule.getImageDataFromFile(_imagePath);
-        
-        // var imgData = applyProcessing(img, _grayScale);
-        // if (_grayScale){
-        //     //fs.writeFileSync("test.jpg", imgData);
-        // }
+        decodedImage = applyProcessing(decodedImage);
         _grayScale = false;
-        var desc = hog.extractHogFeatures(imgWrapper.imageData.data, imgWrapper.imageData.width, imgWrapper.imageData.height, _grayScale);
+        var desc = hog.extractHogFeatures(imgWrapper.imageObject.data, imgWrapper.imageObject.width, imgWrapper.imageObject.height);
 
         return { success : true, payload : desc };
     }
@@ -439,41 +399,18 @@ async function saveTrainingResults(_results, _mlData){
     return { success : true, payload : document.payload };
 }
 
-function applyProcessing(_img, _applyGrayscale){
-    if (_applyGrayscale){
+//https://huningxin.github.io/opencv.js/samples/video-processing/index.html
+function applyProcessing(_decodedImage){
+    var imgWrapper = imgModule.resizeImage(decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
 
-        // var processedImg = imgModule.convertImageToGrayScale(_img);
-        // return processedImg.data;
-
-        // var processedImg = imgModule.convertImageDataToGrayScale(_img);
-        // return processedImg.data;
-
-        //_imageData = applyGrayscale(_img.data, _img.width, _img.height);
-        //_img = imgModule.convertImageToGrayScale(_img);
-
-        //_img = imgModule.applyCannyEdge(_img);
+    imgWrapper = imgModule.applyGrayScale(imgWrapper);
+    imgWrapper = imgModule.applyCannyEdge(imgWrapper);
+    if (_imagePath.endsWith('1/18.png')){
+        imgModule.saveImageDataToFile(decodedImage, 'original.png');
+        imgModule.saveImageDataToFile(imgWrapper, 'canny.png');
     }
 
-    imgModule.saveImageDataToFile(_img, 'original.jpg');
-
-    var resized = imgModule.resizeImage(_img, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
-    return resized.data;
-    imgModule.saveImageDataToFile(resized, 'resized.jpg');
-
-    var processedImg = imgModule.convertImageDataToGrayScale(_img);
-    imgModule.saveImageDataToFile(processedImg, 'grey.jpg');
-    // var  i = new Image(processedImg.width, processedImg.height, processedImg.data);
-    // i.save('test-image.jpg');
-
-    processedImg = imgModule.applyCannyEdge(processedImg);
-
-    imgModule.saveImageDataToFile(processedImg, 'canny.jpg');
-
-    return processedImg.data;
-
-    //_img = imgModule.applyCannyEdge(_img);
-
-    return _img.data;
+    return imgWrapper;
 }
 
 

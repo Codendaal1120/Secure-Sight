@@ -24,12 +24,11 @@ const PI_RAD = 180 / Math.PI;
  * @param {Buffer} _imgData - image data to transform into a HOG descriptor
  * @param {Number} _imgWidth - width of the image
  * @param {Number} _imgHeight - heigth of the image
- * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} Array of gradient vectors
  */
-function extractHogFeatures(_imgData, _imgWidth, _imgHeight, _grayScale) {    
+function extractHogFeatures(_imgData, _imgWidth, _imgHeight) {    
   
-  var gradients = getGradients(_imgData, _imgWidth, _imgHeight, _grayScale);
+  var gradients = getGradients(_imgData, _imgWidth, _imgHeight);
   var cWidth = Math.floor(gradients[0].length / CELL_SIZE);
   var cHeight = Math.floor(gradients.length / CELL_SIZE);
   var histograms = new Array(cHeight);
@@ -136,7 +135,7 @@ function getBinIndex(_rad) {
  * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} Array of gradient vectors
  */
-function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
+function getGradients(_imgData, _imgWidth, _imgHeight){
   
   const gradVec = new Array(_imgHeight);
   var writeTofile = "";
@@ -147,28 +146,21 @@ function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
 
     for (var x = 0; x < _imgWidth; x++) {
 
-      // let i = imgModule.getPixelIndex(x, y, _imgWidth);
-      // var r = _imgData[i];
-      // var g = _imgData[i+1];
-      // var b = _imgData[i+2];
-      // var gValue =  imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2]);
-      // writeTofile += `r=${r}, g=${g}, b=${b} => ${gValue} \r\n`;
-
       var prevX = x === 0 
         ? 0 // first pixel?
-        : getPixelValue(x - 1, y, _imgWidth, _imgData, _grayScale) / 255;
+        : getPixelValue(x - 1, y, _imgWidth, _imgData) / 255;
 
       var nextX = x === _imgWidth - 1 
         ? 0 // last pixel
-        : getPixelValue(x + 1, y, _imgWidth, _imgData, _grayScale) / 255;
+        : getPixelValue(x + 1, y, _imgWidth, _imgData) / 255;
 
       var prevY = y === 0 
         ? 0 
-        : getPixelValue(x, y - 1, _imgWidth, _imgData, _grayScale) / 255;
+        : getPixelValue(x, y - 1, _imgWidth, _imgData) / 255;
 
       var nextY = y === _imgHeight - 1 
         ? 0 
-        : getPixelValue(x, y + 1, _imgWidth, _imgData, _grayScale) / 255;
+        : getPixelValue(x, y + 1, _imgWidth, _imgData) / 255;
 
       // kernel [-1, 0, 1]
       var gradX = -prevX + nextX;
@@ -180,10 +172,6 @@ function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
       };
     }
   }
-
-  //fs.writeFileSync('gray2.txt', writeTofile);
-
-  //fs.writeFileSync('c:\\temp\\grad-vec.json', JSON.stringify(gradVec));
   
   return gradVec;
 }
@@ -199,14 +187,7 @@ function getGradients(_imgData, _imgWidth, _imgHeight, _grayScale){
  */
 function getPixelValue(_x, _y, _imageWidth, _imgData, _grayScale){
   let i = imgModule.getPixelIndex(_x, _y, _imageWidth);
-  
-  
-  //console.log("gray2=" + _imgData[i] + " to " + xTest);
-  return _imgData[i];
-
-  return _grayScale 
-    ? imgModule.getGrayScale(_imgData[i], _imgData[i+1], _imgData[i+2])
-    : _imgData[i];    
+  return _imgData[i];  
 }
 
 /** DEBUG method to save the block */
