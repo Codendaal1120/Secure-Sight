@@ -15,11 +15,11 @@ describe('Test HOG feature extractor', () => {
     });
 
     //Test feature extraction
-    it('Test feature extraction', async () => {
+    it('DEBUG-Test Test feature extraction', async () => {
 
         var filePath = path.join(__dirname, 'files', "circle.jpg");
-        var image = await img.getImageDataFromFile(filePath);
-        var features = hog.extractHogFeatures(image.data, image.width, image.height);
+        var image = img.getImageObjectFromFile(filePath);
+        var features = hog.extractHogFeatures(image);
         chai.expect(features).to.not.equal(null);
         chai.expect(features.length).to.equal(133956);        
     });

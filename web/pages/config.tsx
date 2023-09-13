@@ -1,20 +1,7 @@
-//import CameraViewer from "components/layout/CameraViewer";
-import { Button } from "@mui/material";
-import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
-import classNames from "classnames";
 import { useForm } from 'react-hook-form'
-import moment from 'moment';
-//import { TEInput, TERipple } from "tw-elements-react";
-import { API, CamEventConfig, CamEventSchedule, CamEventScheduleRange, Camera, Config } from "services/api";
+import { API, Config } from "services/api";
 import { Notifier } from "components/Notifier";
-import { AiOutlineEdit } from "react-icons/ai";
-import CameraConfigModal from '../components/CameraScheduleModal';
-import {
-  Accordion,
-  AccordionHeader,
-  AccordionBody,
-} from "@material-tailwind/react";
 
 export default function ConfigPage() {
 
@@ -165,6 +152,33 @@ export default function ConfigPage() {
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
               <div className="sm:col-span-2 ">
                 <label className="block text-sm leading-6 text-gray-400">
+                  The recipient email address. This is where the alerts will be sent for each camera..
+                </label>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="notifications.email.recipient" className="block text-sm font-medium leading-6 text-gray-900">
+                  Recipient
+                </label>
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    id="notifications.email.recipient"
+                    {...register('notifications.email.recipient', {  required: true, pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "invalid email addresszx"
+                    } })}
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm sm:leading-6"
+                  />
+                  {errors.notifications?.email?.recipient && errors.notifications?.email?.recipient.type === "pattern" && (
+                    <p className="text-xs italic text-red-500">invalid email address</p>
+                  )}
+                </div>
+              </div>              
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
+              <div className="sm:col-span-2 ">
+                <label className="block text-sm leading-6 text-gray-400">
                   The sender email address. This has to be configured as a sender in SendGrid, see <a className="font-medium text-blue-600 dark:text-blue-500 hover:underline" href="https://docs.sendgrid.com/glossary/sender-authentication">sender-authentication</a> for more information.
                 </label>
               </div>
@@ -225,7 +239,7 @@ export default function ConfigPage() {
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
               <div className="sm:col-span-2 ">
                 <label className="block text-sm leading-6 text-gray-400">
-                  The number of seconds an event can last, after this time has passed the event will automatically be finished and saved.
+                After an event has been finished new detections will be silenced for period of time.
                 </label>
               </div>
               <div className="sm:col-span-1">
@@ -249,7 +263,7 @@ export default function ConfigPage() {
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 content-start">
               <div className="sm:col-span-2 ">
                 <label className="block text-sm leading-6 text-gray-400">
-                  After an event has been finished new detections will be silenced for period of time.
+                  The number of seconds an event can last, after this time has passed the event will automatically be finished and saved.
                 </label>
               </div>
               <div className="sm:col-span-1">

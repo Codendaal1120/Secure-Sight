@@ -48,7 +48,8 @@ export interface CameraEvent {
 	recordingId: string;
 	cameraId: string;
 	cameraName : string;  
-	filePath: string;
+	recording: string;
+	motionText: string;
 	startedOn: Date;
 	endedOn: Date;  
 	detectionMethod : string;
@@ -102,8 +103,8 @@ export interface NotificationsConfig {
 export interface NotificationsEmailConfig {
 	providerApiKey: string;
 	sender : string;
+  recipient : string;
 }
-
 
 export class API {
 

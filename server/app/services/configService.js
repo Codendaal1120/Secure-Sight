@@ -18,7 +18,7 @@ async function getConfig() {
         }
         
         dotenv.config({ path: path.resolve(root, `.env.${process.env.NODE_ENV}`)});
-
+        
         let tryGet = await dataService.getOneAsync(collectionName, { });
 
         if (!tryGet.success){
@@ -79,6 +79,7 @@ async function tryUpdateConfig(_config){
             cameraBufferSeconds: parseInt(_config.cameraBufferSeconds), 
             removeTempFiles: _config.removeTempFiles, 
             event: _config.event,
+            notifications: _config.notifications,
             updatedOn: new Date() }
     }
 

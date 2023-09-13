@@ -58,6 +58,7 @@ async function tryGetEvent(_eventId){
 		return { success : true, payload : createReturnObject(tryGet.payload, fullPath)};        
   }
   catch (err) {
+      console.error(err.stack);
       logger.log('error', err);
       return { success : false, error : err.message };
   }
@@ -123,7 +124,7 @@ function validate(evt){
         errors.push("Invalid event id");
     }
 
-    if (!evt.camId){
+    if (!evt.cameraId){
         errors.push("Invalid event camera id");
     }
 
@@ -187,11 +188,41 @@ function createReturnObject(doc, fullPath){
     ret[k] = v;
   }  
 
+  var stats = calcMotionStats(doc);
+
 	var p = path.join(fullPath, ret.recording);
-	ret['fileIsValid'] = fs.existsSync(p);
-	ret['duration'] = Math.round(((ret.endedOn - ret.startedOn) / 1000), 0);
+	ret.fileIsValid = fs.existsSync(p);
+	ret.duration = Math.round(((ret.endedOn - ret.startedOn) / 1000), 0);
+  ret.motionMean = stats.diffMean;  
+  ret.blockAve = stats.blockAve;  
+  ret.motionText = `Mean difference: ${stats.diffMean}, Average blocks changed: ${stats.blockAve}%`;  
 
   return ret;
+}
+
+function calcMotionStats(doc){
+
+  if (!doc.detections[0].motion){
+    return { diffMean: 0, blockAve: 0 }
+  }
+ 
+  var motionMeanSum = 0;
+  var blockAveSum = 0;
+  for (let i = 0; i < doc.detections.length; i++) {
+    motionMeanSum += 1 / doc.detections[i].motion.aveDiff; 
+    blockAveSum += doc.detections[i].motion.blockCount / doc.detections[i].motion.totalBlocks;   
+  }
+
+  var dMean = doc.detections.length / motionMeanSum;
+  var bAve = (blockAveSum / doc.detections.length) * 100;
+
+  return { diffMean: round(dMean, 2), blockAve: round(bAve, 2) }
+
+}
+
+function round(number, places){
+  var m = Math.pow(10, places);
+  return Math.round(number * (m)) / m;
 }
 
 /** Generates a new unique id */

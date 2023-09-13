@@ -13,6 +13,7 @@ const fs = require("fs");
 
 let streamService = null;
 let videoAnalysisService = null;
+let isReady = false;
 
 configService.getConfig().then((result) => {
     cache.config = result;
@@ -40,9 +41,11 @@ function startServer(){
         videoAnalysisService = require("./app/services/videoAnalysisService");
     }
 
-    logger.log('info', `CORS origin : ${process.env.UI_ADDRESS}`);
+    const whitelist = process.env.CORS.split(",");
+
+    logger.log('info', `CORS origin : ${process.env.CORS}`);
     app.use(cors({
-        origin : process.env.UI_ADDRESS, 
+        origin: whitelist,
         credentials: true, 
         allowedHeaders : 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Set-Cookie, *'
     }));
@@ -97,9 +100,12 @@ function startServer(){
 
     /** Start server */
     http.listen(port, () => {  
-        logger.log('info', `SecureSight WS listening at http://localhost:${port}`)
+        logger.log('info', `SecureSight WS listening at http://localhost:${port}`);
+        isReady = true;
     });
 
-    module.exports = app;
+    
 }
+
+module.exports = app;
 

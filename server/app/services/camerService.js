@@ -169,6 +169,8 @@ var tryDeleteCam = async function(_camId){
         return { success : false, error : `Could not delete camera with id '${_camId}'` };
     }
 
+    delete cache.cameras[_camId];
+
     return { success : true, payload : "Camera deleted" };
 }
 
@@ -186,6 +188,10 @@ function validateCamera(camera){
     if (!camera.url){
         errors.push("Invalid url");
     }    
+
+    if (!camera.eventConfig){
+        errors.push("Invalid eventConfig");
+    }  
 
     return errors;
 }

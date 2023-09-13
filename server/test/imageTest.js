@@ -14,7 +14,7 @@ describe('Image utilities tests', () => {
 
     it('can get image data from file', async () => {
         var filePath = path.join(__dirname, 'files', 'grid.jpg');
-        var rawImageData = img.getRawImageDataFromFile(filePath);
+        var rawImageData = img.getImageObjectFromFile(filePath)?.data;
         chai.expect(rawImageData).to.not.equal(null);
     });
 

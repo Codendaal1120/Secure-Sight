@@ -1,5 +1,6 @@
 const SVM = require('libsvm-js/asm');
 const hog = require("./hogModule");
+const imgModule  = require("./imageModule");
 const fs = require("fs");
 const path = require('path');
 const Kernel = require('ml-kernel');
@@ -9,9 +10,6 @@ const logger = require('../modules/loggingModule').getLogger('svmDetector');
 const math = require('mathjs');
 const dataService = require('../services/dataService');
 const collectionName = 'svm';
-
-//const IMG_SCALE_WIDTH = 100;
-//const IMG_SCALE_HEIGHT = 100;
 
 const IMG_SCALE_WIDTH = 64;
 const IMG_SCALE_HEIGHT = 128;
@@ -136,19 +134,14 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
         svm = loadModelFromFile();
     }    
 
-    logger.log('info', 'Predicting');
+    //logger.log('debug', 'Predicting');
 
     img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-    //var desc = hog.extractHogFeatures(img.data, img.width, img.height);
-    let options_hog = {
-        cellSize: 4,
-        blockSize: 2,
-        blockStride: 1,
-        bins: 6,
-        norm: "L2"
-    };
-    var desc = hog.extractHOG(img, options_hog);
-    kc = kernel.compute(descriptor).addColumn(0, range(1, descriptor.length + 1))
+    var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+    if (kernel == null){
+        kernel = new Kernel('polynomial', {degree: 3, scale: 1 / desc.length});
+    }
+    kc = kernel.compute(desc).addColumn(0, range(1, desc.length + 1))
     let p = svm.predictOne(desc);
 
     if (!_labels){
@@ -287,8 +280,11 @@ async function loadMlData(_imageDirectory, _trainDataSize){
         var trainSize = Math.floor(files.length * _trainDataSize);
 
         for (let j = 0; j < files.length; j++) {
-            logger.log('info', 'Loading ' + files[j]);        
-            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j]);
+            logger.log('info', 'Loading ' + files[j]);   
+            
+            // apply grayscale to the original dataset images, named 0.jpg, but not to the ones from tf
+            var applyGray = files[j].length <= 6;
+            var loadHog = await loadImageAndGetHog(labelDirectory + '/' + files[j], applyGray);
             if (loadHog.success){
 
                 if (j <= trainSize){
@@ -329,7 +325,7 @@ async function startSvmTraining(){
       await trainSVM('persons');
 
     }, 60 * 60 * 1000);
-  }
+}
 
 function shuffle(a) {
     var j, x, i;
@@ -345,17 +341,21 @@ function shuffle(a) {
 /**
  * Loads the image and gets the hog features
  * @param {string} _imagePath - Path to file
+ * @param {boolean} _grayScale - Indicate if grayscale should be applied to the image
  * @return {Array} HOG features
  */
-async function loadImageAndGetHog(_imagePath){
+async function loadImageAndGetHog(_imagePath, _grayScale){
     try{
-        var img = await Image.load(_imagePath);
-        img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-        var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+
+        var decodedImage = imgModule.decodeImage(_imagePath);
+        decodedImage = applyProcessing(decodedImage);
+        _grayScale = false;
+        var desc = hog.extractHogFeatures(decodedImage.imageObject);
 
         return { success : true, payload : desc };
     }
     catch(err){
+        console.error(err.stack);
         logger.log('error', `ERROR loading ${_imagePath} : ${err}`)
         return { success : false, error : err };
     }    
@@ -391,6 +391,22 @@ async function saveTrainingResults(_results, _mlData){
     }
 
     return { success : true, payload : document.payload };
+}
+
+//https://huningxin.github.io/opencv.js/samples/video-processing/index.html
+function applyProcessing(_decodedImage){
+
+    var imgWrapper = imgModule.resizeImage(_decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
+    imgWrapper = imgModule.applyGrayScale(imgWrapper);
+    //imgWrapper = imgModule.applyCannyEdge(imgWrapper);
+    //imgWrapper = imgModule.applyAdaptiveThreshold(imgWrapper);
+
+    // if (imgWrapper.filePath.endsWith('1/18.png')){
+    //     imgModule.saveImageDataToFile(_decodedImage, 'temp/original.png');
+    //     imgModule.saveImageDataToFile(imgWrapper, 'temp/processed.png');        
+    // } 
+
+    return imgWrapper;
 }
 
 module.exports.trainSVM = trainSVM;

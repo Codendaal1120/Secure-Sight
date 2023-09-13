@@ -219,6 +219,9 @@ export default function EventsPage() {
 								FileName
 							</th>
 							<th scope="col" className="px-6 py-3">
+								Motion
+							</th>
+							<th scope="col" className="px-6 py-3">
 								Occured on
 							</th>
 							<th scope="col" className="px-6 py-3">
@@ -248,13 +251,16 @@ export default function EventsPage() {
 									{evt.detectionMethod}
 								</td>
 								<td className="px-6 py-4">
-									{evt.filePath}
+									{evt.recording}
 								</td>
+								<td className="px-6 py-4">
+									{evt.motionText}
+								</td>								
 								<td className="px-6 py-4">
 									{ formatDateTime(evt.startedOn) }
 								</td>
 								<td className="px-6 py-4">
-										{ moment(evt.startedOn).local().format('LLL') }
+									{ moment(evt.startedOn).local().format('LLL') }
 								</td>
 								<td className="px-6 py-4">
 									{ secondsToTime(evt.duration) }

@@ -277,8 +277,7 @@ async function startWatcherStream(cam){
     function(data){
       // this goes to UI
       //logger.log('info', `writing to ${cam.id}-stream`);
-      cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);
-      
+      cache.services.ioSocket.sockets.emit(`${cam.id}-stream`, data);      
     }
   )  
 

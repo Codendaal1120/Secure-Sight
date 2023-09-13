@@ -54,8 +54,8 @@ function runFFmpeg(args, processName, onSpawn, onData, onDataError, onClose, onE
 }
 
 /**
- * @url https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L44
- * (c) koush <https://github.com/koush>
+ * Adapted from
+ * @see https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L44
  **/
 const createLengthParser = (length, verify) => {
   async function* parse(socket, timeOffset) {
@@ -102,9 +102,9 @@ const createLengthParser = (length, verify) => {
 };
 
 /**
-* @url https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L92
-* (c) koush <https://github.com/koush>
-**/
+ * Adapted from
+ * @see https://github.com/koush/scrypted/blob/fcfdadc9849099134e3f6ee6002fa1203bccdc91/common/src/stream-parser.ts#L92
+ **/
 const createMpegTsParser = () => {
   return {
     parse: createLengthParser(188, (concat) => {

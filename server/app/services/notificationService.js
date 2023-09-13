@@ -6,7 +6,12 @@ const eService = require('./eventsService');
 const moment = require('moment');
 const imgModule = require('../modules/imageModule');
 
-sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
+let mailReady = false;
+
+if (cache.config.notifications?.email?.providerApiKey){
+	sgMail.setApiKey(cache.config.notifications.email.providerApiKey);
+	mailReady = true;
+}	
 
 /**
  * Get all configured cameras from DB
@@ -38,6 +43,7 @@ async function testUiMessage(topic, msg) {
         return { success : true };
     }
     catch (err) {
+		console.error(err.stack);
         return { success : false, error : err.message };
     }
 };
@@ -50,30 +56,35 @@ async function sendEmailAltert(_alert){
 			return tryGet;
 		}
 
-		var img = await imgModule.getImageDataFromFile('app/resources/logo.png');
+		var img = imgModule.getBase64Image('app/resources/logo.png');
 
 		const msg = {
 			to: _alert.recipient,
 			from: cache.config.notifications.email.sender, 
 			subject: `${tryGet.payload.cameraName} alert`,
-			text: `Movement has was detected on ${moment(_event.startedOn).local().format('LLL')}. To view this event click the following ${cache.config.uiAddress}/events?event=${_event.id}`,
+			text: `Movement has was detected on ${moment(tryGet.payload.startedOn).local().format('LLL')}. To view this event click the following ${cache.config.uiAddress}/events?event=${tryGet.payload.id}`,
 			html: generateEmailHtml(tryGet.payload, cache.config.uiAddress),
 			attachments: [
 				{
 					filename: 'Secure-Sight.png',
 					contentType: 'image/png',
 					content_id: '1557',
-					content: img.toBase64(),
+					content: img,
 					disposition: 'inline'
 				}
 			]
 		};
 
-		await sgMail.send(msg);
-
-		return { success : true };        
+		if (mailReady){
+			await sgMail.send(msg);
+			return { success : true }; 
+		}
+		
+		return { success : false, error : !mailReady ? 'Mail service was not initialized' : 'Unknown error occured' }; 
+		       
 	}
 	catch (error) {
+		console.error(error.stack);
 		logger.log('error', error);
 		return { success : false, error : error.message };
 	}
