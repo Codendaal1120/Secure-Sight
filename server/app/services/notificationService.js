@@ -84,7 +84,7 @@ async function sendEmailAltert(_alert){
 		       
 	}
 	catch (error) {
-		console.error(error.stack);
+		logger.error(error.stack);
 		logger.log('error', error);
 		return { success : false, error : error.message };
 	}

@@ -44,7 +44,8 @@ const HomePage: NextPage = () => {
     <div id="main" className="container" style={pageStyle}>
        <section style={camerasStyle} className="cameras">
        {cameras.map((cam, i) => {      
-           return (<DynamicComponentWithNoSSR key={i.toString()} cameraName={cam.name} cameraId={cam.id} ></DynamicComponentWithNoSSR>) 
+          let name = cam.detectionMethod == 'tf' ? cam.name + ' (Tensor flow)' : cam.name + ' (SVM)';
+          return (<DynamicComponentWithNoSSR key={i.toString()} cameraName={name} cameraId={cam.id} ></DynamicComponentWithNoSSR>) 
         })}
        </section>        
     </div>
