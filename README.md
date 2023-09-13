@@ -1,6 +1,4 @@
 [![Node.js CI](https://github.com/Codendaal1120/Secure-Sight-development/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/Codendaal1120/Secure-Sight-development/actions/workflows/main.yml)
-
-
 # Secure Sight
 Security system for managing surveillance cameras that can detect movement, identify humans and send an alert based on the captured information.
 *This is a hobby project and not intended for commercial use. It will probably not be updated.* 
