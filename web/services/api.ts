@@ -39,7 +39,7 @@ export interface Recording {
 	filePath: string;
 	cameraName : string;
 	type : string;
-	recordedOn: Date;
+	startedOn: Date;
 	length: number;
 	fileIsValid: boolean;
 }

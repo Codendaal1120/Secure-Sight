@@ -225,7 +225,7 @@ export default function RecordingsPage() {
 															{rec.filePath}
 													</td>
 													<td className="px-6 py-4">
-															{ moment(rec.recordedOn).local().format('LLL') }
+															{ moment(rec.startedOn).local().format('LLL') }
 													</td>
 													<td className="px-6 py-4">
 															{ secondsToTime(rec.length) }
