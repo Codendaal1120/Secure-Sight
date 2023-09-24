@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const svmModule = require("../modules/svmDetector");
-const path = require('path');
+const imgModule = require("../modules/imageModule");
 const multer = require('multer');
 
 /**
@@ -67,26 +67,14 @@ router.post("/parse-test-images", async function (req, res) {
  * @route POST /api/svm/parse-test-images
  * @group SVM api
  * @param {object} req.file - Image file to predict
- * @param {Number} req.query.height - Image height
- * @param {Number} req.query.width - Image width
  * @returns {object} 200  - prediction result
  * @returns {object} 400  - Bad request
  * @returns {Error}  500 - Unexpected error
 */
 router.post("/predict",  multer().single('file'), async function (req, res) {  
   try{
-
-    if (!req.query.height){
-      res.status(400).send("Image height is required");
-      return; 
-    }
-
-    if (!req.query.width){
-      res.status(400).send("Image width is required");
-      return; 
-    }
-
-    let p = await svmModule.predict(req.file.data, parseInt(req.query.width), parseInt(req.query.height));
+    let decodedImage = imgModule.decodeImageBuffer(req.file.buffer, 'png');
+    let p = await svmModule.predict(decodedImage.imageObject.data, parseInt(decodedImage.imageObject.width), parseInt(decodedImage.imageObject.height));
     res.status(200).json(p);
   }
   catch(err){

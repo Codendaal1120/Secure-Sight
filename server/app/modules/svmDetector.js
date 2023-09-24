@@ -18,6 +18,7 @@ const ML_PREFIX = "persons";
 
 let svm = null;
 let kernel = null;
+let trainData = null;
 
 /**
  * Performs object detection from the image data using HOG and SVM
@@ -127,6 +128,7 @@ async function parseTrainingFiles_Kaggle(){
  * @return {Object} Prediction results
  */
 async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_human', 'human']){
+
     var img = new Image(_imageWidth, _imageHeight, _imageData);
         
     if (!svm){
@@ -134,14 +136,22 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
         svm = loadModelFromFile();
     }    
 
-    //logger.log('debug', 'Predicting');
+    //logger.log('debug', 'Predicting', img);
 
     img = await img.scale({width: IMG_SCALE_WIDTH, height: IMG_SCALE_HEIGHT});
-    var desc = hog.extractHogFeatures(img.data, img.width, img.height);
+    var desc = hog.extractHogFeatures(img);
+
     if (kernel == null){
         kernel = new Kernel('polynomial', {degree: 3, scale: 1 / desc.length});
     }
-    kc = kernel.compute(desc).addColumn(0, range(1, desc.length + 1))
+    if (trainData != null){
+        console.log('predicting with data');
+    }
+    
+    kc = trainData == null 
+        ? kernel.compute(desc).addColumn(0, range(1, desc.length + 1))
+        : kernel.compute(desc, trainData).addColumn(0, range(1, desc.length + 1));
+
     let p = svm.predictOne(desc);
 
     if (!_labels){
@@ -151,12 +161,6 @@ async function predict(_imageData, _imageWidth, _imageHeight, _labels = ['non_hu
     return { label: _labels[p] };
 }
 
-/**
- * Test the saved svm model
- * @param {object} _model - Model to test load
- * @param {string} _prefix - Prefix for test/training data
- * @return {Object} Test results
- */
 /**
  * Test the saved svm model
  * @param {object} _model - Model to test load
@@ -177,6 +181,8 @@ async function testModel(_model, _mlData) {
     // load test files
     // var imageDir = path.join(__dirname, '../ml', `${_prefix}_test_images`);
     // var mlTestData = await getMlData(imageDir);
+
+    trainData = _mlData.train.data;
 
     var kData = kernel.compute(_mlData.test.data, _mlData.train.data).addColumn(0, range(1, _mlData.test.data.length + 1));  
 
@@ -349,7 +355,6 @@ async function loadImageAndGetHog(_imagePath, _grayScale){
 
         var decodedImage = imgModule.decodeImage(_imagePath);
         decodedImage = applyProcessing(decodedImage);
-        _grayScale = false;
         var desc = hog.extractHogFeatures(decodedImage.imageObject);
 
         return { success : true, payload : desc };
@@ -397,14 +402,7 @@ async function saveTrainingResults(_results, _mlData){
 function applyProcessing(_decodedImage){
 
     var imgWrapper = imgModule.resizeImage(_decodedImage, IMG_SCALE_WIDTH, IMG_SCALE_HEIGHT);
-    imgWrapper = imgModule.applyGrayScale(imgWrapper);
-    //imgWrapper = imgModule.applyCannyEdge(imgWrapper);
-    //imgWrapper = imgModule.applyAdaptiveThreshold(imgWrapper);
-
-    // if (imgWrapper.filePath.endsWith('1/18.png')){
-    //     imgModule.saveImageDataToFile(_decodedImage, 'temp/original.png');
-    //     imgModule.saveImageDataToFile(imgWrapper, 'temp/processed.png');        
-    // } 
+    //imgWrapper = imgModule.applyGrayScale(imgWrapper);
 
     return imgWrapper;
 }

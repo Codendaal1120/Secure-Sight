@@ -22,8 +22,6 @@ const PI_RAD = 180 / Math.PI;
 /**
  * Creates HOG from image data, splitting into blocks
  * @param {Object} _imgObject - image data object to transform into a HOG descriptor
- * @param {Number} _imgWidth - width of the image
- * @param {Number} _imgHeight - heigth of the image
  * @return {Array} Array of gradient vectors
  */
 function extractHogFeatures(_imgObject) {    

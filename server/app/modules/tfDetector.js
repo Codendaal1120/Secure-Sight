@@ -32,8 +32,7 @@ async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {
     }
 
     const image = tf.node.decodeImage(_imgData);
-    const predictions = await model.detect(image, 3, 0.25);
-  
+    const predictions = await model.detect(image, 3, 0.25);  
 
     predictions.forEach(element => {     
       //console.log(element.class, 'detected') ;
@@ -66,7 +65,7 @@ async function processImage(_imgData, _imgWidth, _imgHeight, _detectedOn) {
  */
 function createObject(_element, _imgWidth, _imgHeight, _detectedOn, _conf){
   return { 
-    detectedOn: _detectedOn, 
+    startedOn: _detectedOn, 
     x: utility.mapRange(_element.bbox[0], 0, _imgWidth, 0, 1),
     y: utility.mapRange(_element.bbox[1], 0, _imgHeight, 0, 1), 
     width: utility.mapRange(_element.bbox[2], 0, _imgWidth, 0, 1), 

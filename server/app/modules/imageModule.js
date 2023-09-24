@@ -1,10 +1,9 @@
 /** Image utility class */
-// const {Image } = require('image-js');
-// const jpeg = require('jpeg-js');
 const cv = require('opencv.js');
 const fs = require("fs");
 const decode = require('image-decode');
 const encode = require('image-encode');
+
 /**
  * Loads a file from the path and returns the pixel data
  * @param {String} _filePath - Path to the file
@@ -13,6 +12,16 @@ const encode = require('image-encode');
 function decodeImage(_filePath){
     let imd = decode(fs.readFileSync(_filePath));
     return { imageObject: imd, type: _filePath.substr(_filePath.length - 3), filePath: _filePath }
+}
+
+/**
+ * Returns the pixel data from the image buffer
+ * @param {buffer} _buffer - Image buffer
+ * @return {object} Image wrapper object with decoded image data
+ */
+function decodeImageBuffer(_buffer, _type){
+    let imd = decode(_buffer);
+    return { imageObject: imd, type: _type, filePath: undefined }
 }
 
 /**
@@ -63,7 +72,6 @@ function applyGrayScale(_imgWrapper){
         width: src.size().width,
         height: src.size().height
     };
-
     
     src.delete();
 
@@ -160,6 +168,7 @@ function getBase64Image(_filePath){
 }
 
 module.exports.decodeImage = decodeImage;
+module.exports.decodeImageBuffer = decodeImageBuffer;
 module.exports.getImageObjectFromFile = getImageObjectFromFile;
 module.exports.getPixelIndex = getPixelIndex;
 module.exports.getBase64Image = getBase64Image;

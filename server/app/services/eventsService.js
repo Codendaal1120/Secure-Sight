@@ -76,16 +76,14 @@ async function tryDeleteEvent(_recordingId){
       return tryGet;
     }
   
-    var fullPath = path.join(cache.config.root, 'server', tryGet.payload.filePath);
+    var fullPath = path.join(cache.config.root, 'server', tryGet.payload.recording);  
   
-    if (!fs.existsSync(fullPath)) {
-      return { success: false, error: `Could not find the recording file at ${tryGet.payload.filePath}` }
-    } 
-  
-    try{
-      fs.unlinkSyncfs(fullPath);
+    try{      
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }       
     }catch(err){
-      return { success: false, error: `Could not delete the recording file at ${tryGet.payload.filePath} : ${err.message}` }
+      return { success: false, error: `Could not delete the recording file at ${tryGet.payload.recording} : ${err.message}` }
     }
   
     var tryDel = await dataService.deleteOneAsync(collectionName, { "_id" : dataService.toDbiD(_recordingId) });

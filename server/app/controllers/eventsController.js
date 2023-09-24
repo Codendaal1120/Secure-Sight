@@ -39,7 +39,7 @@ router.delete("/:evtId", async function (req, res) {
 
   const result = await eventsService.tryDeleteEvent(req.params.evtId); 
   if (result.success){
-      res.download(result.payload);
+      res.send(result.payload);
   }
   else{
       res.status(400).json(result.error);

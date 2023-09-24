@@ -202,7 +202,7 @@ async function handleFrame(_cameraEntry, _frameData, _detectedOn){
     _cameraEntry.event = {
       id : evtService.genrateEventId(),
       cameraId : _cameraEntry.camera.id,
-      startedOn : frameDetections.predictions[0].detectedOn,    
+      startedOn : frameDetections.predictions[0].startedOn,    
       limitTime : new Date(now.getTime() + cache.config.event.limitSeconds * 1000),
       buffer : [],
       lock: 'handleFrame',
@@ -462,10 +462,10 @@ async function processFrame(_cameraEntry, data, _detectedOn){
         if (detection && detection.label == 'human'){
           predictions.push({ 
             startedOn: _detectedOn, 
-            x: utility.mapRange(motion.x, 0, width, 0, 1280), 
-            y: utility.mapRange(motion.y, 0, height, 0, 720),
-            width: utility.mapRange(motion.width, 0, width, 0, 1280), 
-            height: utility.mapRange(motion.height, 0, height, 0, 720)
+            x: utility.mapRange(motion.x, 0, width, 0, 1), 
+            y: utility.mapRange(motion.y, 0, height, 0, 1),
+            width: utility.mapRange(motion.width, 0, width, 0, 1), 
+            height: utility.mapRange(motion.height, 0, height, 0, 1)
           });          
         }
       }
@@ -493,7 +493,7 @@ async function processFrame(_cameraEntry, data, _detectedOn){
       }
     }
   }
-  catch(error){
+  catch(error){   
     console.error(error.stack);
     logger.log('error', `[${_cameraEntry.camera.id}] Video processing error : ${error.message}`);
   }  

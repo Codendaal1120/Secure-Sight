@@ -12,7 +12,7 @@ const heigh = 320;
  * @param {Number} _diffThreshold - Threshold to filter out noise 
  * @returns {object} Summary of difference, NULL if no difference
  */
-function getMotionRegion(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _diffThreshold = 300){
+function getMotionRegion(_frameBuffer, _blockWidth = 128, _blockHeight = 64, _diffThreshold = 330){
     if (_frameBuffer.length < 3){
         return null;
     }
